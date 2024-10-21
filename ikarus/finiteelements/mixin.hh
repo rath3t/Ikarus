@@ -121,6 +121,18 @@ public:
   }
 
   /**
+   * \brief Update the state variables related to a particular skill.
+   *
+   * \param req The Requirement object specifying the requirements for the update itself.
+   * \param force A correction vector (for example, the displacement increment) based on which the state variables are
+   * to be updated.
+   */
+  friend void updateState(FEMixin& self, const Requirement& req,
+                          typename Traits::template VectorTypeConst<> correction) {
+    self.template updateStateImpl<double>(req, correction);
+  }
+
+  /**
    * \brief Calculate the matrix associated with the given Requirement.
    *
    * \tparam ScalarType The scalar type for the calculation.
@@ -242,6 +254,19 @@ public:
     (Skills<PreFE, typename PreFE::template FE<Skills...>>::template calculateMatrixImpl<ScalarType>(par, affordance, K,
                                                                                                      dx),
      ...);
+  }
+
+private:
+  static constexpr bool implementsUpdateStateImpl =
+      (requires(FEMixin m, const Requirement& par, typename Traits::template VectorTypeConst<> correction) {
+        m.Skills<PreFE, typename PreFE::template FE<Skills...>>::updateStateImpl(par, correction);
+      } || ...);
+
+public:
+  template <typename ScalarType>
+  requires implementsUpdateStateImpl
+  void updateStateImpl(const Requirement& par, typename Traits::template VectorTypeConst<> correction) {
+    (Skills<PreFE, typename PreFE::template FE<Skills...>>::updateStateImpl(par, correction), ...);
   }
 
 protected:

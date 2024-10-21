@@ -100,6 +100,8 @@ void registerFE(pybind11::handle scope, pybind11::class_<FE, options...> cls) {
           pybind11::keep_alive<1, 2>());
 
   cls.def("bind", [](FE& self, const GridElement& e) { self.bind(e); });
+  cls.def("updateState",
+          [](FE& self, const Requirement& req, Eigen::Ref<Eigen::VectorXd> dx) { updateState(self, req, dx); });
   cls.def("calculateScalar", [](FE& self, const Requirement& req, Ikarus::ScalarAffordance affordance) {
     return calculateScalar(self, req, affordance);
   });

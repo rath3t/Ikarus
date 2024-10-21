@@ -16,7 +16,7 @@
 
 template <typename GridView, typename BasisHandler, typename Skills, typename AffordanceColl, typename VectorType>
 auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis, Skills&& skills,
-                            AffordanceColl affordance, VectorType& d, const std::string& messageIfFailed = "",
+                            AffordanceColl affordance, VectorType& d, const std::string& testName = "",
                             double tol = 1e-10) {
   double lambda = 7.3;
   auto fe       = Ikarus::makeFE(basis, std::forward<Skills>(skills));
@@ -24,14 +24,14 @@ auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis,
 
   auto req = typename FE::Requirement();
   req.insertGlobalSolution(d).insertParameter(lambda);
-  Dune::TestSuite t("Check calculateScalarImpl() and calculateVectorImpl() by Automatic Differentiation" +
-                    messageIfFailed);
+  Dune::TestSuite t("Check calculateScalarImpl() and calculateVectorImpl() by Automatic Differentiation" + testName);
   for (auto element : elements(gridView)) {
     auto localView = basis.flat().localView();
     localView.bind(element);
     auto nDOF = localView.size();
 
     fe.bind(element);
+    updateState(fe, req, d); // here d = correction vector (DeltaD)
 
     const std::string feClassName = Dune::className(fe);
 
@@ -49,14 +49,43 @@ auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis,
     calculateMatrix(fe, req, affordance.matrixAffordance(), K);
     calculateMatrix(feAutoDiff, req, affordance.matrixAffordance(), KAutoDiff);
 
-    calculateVector(fe, req, affordance.vectorAffordance(), R);
-    calculateVector(feAutoDiff, req, affordance.vectorAffordance(), RAutoDiff);
-
-    checkScalars(t, calculateScalar(fe, req, affordance.scalarAffordance()),
-                 calculateScalar(feAutoDiff, req, affordance.scalarAffordance()),
-                 testLocation() + "Incorrect Energies." + feClassName, tol);
-    checkApproxVectors(t, R, RAutoDiff, testLocation() + "Incorrect residual vectors." + feClassName, tol);
     checkApproxMatrices(t, K, KAutoDiff, testLocation() + "Incorrect stiffness matrices." + feClassName, tol);
+    if constexpr (requires { fe.numberOfEASParameters(); }) {
+      t.check(fe.numberOfEASParameters() == feAutoDiff.realFE().numberOfEASParameters())
+          << "Number of EAS parameters for FE(" << fe.numberOfEASParameters()
+          << ") and number of EAS parameters for AutodiffFE(" << feAutoDiff.realFE().numberOfEASParameters()
+          << ") are not equal";
+
+      t.check(fe.alpha().isApprox(feAutoDiff.alpha(), tol), "Mismatch in alpha.")
+          << "alpha is\n"
+          << fe.alpha().transpose() << "\n alphaAutoDiff is\n"
+          << feAutoDiff.alpha();
+
+      if (fe.numberOfEASParameters() != 0) {
+        t.checkThrow<Dune::NotImplemented>(
+            [&]() { calculateVector(feAutoDiff, req, affordance.vectorAffordance(), RAutoDiff); },
+            "calculateVector with AutoDiff should throw a Dune::NotImplemented");
+
+        t.checkThrow<Dune::NotImplemented>(
+            [&]() { auto energyAutoDiff = calculateScalar(feAutoDiff, req, affordance.scalarAffordance()); },
+            "calculateScalar with AutoDiff should throw a Dune::NotImplemented");
+      }
+      calculateVector(fe, req, affordance.vectorAffordance(), R);
+      t.check(isApproxSame(R, RAutoDiff, tol),
+              "automatic differentiation for " +
+          << (R - RAutoDiff).transpose();
+    } else {
+      calculateVector(feAutoDiff, req, affordance.vectorAffordance(), RAutoDiff);
+              "Mismatch between the residual vectors obtained from explicit implementation and the one based on "
+                  feClassName)
+          << "R is " << R.transpose() << "\nRAutoDiff is " << RAutoDiff.transpose() << "\nThe difference is "
+
+      t.check(Dune::FloatCmp::eq(calculateScalar(fe, req, affordance.scalarAffordance()),
+                                 calculateScalar(feAutoDiff, req, affordance.scalarAffordance()), tol),
+              "Mismatch between the energies obtained from explicit implementation and the one based on "
+              "automatic differentiation for " +
+                  feClassName);
+    }
   }
 
   return t;

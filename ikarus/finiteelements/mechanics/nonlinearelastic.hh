@@ -156,6 +156,22 @@ public:
   }
 
   /**
+   * \brief Gets the material tangent function for the given Requirement.
+   *
+   * \param par The Requirement object.
+   * \return The material tangent function.
+   */
+  auto materialTangentFunction([[maybe_unused]] const Requirement& par) const {
+    return [&]([[maybe_unused]] auto gpIndex) {
+      using namespace Dune::DerivativeDirections;
+      using namespace Dune;
+      const auto eps    = strainFunction(par);
+      const auto EVoigt = (eps.evaluate(gpIndex, on(gridElement))).eval();
+      return materialTangent(EVoigt);
+    };
+  }
+
+  /**
    * \brief Get the internal energy for the given strain.
    *
    * \tparam ScalarType The scalar type for the material and strain.
@@ -309,6 +325,7 @@ protected:
       }
     }
   }
+  void updateStateImpl(const Requirement& /* par */, typename Traits::template VectorTypeConst<> /* correction */) {}
 };
 
 /**

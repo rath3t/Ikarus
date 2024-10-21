@@ -9,6 +9,7 @@
 #pragma once
 
 #include <ikarus/solver/linearsolver/linearsolver.hh>
+#include <ikarus/solver/nonlinearsolver/helperfunctions.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/concepts.hh>
 #include <ikarus/utils/defaultfunctions.hh>
@@ -182,6 +183,7 @@ public:
         dNorm       = norm(correction_);
         updateFunction_(x, correction_);
       }
+      updateStates(nonLinearOperator().assembler(), correction_);
       this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
       this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
       nonLinearOperator().updateAll();

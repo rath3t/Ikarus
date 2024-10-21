@@ -220,6 +220,8 @@ protected:
     const auto [L, l, Elin, Egl, dEdu, ddEddu] = computeStrain(par, dx);
     force += E * A * Egl * L * dEdu;
   }
+
+  void updateStateImpl(const Requirement& /* par */, typename Traits::template VectorTypeConst<> /* correction */) {}
 };
 
 /**
