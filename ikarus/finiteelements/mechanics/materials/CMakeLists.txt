@@ -6,6 +6,7 @@ install(
   FILES interface.hh
         linearelasticity.hh
         neohooke.hh
+        blatzko.hh
         strainconversions.hh
         svk.hh
         tags.hh
