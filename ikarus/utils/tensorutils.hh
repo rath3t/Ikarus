@@ -50,6 +50,19 @@ auto dyadic(const auto& A_ij, const auto& B_kl) {
 }
 
 /**
+ * \brief Computes the dyadic product of two first order Tensors (here: Eigen::Vector).
+ * \details The components of the result read  \f[ A_{ij} = a_{i}b_{j}. \f]
+ * \ingroup tensor
+ * \param a_i First tensor.
+ * \param b_j Second tensor.
+ * \return  Resulting tensor after the dyadic product
+ */
+template <typename ST_, int size>
+auto dyadic(const Eigen::Vector<ST_, size>& a, const Eigen::Vector<ST_, size>& b) {
+  return (a * b.transpose()).eval();
+}
+
+/**
  * \brief Generates a symmetric identity fourth-order tensor.
  * \ingroup tensor
  * \tparam ScalarType Type of the elements in the tensor.

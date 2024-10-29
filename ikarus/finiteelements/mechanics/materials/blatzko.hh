@@ -65,11 +65,12 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
    */
   MaterialParameters materialParametersImpl() const { return materialParameter_; }
 
+  // TODO: Can we use SelfAdjointSolver?
   template <typename Derived>
-  auto principalStretches(const Eigen::MatrixBase<Derived>& C) const {
-    Eigen::SelfAdjointEigenSolver<Derived> eigensolver(C);
+  auto principalStretches(const Eigen::MatrixBase<Derived>& C, int options = Eigen::ComputeEigenvectors) const {
+    Eigen::SelfAdjointEigenSolver<Derived> eigensolver(C, options);
     auto& eigenvalues  = eigensolver.eigenvalues();
-    auto& eigenvectors = eigensolver.eigenvectors();
+    auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : Derived::Zero();
 
     auto principalStretches = eigenvalues.array().sqrt().eval();
     return std::make_pair(principalStretches, eigenvectors);
@@ -85,7 +86,7 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
   ScalarType storedEnergyImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!Concepts::EigenVector<Derived>) {
-      auto [lambdas, N] = principalStretches(C);
+      auto [lambdas, N] = principalStretches(C, Eigen::EigenvaluesOnly);
 
       return materialParameter_.mu / 2 *
              (1 / std::pow(lambdas[0], 2) + 1 / std::pow(lambdas[1], 2) + 1 / std::pow(lambdas[2], 2) +
@@ -110,10 +111,6 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
     return Eigen::Vector<ScalarType, 3>{S1, S2, S3};
   }
 
-  template <typename ST_, int size>
-  auto dyadicProduct(const Eigen::Vector<ST_, size>& a, const Eigen::Vector<ST_, size>& b) const {
-    return (a * b.transpose()).eval();
-  }
   /**
    * \brief Computes the stresses in the Neo-Hookean material model.
    * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
@@ -133,7 +130,7 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
         // Transformation from principal coordinates to cartesian coordinates
         auto S = Eigen::Matrix3<ScalarType>::Zero().eval();
         for (auto i : Dune::range(3))
-          S += principalStress[i] * dyadicProduct(N.col(i).eval(), N.col(i).eval());
+          S += principalStress[i] * dyadic(N.col(i).eval(), N.col(i).eval());
 
         return S;
       } else
