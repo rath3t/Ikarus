@@ -9,13 +9,13 @@
 #include <ikarus/finiteelements/mechanics/materials/linearelasticity.hh>
 #include <ikarus/finiteelements/mechanics/materials/neohooke.hh>
 #include <ikarus/finiteelements/mechanics/materials/svk.hh>
-#include <ikarus/finiteelements/mechanics/materials/blatzko.hh>
+// #include <ikarus/finiteelements/mechanics/materials/blatzko.hh>
 
 namespace Ikarus {
 
 template struct LinearElasticityT<double>;
 template struct NeoHookeT<double>;
 template struct StVenantKirchhoffT<double>;
-template struct BlatzKoT<double>;
+// template struct BlatzKoT<double>;
 
 } // namespace Ikarus

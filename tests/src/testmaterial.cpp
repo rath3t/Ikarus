@@ -277,15 +277,13 @@ auto checkBlatzKo() {
 
   auto energy = bk.storedEnergy<CauchyGreen>(c);
   auto stress = bk.stresses<CauchyGreen>(c);
-  // auto matTangent = bk.tangentModuli<CauchyGreen>(e);
+  auto matTangent = bk.tangentModuli<CauchyGreen>(c);
 
   std::cout << "RightCauchyGreenTensor:\n" << c << std::endl;
 
   std::cout << "Energy:\n" << energy << std::endl;
   std::cout << "Stress:\n" << stress << std::endl;
-
-  auto [lambdas, N] = bk.principalStretches(c);
-  std::cout << "Lambdas:\n" << lambdas << std::endl;
+  std::cout << "MatTangent:\n" << matTangent << std::endl;
 
   return t;
 }

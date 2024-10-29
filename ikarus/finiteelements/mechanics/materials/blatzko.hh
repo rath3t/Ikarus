@@ -111,6 +111,26 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
     return Eigen::Vector<ScalarType, 3>{S1, S2, S3};
   }
 
+  auto dSdLambda(const auto& lambda) const {
+    auto dS = Eigen::Matrix3<ScalarType>::Zero().eval();
+
+    double mu = materialParameter_.mu;
+    dS(0, 0)  = -mu * (-2.0 / std::pow(lambda(0), 3) + 2.0 * lambda(1) * lambda(2)) / (2.0 * std::pow(lambda(0), 2)) +
+               3.0 * mu / std::pow(lambda(0), 5);
+    dS(0, 1) = mu * lambda(2) / lambda(0);
+    dS(0, 2) = mu * lambda(1) / lambda(0);
+    dS(1, 0) = mu * lambda(2) / lambda(1);
+    dS(1, 1) = -mu * (-2.0 / std::pow(lambda(1), 3) + 2.0 * lambda(0) * lambda(2)) / (2.0 * std::pow(lambda(1), 2)) +
+               3.0 * mu / std::pow(lambda(1), 5);
+    dS(1, 2) = mu * lambda(0) / lambda(1);
+    dS(2, 0) = mu * lambda(1) / lambda(2);
+    dS(2, 1) = mu * lambda(0) / lambda(2);
+    dS(2, 2) = -mu * (-2.0 / std::pow(lambda(2), 3) + 2.0 * lambda(0) * lambda(1)) / (2.0 * std::pow(lambda(2), 2)) +
+               3.0 * mu / std::pow(lambda(2), 5);
+
+    return dS;
+  }
+
   /**
    * \brief Computes the stresses in the Neo-Hookean material model.
    * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
@@ -151,17 +171,54 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
   auto tangentModuliImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
-      const auto invC = C.inverse().eval();
-      const auto detC = C.determinant();
-      checkPositiveDetC(detC);
-      const auto logdetF = log(sqrt(detC));
-      const auto CTinv   = tensorView(invC, std::array<Eigen::Index, 2>({3, 3}));
-      static_assert(Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3>>::NumIndices == 2);
-      Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli =
-          (materialParameter_.lambda * dyadic(CTinv, CTinv) +
-           2 * (materialParameter_.mu - materialParameter_.lambda * logdetF) *
-               symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3}))
-              .eval();
+      auto [lambdas, N] = principalStretches(C);
+      auto S            = principalStresseses(lambdas);
+
+      auto dS = dSdLambda(lambdas);
+
+      // Konvektive coordinates
+
+      auto L = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>{};
+      L.setZero();
+
+      for (int i = 0; i < 3; ++i) {
+        for (int k = 0; k < 3; ++k) {
+          L(i, i, k, k) = 1.0 / lambdas(k) * dS(i, k);
+        }
+      }
+
+      for (int i = 0; i < 3; ++i) {
+        for (int k = 0; k < 3; ++k) {
+          if (i != k) {
+            if (Dune::FloatCmp::eq(lambdas(i), lambdas(k), 1e-8)) {
+              L(i, k, i, k) = 0.5 * (L(i, i, i, i) - L(i, i, k, k));
+            } else {
+              L(i, k, i, k) += (S(i) - S(k)) / (std::pow(lambdas(i), 2) - std::pow(lambdas(k), 2));
+            }
+          }
+        }
+      }
+
+      Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli{};
+      moduli.setZero();
+
+      for (int i = 0; i < 3; ++i) {
+        for (int k = 0; k < 3; ++k) {
+          // First term: L[i, i, k, k] * ((N[i] ⊗ N[i]) ⊗ (N[k] ⊗ N[k]))
+          auto NiNi = tensorView(dyadic(N.col(i).eval(), N.col(i).eval()), std::array<Eigen::Index, 2>({3, 3}));
+          auto NkNk = tensorView(dyadic(N.col(k).eval(), N.col(k).eval()), std::array<Eigen::Index, 2>({3, 3}));
+          
+          moduli += L(i, i, k, k) * dyadic(NiNi, NkNk);
+
+          // Second term (only if i != k): L[i, k, i, k] * (N[i] ⊗ N[k] ⊗ (N[i] ⊗ N[k] + N[k] ⊗ N[i]))
+          if (i != k) {
+            auto NiNk = tensorView(dyadic(N.col(i).eval(), N.col(k).eval()), std::array<Eigen::Index, 2>({3, 3}));
+            auto NkNi = tensorView(dyadic(N.col(k).eval(), N.col(i).eval()), std::array<Eigen::Index, 2>({3, 3}));
+
+            moduli += L(i, k, i, k) * dyadic(NiNk, NiNk + NkNi);
+          }
+        }
+      }
       return moduli;
     } else
       static_assert(voigt == false, "BlatzKo does not support returning tangent moduli in Voigt notation");
@@ -179,14 +236,6 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
 
 private:
   MaterialParameters materialParameter_;
-
-  // TODO reimplemet
-  void checkPositiveDetC(ScalarType detC) const {
-    if (Dune::FloatCmp::le(static_cast<double>(detC), 0.0, 1e-10))
-      DUNE_THROW(Dune::InvalidStateException,
-                 "Determinant of right Cauchy Green tensor C must be greater than zero. detC = " +
-                     std::to_string(static_cast<double>(detC)));
-  }
 };
 
 /**
