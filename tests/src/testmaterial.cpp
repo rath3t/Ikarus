@@ -273,7 +273,7 @@ auto checkBlatzKo() {
   double nu   = 0.3;
   auto matPar = toLamesFirstParameterAndShearModulus({.emodul = Emod, .nu = nu});
 
-  auto bk = BlatzKo(matPar);
+  auto bk = Hyperelastic(BlatzKo(matPar));
 
   auto energy = bk.storedEnergy<CauchyGreen>(c);
   auto stress = bk.stresses<CauchyGreen>(c);

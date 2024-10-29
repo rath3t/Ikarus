@@ -82,20 +82,70 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
    * \param C The right Cauchy-Green tensor.
    * \return ScalarType The stored energy.
    */
-  template <typename Derived>
-  ScalarType storedEnergyImpl(const Eigen::MatrixBase<Derived>& C) const {
-    static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
-    if constexpr (!Concepts::EigenVector<Derived>) {
-      auto [lambdas, N] = principalStretches(C, Eigen::EigenvaluesOnly);
-
-      return materialParameter_.mu / 2 *
-             (1 / std::pow(lambdas[0], 2) + 1 / std::pow(lambdas[1], 2) + 1 / std::pow(lambdas[2], 2) +
-              2 * lambdas[0] * lambdas[1] * lambdas[2] - 5);
-
-    } else
-      static_assert(!Concepts::EigenVector<Derived>,
-                    "BlatzKo energy can only be called with a matrix and not a vector in Voigt notation");
+  ScalarType storedEnergyImpl(const Eigen::Vector<ScalarType, 3>& lambdas) const {
+    return materialParameter_.mu / 2 *
+           (1 / std::pow(lambdas[0], 2) + 1 / std::pow(lambdas[1], 2) + 1 / std::pow(lambdas[2], 2) +
+            2 * lambdas[0] * lambdas[1] * lambdas[2] - 5);
   }
+
+  /**
+   * \brief Computes the stresses in the Neo-Hookean material model.
+   * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
+   * \tparam Derived The derived type of the input matrix.
+   * \param C The right Cauchy-Green tensor.
+   * \return StressMatrix The stresses.
+   */
+  auto stressesImpl(const Eigen::Vector<ScalarType, 3>& lambdas) const { return principalStresseses(lambdas); }
+
+  /**
+   * \brief Computes the tangent moduli in the Neo-Hookean material model.
+   * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
+   * \tparam Derived The derived type of the input matrix.
+   * \param C The right Cauchy-Green tensor.
+   * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> The tangent moduli.
+   */
+
+  auto tangentModuliImpl(const Eigen::Vector<ScalarType, 3>& lambdas) const {
+    auto S            = principalStresseses(lambdas);
+    auto dS = dSdLambda(lambdas);
+
+    // Konvektive coordinates
+    auto L = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>{};
+    L.setZero();
+
+    for (int i = 0; i < 3; ++i) {
+      for (int k = 0; k < 3; ++k) {
+        L(i, i, k, k) = 1.0 / lambdas(k) * dS(i, k);
+      }
+    }
+
+    for (int i = 0; i < 3; ++i) {
+      for (int k = 0; k < 3; ++k) {
+        if (i != k) {
+          if (Dune::FloatCmp::eq(lambdas(i), lambdas(k), 1e-8)) {
+            L(i, k, i, k) = 0.5 * (L(i, i, i, i) - L(i, i, k, k));
+          } else {
+            L(i, k, i, k) += (S(i) - S(k)) / (std::pow(lambdas(i), 2) - std::pow(lambdas(k), 2));
+          }
+        }
+      }
+    }
+
+    return L;
+  }
+
+  /**
+   * \brief Rebinds the material to a different scalar type.
+   * \tparam STO The target scalar type.
+   * \return BlatzKoT<ScalarTypeOther> The rebound BlatzKo material.
+   */
+  template <typename STO>
+  auto rebind() const {
+    return BlatzKoT<STO>(materialParameter_);
+  }
+
+private:
+  MaterialParameters materialParameter_;
 
   auto principalStresseses(const auto& lambdas) const {
     // principal PK1 stress
@@ -130,112 +180,6 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
 
     return dS;
   }
-
-  /**
-   * \brief Computes the stresses in the Neo-Hookean material model.
-   * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
-   * \tparam Derived The derived type of the input matrix.
-   * \param C The right Cauchy-Green tensor.
-   * \return StressMatrix The stresses.
-   */
-  template <bool voigt, typename Derived>
-  auto stressesImpl(const Eigen::MatrixBase<Derived>& C) const {
-    static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
-    if constexpr (!voigt) {
-      if constexpr (!Concepts::EigenVector<Derived>) {
-        auto [lambdas, N] = principalStretches(C);
-
-        auto principalStress = principalStresseses(lambdas);
-
-        // Transformation from principal coordinates to cartesian coordinates
-        auto S = Eigen::Matrix3<ScalarType>::Zero().eval();
-        for (auto i : Dune::range(3))
-          S += principalStress[i] * dyadic(N.col(i).eval(), N.col(i).eval());
-
-        return S;
-      } else
-        static_assert(!Concepts::EigenVector<Derived>,
-                      "BlatzKo can only be called with a matrix and not a vector in Voigt notation");
-    } else
-      static_assert(voigt == false, "BlatzKo does not support returning stresses in Voigt notation");
-  }
-
-  /**
-   * \brief Computes the tangent moduli in the Neo-Hookean material model.
-   * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
-   * \tparam Derived The derived type of the input matrix.
-   * \param C The right Cauchy-Green tensor.
-   * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> The tangent moduli.
-   */
-  template <bool voigt, typename Derived>
-  auto tangentModuliImpl(const Eigen::MatrixBase<Derived>& C) const {
-    static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
-    if constexpr (!voigt) {
-      auto [lambdas, N] = principalStretches(C);
-      auto S            = principalStresseses(lambdas);
-
-      auto dS = dSdLambda(lambdas);
-
-      // Konvektive coordinates
-
-      auto L = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>{};
-      L.setZero();
-
-      for (int i = 0; i < 3; ++i) {
-        for (int k = 0; k < 3; ++k) {
-          L(i, i, k, k) = 1.0 / lambdas(k) * dS(i, k);
-        }
-      }
-
-      for (int i = 0; i < 3; ++i) {
-        for (int k = 0; k < 3; ++k) {
-          if (i != k) {
-            if (Dune::FloatCmp::eq(lambdas(i), lambdas(k), 1e-8)) {
-              L(i, k, i, k) = 0.5 * (L(i, i, i, i) - L(i, i, k, k));
-            } else {
-              L(i, k, i, k) += (S(i) - S(k)) / (std::pow(lambdas(i), 2) - std::pow(lambdas(k), 2));
-            }
-          }
-        }
-      }
-
-      Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli{};
-      moduli.setZero();
-
-      for (int i = 0; i < 3; ++i) {
-        for (int k = 0; k < 3; ++k) {
-          // First term: L[i, i, k, k] * ((N[i] ⊗ N[i]) ⊗ (N[k] ⊗ N[k]))
-          auto NiNi = tensorView(dyadic(N.col(i).eval(), N.col(i).eval()), std::array<Eigen::Index, 2>({3, 3}));
-          auto NkNk = tensorView(dyadic(N.col(k).eval(), N.col(k).eval()), std::array<Eigen::Index, 2>({3, 3}));
-          
-          moduli += L(i, i, k, k) * dyadic(NiNi, NkNk);
-
-          // Second term (only if i != k): L[i, k, i, k] * (N[i] ⊗ N[k] ⊗ (N[i] ⊗ N[k] + N[k] ⊗ N[i]))
-          if (i != k) {
-            auto NiNk = tensorView(dyadic(N.col(i).eval(), N.col(k).eval()), std::array<Eigen::Index, 2>({3, 3}));
-            auto NkNi = tensorView(dyadic(N.col(k).eval(), N.col(i).eval()), std::array<Eigen::Index, 2>({3, 3}));
-
-            moduli += L(i, k, i, k) * dyadic(NiNk, NiNk + NkNi);
-          }
-        }
-      }
-      return moduli;
-    } else
-      static_assert(voigt == false, "BlatzKo does not support returning tangent moduli in Voigt notation");
-  }
-
-  /**
-   * \brief Rebinds the material to a different scalar type.
-   * \tparam STO The target scalar type.
-   * \return BlatzKoT<ScalarTypeOther> The rebound BlatzKo material.
-   */
-  template <typename STO>
-  auto rebind() const {
-    return BlatzKoT<STO>(materialParameter_);
-  }
-
-private:
-  MaterialParameters materialParameter_;
 };
 
 /**
