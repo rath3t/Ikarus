@@ -37,9 +37,11 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
 {
   using ScalarType                    = ST;
   static constexpr int worldDimension = 3;
-  using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
-  using StressMatrix                  = StrainMatrix;
-  using MaterialParameters            = LamesFirstParameterAndShearModulus;
+  using PrincipalStretches            = Eigen::Vector<ScalarType, 3>;
+  using StressMatrix                  = Eigen::Vector<ScalarType, worldDimension>;
+  using MaterialTensor                = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>;
+
+  using MaterialParameters = ShearModulus;
 
   static constexpr auto strainTag              = StrainTags::rightCauchyGreenTensor;
   static constexpr auto stressTag              = StressTags::PK2;
@@ -65,24 +67,13 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
    */
   MaterialParameters materialParametersImpl() const { return materialParameter_; }
 
-  // TODO: Can we use SelfAdjointSolver?
-  template <typename Derived>
-  auto principalStretches(const Eigen::MatrixBase<Derived>& C, int options = Eigen::ComputeEigenvectors) const {
-    Eigen::SelfAdjointEigenSolver<Derived> eigensolver(C, options);
-    auto& eigenvalues  = eigensolver.eigenvalues();
-    auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : Derived::Zero();
-
-    auto principalStretches = eigenvalues.array().sqrt().eval();
-    return std::make_pair(principalStretches, eigenvectors);
-  }
-
   /**
    * \brief Computes the stored energy in the Neo-Hookean material model.
    * \tparam Derived The derived type of the input matrix.
    * \param C The right Cauchy-Green tensor.
    * \return ScalarType The stored energy.
    */
-  ScalarType storedEnergyImpl(const Eigen::Vector<ScalarType, 3>& lambdas) const {
+  ScalarType storedEnergyImpl(const PrincipalStretches& lambdas) const {
     return materialParameter_.mu / 2 *
            (1 / std::pow(lambdas[0], 2) + 1 / std::pow(lambdas[1], 2) + 1 / std::pow(lambdas[2], 2) +
             2 * lambdas[0] * lambdas[1] * lambdas[2] - 5);
@@ -95,7 +86,7 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
    * \param C The right Cauchy-Green tensor.
    * \return StressMatrix The stresses.
    */
-  auto stressesImpl(const Eigen::Vector<ScalarType, 3>& lambdas) const { return principalStresseses(lambdas); }
+  StressMatrix stressesImpl(const PrincipalStretches& lambdas) const { return principalStresseses(lambdas); }
 
   /**
    * \brief Computes the tangent moduli in the Neo-Hookean material model.
@@ -105,12 +96,12 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
    * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> The tangent moduli.
    */
 
-  auto tangentModuliImpl(const Eigen::Vector<ScalarType, 3>& lambdas) const {
-    auto S            = principalStresseses(lambdas);
+  MaterialTensor tangentModuliImpl(const PrincipalStretches& lambdas) const {
+    auto S  = principalStresseses(lambdas);
     auto dS = dSdLambda(lambdas);
 
     // Konvektive coordinates
-    auto L = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>{};
+    auto L = MaterialTensor{};
     L.setZero();
 
     for (int i = 0; i < 3; ++i) {
