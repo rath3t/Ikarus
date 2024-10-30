@@ -189,7 +189,7 @@ private:
     const auto CinvT23 = symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3});
 
     Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli =
-        (J * ((Uprime + J + Uprimeprime) * CinvDya - 2 * Uprime * CinvT23)).eval();
+        (J * ((Uprime + J * Uprimeprime) * CinvDya - 2 * Uprime * CinvT23)).eval();
 
     return moduli;
   }
@@ -208,8 +208,8 @@ private:
   template <typename Derived>
   auto detF(const Eigen::MatrixBase<Derived>& C) const -> typename VOL::JType {
     if constexpr (hasVolumetricPart) {
-      const auto sqrtC = C.sqrt();
-      const auto J     = sqrtC.determinant();
+      const auto detC = C.determinant();
+      const auto J     = std::sqrt(detC);
       checkPositiveDetC(J);
 
       return J;

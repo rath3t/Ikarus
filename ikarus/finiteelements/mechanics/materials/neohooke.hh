@@ -127,7 +127,7 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
       checkPositiveDetC(detC);
       const auto logdetF = log(sqrt(detC));
       const auto CTinv   = tensorView(invC, std::array<Eigen::Index, 2>({3, 3}));
-      static_assert(Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3>>::NumIndices == 2);
+      // static_assert(Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3>>::NumIndices == 2);
       Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli =
           (materialParameter_.lambda * dyadic(CTinv, CTinv) +
            2 * (materialParameter_.mu - materialParameter_.lambda * logdetF) *

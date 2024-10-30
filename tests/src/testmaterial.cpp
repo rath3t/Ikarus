@@ -161,71 +161,71 @@ auto testMaterial(Material mat) {
 //   TestSuite t(MaterialImpl::name() + " InputStrainMeasure: " + toString(strainTag));
 //   std::cout << "TestPlaneStrinAgainstPlaneStress: " << t.name() << " started\n";
 
-//   Eigen::Matrix3d e;
-//   e.setRandom();
+// Eigen::Matrix3d e;
+// e.setRandom();
 
-//   transformStrainAccordingToStrain<strainTag>(e);
+// transformStrainAccordingToStrain<strainTag>(e);
 
-//   // instantiate material models
-//   LamesFirstParameterAndShearModulus matPar{.lambda = 0, .mu = 1000}; // nu = 0
+// // instantiate material models
+// LamesFirstParameterAndShearModulus matPar{.lambda = 0, .mu = 1000}; // nu = 0
 
-//   auto mat            = MaterialImpl{matPar};
-//   auto planeStrainMat = planeStrain(mat);
-//   auto planeStressMat = planeStress(mat);
+// auto mat            = MaterialImpl{matPar};
+// auto planeStrainMat = planeStrain(mat);
+// auto planeStressMat = planeStress(mat);
 
-//   // energy should be the same for plane stress and plane strain for nu = 0
-//   auto energies = std::array<double, 2>{planeStrainMat.template storedEnergy<strainTag>(e),
-//                                         planeStressMat.template storedEnergy<strainTag>(e)};
+// // energy should be the same for plane stress and plane strain for nu = 0
+// auto energies = std::array<double, 2>{planeStrainMat.template storedEnergy<strainTag>(e),
+//                                       planeStressMat.template storedEnergy<strainTag>(e)};
 
-//   t.check(Dune::FloatCmp::le(std::abs(energies[0] - energies[1]), tol))
-//       << "Energies for plane strain and plane stress should be the same but are"
-//       << "\n"
-//       << energies[0] << " and " << energies[1] << "\n Diff: " << energies[0] - energies[1] << " with tol: " << tol;
+// t.check(Dune::FloatCmp::le(std::abs(energies[0] - energies[1]), tol))
+//     << "Energies for plane strain and plane stress should be the same but are"
+//     << "\n"
+//     << energies[0] << " and " << energies[1] << "\n Diff: " << energies[0] - energies[1] << " with tol: " << tol;
 
-//   // Stresses should be the same for nu = 0
-//   auto stressPlaneStrain = planeStrainMat.template stresses<strainTag>(e);
-//   auto stressPlaneStress = planeStressMat.template stresses<strainTag>(e);
+// // Stresses should be the same for nu = 0
+// auto stressPlaneStrain = planeStrainMat.template stresses<strainTag>(e);
+// auto stressPlaneStress = planeStressMat.template stresses<strainTag>(e);
 
-//   t.check(isApproxSame(stressPlaneStrain, stressPlaneStress, tol))
-//       << "Stresses for plane strain and plane stress should be the same but are"
-//       << "\n"
-//       << stressPlaneStrain << "\nand\n " << stressPlaneStress << "\nDiff:\n"
-//       << stressPlaneStrain - stressPlaneStress << " with tol: " << tol;
+// t.check(isApproxSame(stressPlaneStrain, stressPlaneStress, tol))
+//     << "Stresses for plane strain and plane stress should be the same but are"
+//     << "\n"
+//     << stressPlaneStrain << "\nand\n " << stressPlaneStress << "\nDiff:\n"
+//     << stressPlaneStrain - stressPlaneStress << " with tol: " << tol;
 
-//   // If we compare the plain stress material tensor with plain strain material tensor it should be the same for nu = 0
-//   auto matTangentPlaneStrain = planeStrainMat.template tangentModuli<strainTag>(e);
-//   auto matTangentPlaneStress = planeStressMat.template tangentModuli<strainTag>(e);
+// // If we compare the plain stress material tensor with plain strain material tensor it should be the same for nu = 0
+// auto matTangentPlaneStrain = planeStrainMat.template tangentModuli<strainTag>(e);
+// auto matTangentPlaneStress = planeStressMat.template tangentModuli<strainTag>(e);
 
-//   t.check(isApproxSame(matTangentPlaneStrain, matTangentPlaneStress, tol))
-//       << "Material Tangent for plane strain and plane stress should be the same but are"
-//       << "\n"
-//       << matTangentPlaneStrain << "\nand\n"
-//       << matTangentPlaneStress << "\n Diff:\n"
-//       << matTangentPlaneStrain - matTangentPlaneStress << " with tol: " << tol;
+// t.check(isApproxSame(matTangentPlaneStrain, matTangentPlaneStress, tol))
+//     << "Material Tangent for plane strain and plane stress should be the same but are"
+//     << "\n"
+//     << matTangentPlaneStrain << "\nand\n"
+//     << matTangentPlaneStress << "\n Diff:\n"
+//     << matTangentPlaneStrain - matTangentPlaneStress << " with tol: " << tol;
 
-//   // Sanity check, for nu != 0 the quantities should differ
-//   matPar         = {.lambda = 1000, .mu = 50}; // nu = 0
-//   mat            = MaterialImpl{matPar};
-//   planeStrainMat = planeStrain(mat);
-//   planeStressMat = planeStress(mat);
+// // Sanity check, for nu != 0 the quantities should differ
+// matPar         = {.lambda = 1000, .mu = 50}; // nu = 0
+// mat            = MaterialImpl{matPar};
+// planeStrainMat = planeStrain(mat);
+// planeStressMat = planeStress(mat);
 
-//   energies = std::array<double, 2>{planeStrainMat.template storedEnergy<strainTag>(e),
-//                                    planeStressMat.template storedEnergy<strainTag>(e)};
+// energies = std::array<double, 2>{planeStrainMat.template storedEnergy<strainTag>(e),
+//                                  planeStressMat.template storedEnergy<strainTag>(e)};
 
-//   t.check(not Dune::FloatCmp::eq(energies[0], energies[1], tol))
-//       << "Energies for plane strain and plane stress should not be the same but are"
-//       << "\n"
-//       << energies[0] << " and " << energies[1] << " with tol: " << tol;
+// t.check(not Dune::FloatCmp::eq(energies[0], energies[1], tol))
+//     << "Energies for plane strain and plane stress should not be the same but are"
+//     << "\n"
+//     << energies[0] << " and " << energies[1] << " with tol: " << tol;
 
-//   stressPlaneStrain = planeStrainMat.template stresses<strainTag>(e);
-//   stressPlaneStress = planeStressMat.template stresses<strainTag>(e);
+// stressPlaneStrain = planeStrainMat.template stresses<strainTag>(e);
+// stressPlaneStress = planeStressMat.template stresses<strainTag>(e);
 
-//   t.check(not isApproxSame(stressPlaneStrain, stressPlaneStress, tol))
-//       << "Stresses for plane strain and plane stress should not be the same but are"
-//       << "\n"
-//       << stressPlaneStrain << "\nand\n " << stressPlaneStress << " with tol: " << tol;
+// t.check(not isApproxSame(stressPlaneStrain, stressPlaneStress, tol))
+//     << "Stresses for plane strain and plane stress should not be the same but are"
+//     << "\n"
+//     << stressPlaneStrain << "\nand\n " << stressPlaneStress << " with tol: " << tol;
 
-//   return t;
+// return t;
 // }
 
 // template <typename MAT>
@@ -237,18 +237,18 @@ auto testMaterial(Material mat) {
 //   E << 2.045327969583023, 0.05875570522766141, 0.3423966429644326;
 //   auto reducedMat = planeStress(matNH, 1e-8);
 
-//   t.checkThrow<Dune::InvalidStateException>(
-//       [&]() { const auto moduli = (reducedMat.template tangentModuli<StrainTags::greenLagrangian, true>(E)); },
-//       "Neo-Hooke test (tangentModuli) should have failed with negative detC for the given E");
+// t.checkThrow<Dune::InvalidStateException>(
+//     [&]() { const auto moduli = (reducedMat.template tangentModuli<StrainTags::greenLagrangian, true>(E)); },
+//     "Neo-Hooke test (tangentModuli) should have failed with negative detC for the given E");
 
-//   t.checkThrow<Dune::InvalidStateException>(
-//       [&]() { const auto stress = (reducedMat.template stresses<StrainTags::greenLagrangian, true>(E)); },
-//       "Neo-Hooke test (stresses) should have failed with negative detC for the given E");
+// t.checkThrow<Dune::InvalidStateException>(
+//     [&]() { const auto stress = (reducedMat.template stresses<StrainTags::greenLagrangian, true>(E)); },
+//     "Neo-Hooke test (stresses) should have failed with negative detC for the given E");
 
-//   t.checkThrow<Dune::InvalidStateException>(
-//       [&]() { const auto energy = (reducedMat.template storedEnergy<StrainTags::greenLagrangian>(E)); },
-//       "Neo-Hooke test (stresses) should have failed with negative detC for the given E");
-//   return t;
+// t.checkThrow<Dune::InvalidStateException>(
+//     [&]() { const auto energy = (reducedMat.template storedEnergy<StrainTags::greenLagrangian>(E)); },
+//     "Neo-Hooke test (stresses) should have failed with negative detC for the given E");
+// return t;
 // }
 
 // auto checkBlatzKo() {
@@ -363,9 +363,16 @@ int main(int argc, char** argv) {
   auto bk = Hyperelastic(BlatzKo({matPar.mu}));
   t.subTest(testMaterial(bk));
 
-  // auto K = convertLameConstants(matPar).toBulkModulus();
-  // auto hyper   = Hyperelastic(BlatzKo({matPar.mu}), VolumetricPart({K}, VF2{}));
-  // t.subTest(testMaterial(hyper));
+  auto K     = convertLameConstants(matPar).toBulkModulus();
+  auto hyper = Hyperelastic(BlatzKo({matPar.mu}), VolumetricPart({K}, VF2{}));
+  t.subTest(testMaterial(hyper));
+
+  // Material parameters (example values)
+  std::array<double, 2> mu_og = {1.0, 2.0}; // Material constants
+  std::array<double, 2> alpha_og    = {2.0, 3.0}; // Exponents
+
+  auto og = Hyperelastic(Ogden<2>(mu_og, alpha_og));
+  t.subTest(testMaterial(og));
 
   return t.exit();
 }

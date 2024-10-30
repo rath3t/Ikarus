@@ -74,10 +74,7 @@ struct VF3T
 
   ScalarType firstDerivativeImpl(const JType& J) const { return 1 / J * log(J); }
 
-  ScalarType secondDerivativeImpl(const JType& J) const {
-    auto Jsq = std::pow(J, 2);
-    return 1 / Jsq * (1 - log(J));
-  }
+  ScalarType secondDerivativeImpl(const JType& J) const { return 1 / std::pow(J, 2) * (1 - log(J)); }
 };
 
 template <typename ST>
@@ -135,7 +132,6 @@ using VF3 = VF3T<double>;
 using VF4 = VF4T<double>;
 using VF5 = VF5T<double>;
 using VF6 = VF6T<double>;
-
 
 // Default implementation (no volumetric part)
 template <typename ST>
