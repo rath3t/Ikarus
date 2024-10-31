@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file Ogden.hh
- * \brief Implementation of the Ogden material model.
+ * \file CompressibleOgden.hh
+ * \brief Implementation of the CompressibleOgden material model.
  * \ingroup  materials
  */
 
@@ -15,7 +15,7 @@
 namespace Ikarus {
 
 template <typename ST, int n>
-struct OgdenT
+struct CompressibleOgdenT : public Material<CompressibleOgdenT<ST, n>>
 {
   using ScalarType         = ST;
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
@@ -29,13 +29,13 @@ struct OgdenT
   using MaterialParameters = std::array<double, nOgdenParameters>;
   using OgdenParameters    = std::array<double, nOgdenParameters>;
 
-  [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "Ogden"; }
+  [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "CompressibleOgden"; }
 
   /**
-   * \brief Constructor for OgdenT.
+   * \brief Constructor for CompressibleOgdenT.
    * \param mpt The Lame's parameters (first parameter and shear modulus).
    */
-  explicit OgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
+  explicit CompressibleOgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
       : materialParameters_{mpt},
         ogdenParameters_{opt} {}
 
@@ -44,46 +44,57 @@ struct OgdenT
    */
   MaterialParameters materialParametersImpl() const { return materialParameters_; }
 
-  OgdenParameters ogdenParameters() const { return materialParameters_; }
-
+  /**
+   * \brief Computes the stored energy in the Neo-Hookean material model.
+   * \tparam Derived The derived type of the input matrix.
+   * \param C The right Cauchy-Green tensor.
+   * \return ScalarType The stored energy.
+   */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambdas) const {
     ScalarType energy{};
+    auto J = lambdas[0] * lambdas[1] * lambdas[2];
 
     auto& mu    = materialParameters_;
     auto& alpha = ogdenParameters_;
 
     for (auto i : parameterRange()) {
-      energy += mu[i] / alpha[i] *
-                (std::pow(lambdas[0], alpha[i]) + std::pow(lambdas[1], alpha[i]) + std::pow(lambdas[2], alpha[i]) - 3);
+      energy +=
+          mu[i] / alpha[i] *
+              (std::pow(lambdas[0], alpha[i]) + std::pow(lambdas[1], alpha[i]) + std::pow(lambdas[2], alpha[i]) - 3) -
+          mu[i] * log(J);
     }
 
     return energy;
   }
 
+  /**
+   * \brief Computes the stresses in the Neo-Hookean material model.
+   * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
+   * \tparam Derived The derived type of the input matrix.
+   * \param C The right Cauchy-Green tensor.
+   * \return StressMatrix The stresses.
+   */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambdas) const {
     auto P = FirstDerivative::Zero().eval();
 
     auto& mu    = materialParameters_;
     auto& alpha = ogdenParameters_;
 
-    // for (auto j : parameterRange())
-    //   for (auto k : dimensionRange()) {
-    //     auto sum = std::pow(lambdas[0], alpha[j]) + std::pow(lambdas[1], alpha[j]) + std::pow(lambdas[2], alpha[j]);
-    //     // P[k] += mu[j] * std::pow(lambdas[k], alpha[j] - 1); // derivative
-    //     P[k] += mu[j] * (std::pow(lambdas[k], alpha[j]) - 1.0 / 3.0 * sum ); // derivative according to
-    //     Tarun MA
-    //   }
-
-    for (auto j : parameterRange()) { // iterate over Ogden terms
-      auto p = (1.0 / 3.0) *
-               (std::pow(lambdas[0], alpha[j]) + std::pow(lambdas[1], alpha[j]) + std::pow(lambdas[2], alpha[j]));
-      for (auto k : dimensionRange()) { // iterate over principal stretches
-        P[k] += mu[j] * (std::pow(lambdas[k], alpha[j]) - p);
+    for (auto j : parameterRange()) {
+      for (auto k : dimensionRange()) {
+        P[k] += (mu[j] * (std::pow(lambdas[k], alpha[j]) - 1)) / lambdas[k];
       }
     }
-    // P *= 2 / (lambdas[0] * lambdas[1] * lambdas[2]);
     return P;
   }
+
+  /**
+   * \brief Computes the tangent moduli in the Neo-Hookean material model.
+   * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
+   * \tparam Derived The derived type of the input matrix.
+   * \param C The right Cauchy-Green tensor.
+   * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> The tangent moduli.
+   */
 
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambdas) const {
     auto dS = SecondDerivative::Zero().eval();
@@ -93,23 +104,21 @@ struct OgdenT
 
     for (auto j : parameterRange())
       for (auto k : dimensionRange()) {
-        auto p = (1.0 / 3.0) *
-                 (std::pow(lambdas[0], alpha[j]) + std::pow(lambdas[1], alpha[j]) + std::pow(lambdas[2], alpha[j]));
-
-        // dS(k, k) += mu[j] * ((alpha[j] - 1) * std::pow(lambdas[k], alpha[j] - 2) - p);
-        dS(k,k) = mu[j] * alpha[j] * (alpha[j] - 1) * std::pow(lambdas[k], alpha[j] - 2) + p;
+        dS(k, k) += -2 * (mu[j] * (std::pow(lambdas[k], alpha[j]) - 1)) / std::pow(lambdas[k], 3) +
+                    (mu[j] * std::pow(lambdas[k], alpha[j]) * alpha[j] / lambdas[k]) / std::pow(lambdas[k], 2);
       }
+
     return dS;
   }
 
   /**
    * \brief Rebinds the material to a different scalar type.
    * \tparam STO The target scalar type.
-   * \return OgdenT<ScalarTypeOther> The rebound Ogden material.
+   * \return CompressibleOgdenT<ScalarTypeOther> The rebound CompressibleOgden material.
    */
   template <typename STO>
   auto rebind() const {
-    return OgdenT<STO, nOgdenParameters>(materialParameters_);
+    return CompressibleOgdenT<STO, nOgdenParameters>(materialParameters_);
   }
 
 private:
@@ -118,12 +127,13 @@ private:
 
   inline auto parameterRange() const { return Dune::Hybrid::integralRange(nOgdenParameters); }
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(worldDimension); }
+
 };
 
 /**
- * \brief Alias for OgdenT with double as the default scalar type.
+ * \brief Alias for CompressibleOgdenT with double as the default scalar type.
  */
 template <int n>
-using Ogden = OgdenT<double, n>;
+using CompressibleOgden = CompressibleOgdenT<double, n>;
 
 } // namespace Ikarus

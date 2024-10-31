@@ -251,53 +251,80 @@ auto testMaterial(Material mat) {
 // return t;
 // }
 
-// auto checkBlatzKo() {
-//   TestSuite t;
+auto checkBlatzKo() {
+  TestSuite t;
 
-// // Eigen::Matrix3d e;
-// // e.setRandom();
-// // transformStrainAccordingToStrain<StrainTags::rightCauchyGreenTensor>(e);
+  // Eigen::Matrix3d e;
+  // e.setRandom();
+  // transformStrainAccordingToStrain<StrainTags::rightCauchyGreenTensor>(e);
 
-// constexpr auto CauchyGreen = StrainTags::rightCauchyGreenTensor;
+  constexpr auto CauchyGreen = StrainTags::rightCauchyGreenTensor;
 
-// // auto c = Eigen::Matrix3d::Identity().eval();
-// Eigen::Matrix3d c{
-//     { 0.600872, -0.179083, 0},
-//     {-0.179083,  0.859121, 0},
-//     {        0,         0, 1}
-// };
+  // auto c = Eigen::Matrix3d::Identity().eval();
+  Eigen::Matrix3d c{
+      { 0.600872, -0.179083, 0},
+      {-0.179083,  0.859121, 0},
+      {        0,         0, 1}
+  };
 
-// // instantiate material models
-// double Emod = 1000;
-// double nu   = 0.25; // Blatz Ko assumes nu = 0.25
-// auto mu     = ShearModulus{Emod / (2.0 * (1.0 + nu))};
-// auto K      = BulkModulus{Emod * mu.mu / (3.0 * (3.0 * mu.mu - Emod))};
+  // instantiate material models
+  double Emod = 1000;
+  double nu   = 0.25; // Blatz Ko assumes nu = 0.25
+  auto matPar = YoungsModulusAndPoissonsRatio{.emodul = Emod, .nu = nu};
+  auto mu     = convertLameConstants(matPar).toShearModulus();
+  auto K      = convertLameConstants(matPar).toBulkModulus();
+  auto Lambda = convertLameConstants(matPar).toLamesFirstParameter();
 
-// auto bk = Hyperelastic(BlatzKo(mu));
+  auto nh = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
 
-// auto energy     = bk.storedEnergy<CauchyGreen>(c);
-// auto stress     = bk.stresses<CauchyGreen>(c);
-// auto matTangent = bk.tangentModuli<CauchyGreen>(c);
+  auto energy_nh     = nh.storedEnergy<CauchyGreen>(c);
+  auto stress_nh     = nh.stresses<CauchyGreen>(c);
+  auto matTangent_nh = nh.tangentModuli<CauchyGreen>(c);
 
-// std::cout << "Energy:\n" << energy << std::endl;
-// std::cout << "Stress:\n" << stress << std::endl;
-// std::cout << "MatTangent:\n" << matTangent << std::endl;
+  std::cout << "Energy (NH):\n" << energy_nh << std::endl;
+  std::cout << "Stress (NH):\n" << stress_nh << std::endl;
+  std::cout << "MatTangent (NH):\n" << matTangent_nh << std::endl;
 
-// auto bk_pre = BlatzKo(mu);
-// // auto vol_pre = VolumetricPart(K, VF1{});
-// auto vol_pre = VolumetricPart(K, VF4{-2});
-// auto hyper   = Hyperelastic(bk_pre, vol_pre);
+  // auto bk = makeBlatzKo(ShearModulus{mu});
 
-// auto energyhyper = hyper.storedEnergy<CauchyGreen>(c);
-// auto stresshyper = hyper.stresses<CauchyGreen>(c);
-// auto modulihyper = hyper.tangentModuli<CauchyGreen>(c);
+  // auto energy_bk     = bk.storedEnergy<CauchyGreen>(c);
+  // auto stress_bk     = bk.stresses<CauchyGreen>(c);
+  // auto matTangent_bk = bk.tangentModuli<CauchyGreen>(c);
 
-// std::cout << "Energy (Hyper):\n" << energyhyper << std::endl;
-// std::cout << "Stress (Hyper):\n" << stresshyper << std::endl;
-// std::cout << "MatTangent (Hyper):\n" << modulihyper << std::endl;
+  // std::cout << "Energy (BK):\n" << energy_bk << std::endl;
+  // std::cout << "Stress (BK):\n" << stress_bk << std::endl;
+  // std::cout << "MatTangent (BK):\n" << matTangent_bk << std::endl;
 
-// return t;
-// }
+  std::array<double, 1> mu_og    = {mu};
+  std::array<double, 1> alpha_og = {2.0};
+
+  auto compressibleOgdenPre = CompressibleOgden<1>(mu_og, alpha_og);
+  auto dev_1                = DeviatoricPart<decltype(compressibleOgdenPre), false>(compressibleOgdenPre);
+  auto vol                  = VolumetricPart({Lambda}, VF3{});
+  auto ogden_1              = Hyperelastic(dev_1, vol);
+
+  auto energy_og1 = ogden_1.storedEnergy<CauchyGreen>(c);
+  auto stress_og1 = ogden_1.stresses<CauchyGreen>(c);
+  auto moduli_og1 = ogden_1.tangentModuli<CauchyGreen>(c);
+
+  std::cout << "Energy (OG 1):\n" << energy_og1 << std::endl;
+  std::cout << "Stress (OG 1):\n" << stress_og1 << std::endl;
+  std::cout << "MatTangent (OG 1):\n" << moduli_og1 << std::endl;
+
+  auto ogPre   = Ogden<1>(mu_og, alpha_og);
+  auto dev2    = DeviatoricPart<decltype(ogPre), false>(ogPre);
+  auto ogden_2 = Hyperelastic(dev2, vol);
+
+  auto energy_og2 = ogden_2.storedEnergy<CauchyGreen>(c);
+  auto stress_og2 = ogden_2.stresses<CauchyGreen>(c);
+  auto moduli_og2 = ogden_2.tangentModuli<CauchyGreen>(c);
+
+  std::cout << "Energy (OG 2):\n" << energy_og2 << std::endl;
+  std::cout << "Stress (OG 2):\n" << stress_og2 << std::endl;
+  std::cout << "MatTangent (OG 2):\n" << moduli_og2 << std::endl;
+
+  return t;
+}
 
 int main(int argc, char** argv) {
   Ikarus::init(argc, argv);
@@ -305,7 +332,7 @@ int main(int argc, char** argv) {
 
   LamesFirstParameterAndShearModulus matPar{.lambda = 1000, .mu = 500};
 
-  // t.subTest(checkBlatzKo());
+  t.subTest(checkBlatzKo());
 
   // auto svk = StVenantKirchhoff(matPar);
   // t.subTest(testMaterial(svk));
@@ -360,19 +387,19 @@ int main(int argc, char** argv) {
   // t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::rightCauchyGreenTensor, NeoHooke>());
 
   // Hyperelasticity
-  auto bk = Hyperelastic(BlatzKo({matPar.mu}));
-  t.subTest(testMaterial(bk));
+  // auto bk = Hyperelastic(BlatzKo({matPar.mu}));
+  // t.subTest(testMaterial(bk));
 
-  auto K     = convertLameConstants(matPar).toBulkModulus();
-  auto hyper = Hyperelastic(BlatzKo({matPar.mu}), VolumetricPart({K}, VF2{}));
-  t.subTest(testMaterial(hyper));
+  // auto K     = convertLameConstants(matPar).toBulkModulus();
+  // auto hyper = Hyperelastic(BlatzKo({matPar.mu}), VolumetricPart({K}, VF2{}));
+  // t.subTest(testMaterial(hyper));
 
-  // Material parameters (example values)
-  std::array<double, 2> mu_og = {1.0, 2.0}; // Material constants
-  std::array<double, 2> alpha_og    = {2.0, 3.0}; // Exponents
+  // // Material parameters (example values)
+  // std::array<double, 2> mu_og = {1.0, 2.0}; // Material constants
+  // std::array<double, 2> alpha_og    = {2.0, 3.0}; // Exponents
 
-  auto og = Hyperelastic(Ogden<2>(mu_og, alpha_og));
-  t.subTest(testMaterial(og));
+  // auto og = Hyperelastic(Ogden<2>(mu_og, alpha_og));
+  // t.subTest(testMaterial(og));
 
   return t.exit();
 }

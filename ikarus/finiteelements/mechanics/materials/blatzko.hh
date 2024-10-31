@@ -35,23 +35,15 @@ namespace Ikarus {
 template <typename ST>
 struct BlatzKoT : public Material<BlatzKoT<ST>>
 {
-  using ScalarType                    = ST;
+  using ScalarType         = ST;
+  using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
+
   static constexpr int worldDimension = 3;
-  using PrincipalStretches            = Eigen::Vector<ScalarType, 3>;
-  using StressMatrix                  = Eigen::Vector<ScalarType, worldDimension>;
-  using MaterialTensor                = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>;
+
+  using FirstDerivative  = Eigen::Vector<ScalarType, worldDimension>;
+  using SecondDerivative = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
 
   using MaterialParameters = ShearModulus;
-
-  static constexpr auto strainTag              = StrainTags::rightCauchyGreenTensor;
-  static constexpr auto stressTag              = StressTags::PK2;
-  static constexpr auto tangentModuliTag       = TangentModuliTags::Material;
-  static constexpr bool energyAcceptsVoigt     = false;
-  static constexpr bool stressToVoigt          = false;
-  static constexpr bool stressAcceptsVoigt     = false;
-  static constexpr bool moduliToVoigt          = false;
-  static constexpr bool moduliAcceptsVoigt     = false;
-  static constexpr double derivativeFactorImpl = 2;
 
   [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "BlatzKo"; }
 
@@ -86,7 +78,14 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
    * \param C The right Cauchy-Green tensor.
    * \return StressMatrix The stresses.
    */
-  StressMatrix stressesImpl(const PrincipalStretches& lambdas) const { return principalStresseses(lambdas); }
+  FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambdas) const {
+    // principal PK1 stress
+    auto P1 = materialParameter_.mu * (-2 / std::pow(lambdas[0], 3) + 2 * lambdas[1] * lambdas[2]) / 2;
+    auto P2 = materialParameter_.mu * (-2 / std::pow(lambdas[1], 3) + 2 * lambdas[0] * lambdas[2]) / 2;
+    auto P3 = materialParameter_.mu * (-2 / std::pow(lambdas[2], 3) + 2 * lambdas[0] * lambdas[1]) / 2;
+
+    return FirstDerivative{P1, P2, P3};
+  }
 
   /**
    * \brief Computes the tangent moduli in the Neo-Hookean material model.
@@ -96,64 +95,8 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
    * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> The tangent moduli.
    */
 
-  MaterialTensor tangentModuliImpl(const PrincipalStretches& lambdas) const {
-    auto S  = principalStresseses(lambdas);
-    auto dS = dSdLambda(lambdas);
-
-    // Konvektive coordinates
-    auto L = MaterialTensor{};
-    L.setZero();
-
-    for (int i = 0; i < 3; ++i) {
-      for (int k = 0; k < 3; ++k) {
-        L(i, i, k, k) = 1.0 / lambdas(k) * dS(i, k);
-      }
-    }
-
-    for (int i = 0; i < 3; ++i) {
-      for (int k = 0; k < 3; ++k) {
-        if (i != k) {
-          if (Dune::FloatCmp::eq(lambdas(i), lambdas(k), 1e-8)) {
-            L(i, k, i, k) = 0.5 * (L(i, i, i, i) - L(i, i, k, k));
-          } else {
-            L(i, k, i, k) += (S(i) - S(k)) / (std::pow(lambdas(i), 2) - std::pow(lambdas(k), 2));
-          }
-        }
-      }
-    }
-
-    return L;
-  }
-
-  /**
-   * \brief Rebinds the material to a different scalar type.
-   * \tparam STO The target scalar type.
-   * \return BlatzKoT<ScalarTypeOther> The rebound BlatzKo material.
-   */
-  template <typename STO>
-  auto rebind() const {
-    return BlatzKoT<STO>(materialParameter_);
-  }
-
-private:
-  MaterialParameters materialParameter_;
-
-  auto principalStresseses(const auto& lambdas) const {
-    // principal PK1 stress
-    auto P1 = materialParameter_.mu * (-2 / std::pow(lambdas[0], 3) + 2 * lambdas[1] * lambdas[2]) / 2;
-    auto P2 = materialParameter_.mu * (-2 / std::pow(lambdas[1], 3) + 2 * lambdas[0] * lambdas[2]) / 2;
-    auto P3 = materialParameter_.mu * (-2 / std::pow(lambdas[2], 3) + 2 * lambdas[0] * lambdas[1]) / 2;
-
-    // principal PK2 stress
-    auto S1 = 1 / lambdas[0] * P1;
-    auto S2 = 1 / lambdas[1] * P2;
-    auto S3 = 1 / lambdas[2] * P3;
-
-    return Eigen::Vector<ScalarType, 3>{S1, S2, S3};
-  }
-
-  auto dSdLambda(const auto& lambda) const {
-    auto dS = Eigen::Matrix3<ScalarType>::Zero().eval();
+  SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
+    auto dS = SecondDerivative::Zero().eval();
 
     double mu = materialParameter_.mu;
     dS(0, 0)  = -mu * (-2.0 / std::pow(lambda(0), 3) + 2.0 * lambda(1) * lambda(2)) / (2.0 * std::pow(lambda(0), 2)) +
@@ -171,6 +114,20 @@ private:
 
     return dS;
   }
+
+  /**
+   * \brief Rebinds the material to a different scalar type.
+   * \tparam STO The target scalar type.
+   * \return BlatzKoT<ScalarTypeOther> The rebound BlatzKo material.
+   */
+  template <typename STO>
+  auto rebind() const {
+    return BlatzKoT<STO>(materialParameter_);
+  }
+
+private:
+  MaterialParameters materialParameter_;
+  
 };
 
 /**

@@ -10,6 +10,8 @@
 #pragma once
 
 #include <ikarus/finiteelements/mechanics/materials/blatzko.hh>
+#include <ikarus/finiteelements/mechanics/materials/compressibleogden.hh>
+#include <ikarus/finiteelements/mechanics/materials/deviatoric.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic.hh>
 #include <ikarus/finiteelements/mechanics/materials/linearelasticity.hh>
 #include <ikarus/finiteelements/mechanics/materials/neohooke.hh>
@@ -18,3 +20,12 @@
 #include <ikarus/finiteelements/mechanics/materials/tags.hh>
 #include <ikarus/finiteelements/mechanics/materials/vanishingstrain.hh>
 #include <ikarus/finiteelements/mechanics/materials/vanishingstress.hh>
+
+namespace Ikarus {
+auto makeBlatzKo(ShearModulus mu) {
+  auto bk  = BlatzKo(mu);
+  auto dev = DeviatoricPart<decltype(bk), false>(bk);
+
+  return Hyperelastic(dev);
+}
+} // namespace Ikarus

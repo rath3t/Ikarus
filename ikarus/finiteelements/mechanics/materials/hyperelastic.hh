@@ -198,6 +198,7 @@ private:
   template <typename Derived>
   auto principalStretches(const Eigen::MatrixBase<Derived>& C, int options = Eigen::ComputeEigenvectors) const {
     Eigen::SelfAdjointEigenSolver<Derived> eigensolver(C, options);
+    // Eigen::EigenSolver<Derived> eigensolver(C, options);
     auto& eigenvalues  = eigensolver.eigenvalues();
     auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : Derived::Zero();
 
