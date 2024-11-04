@@ -60,7 +60,7 @@ struct CompressibleOgdenT : public Material<CompressibleOgdenT<ST, n>>
     for (auto i : parameterRange()) {
       energy +=
           mu[i] / alpha[i] *
-              (std::pow(lambdas[0], alpha[i]) + std::pow(lambdas[1], alpha[i]) + std::pow(lambdas[2], alpha[i]) - 3) -
+              (pow(lambdas[0], alpha[i]) + pow(lambdas[1], alpha[i]) + pow(lambdas[2], alpha[i]) - 3) -
           mu[i] * log(J);
     }
 
@@ -82,7 +82,7 @@ struct CompressibleOgdenT : public Material<CompressibleOgdenT<ST, n>>
 
     for (auto j : parameterRange()) {
       for (auto k : dimensionRange()) {
-        P[k] += (mu[j] * (std::pow(lambdas[k], alpha[j]) - 1)) / lambdas[k];
+        P[k] += (mu[j] * (pow(lambdas[k], alpha[j]) - 1)) / lambdas[k];
       }
     }
     return P;
@@ -104,8 +104,8 @@ struct CompressibleOgdenT : public Material<CompressibleOgdenT<ST, n>>
 
     for (auto j : parameterRange())
       for (auto k : dimensionRange()) {
-        dS(k, k) += -2 * (mu[j] * (std::pow(lambdas[k], alpha[j]) - 1)) / std::pow(lambdas[k], 3) +
-                    (mu[j] * std::pow(lambdas[k], alpha[j]) * alpha[j] / lambdas[k]) / std::pow(lambdas[k], 2);
+        dS(k, k) += -2 * (mu[j] * (pow(lambdas[k], alpha[j]) - 1)) / pow(lambdas[k], 3) +
+                    (mu[j] * pow(lambdas[k], alpha[j]) * alpha[j] / lambdas[k]) / pow(lambdas[k], 2);
       }
 
     return dS;
@@ -118,7 +118,7 @@ struct CompressibleOgdenT : public Material<CompressibleOgdenT<ST, n>>
    */
   template <typename STO>
   auto rebind() const {
-    return CompressibleOgdenT<STO, nOgdenParameters>(materialParameters_);
+    return CompressibleOgdenT<STO, nOgdenParameters>(materialParameters_, ogdenParameters_);
   }
 
 private:

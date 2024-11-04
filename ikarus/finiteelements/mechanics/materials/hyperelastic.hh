@@ -137,8 +137,8 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   template <typename STO>
   auto rebind() const {
     auto reboundDEV = dev_.template rebind<STO>();
-    auto reboundVOL = dev_.template rebind<VOL>();
-    return Hyperelastic<decltype(reboundDEV), decltype(reboundVOL)>(reboundDEV);
+    auto reboundVOL = vol_.template rebind<STO>();
+    return Hyperelastic<decltype(reboundDEV), decltype(reboundVOL)>(reboundDEV, reboundVOL);
   }
 
 private:
@@ -198,7 +198,7 @@ private:
   template <typename Derived>
   auto principalStretches(const Eigen::MatrixBase<Derived>& C, int options = Eigen::ComputeEigenvectors) const {
     Eigen::SelfAdjointEigenSolver<Derived> eigensolver(C, options);
-    // Eigen::EigenSolver<Derived> eigensolver(C, options);
+
     auto& eigenvalues  = eigensolver.eigenvalues();
     auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : Derived::Zero();
 
@@ -210,7 +210,7 @@ private:
   auto detF(const Eigen::MatrixBase<Derived>& C) const -> typename VOL::JType {
     if constexpr (hasVolumetricPart) {
       const auto detC = C.determinant();
-      const auto J     = std::sqrt(detC);
+      const auto J     = sqrt(detC);
       checkPositiveDetC(J);
 
       return J;

@@ -18,35 +18,6 @@
 using namespace Ikarus;
 using Dune::TestSuite;
 
-template <StrainTags strainTag>
-double transformStrainAccordingToStrain(auto& e) {
-  double strainDerivativeFactor = 1;
-
-  if (strainTag == StrainTags::greenLagrangian or strainTag == StrainTags::linear) {
-    e = ((e.transpose() + e + 3 * Eigen::Matrix3d::Identity()) / 10).eval();
-    e /= e.array().maxCoeff();
-    auto C = (2 * e + Eigen::Matrix3d::Identity()).eval();
-    Eigen::EigenSolver<Eigen::Matrix3d> esC(C);
-    e                      = 0.5 * (C / esC.eigenvalues().real().maxCoeff() - Eigen::Matrix3d::Identity());
-    strainDerivativeFactor = 1;
-  } else if (strainTag == StrainTags::rightCauchyGreenTensor) {
-    e = (e.transpose() + e).eval();
-    Eigen::EigenSolver<Eigen::Matrix3d> esC(e);
-    e += (-esC.eigenvalues().real().minCoeff() + 1) * Eigen::Matrix3d::Identity();
-    esC.compute(e);
-    e /= esC.eigenvalues().real().maxCoeff();
-
-    assert(esC.eigenvalues().real().minCoeff() > 0 &&
-           " The smallest eigenvalue is negative this is unsuitable for the tests");
-
-    strainDerivativeFactor = 0.5;
-  } else if (strainTag == StrainTags::deformationGradient) {
-    e = (e + 3 * Eigen::Matrix3d::Identity()).eval(); // create positive definite matrix
-    e = e.sqrt();
-  }
-  return strainDerivativeFactor;
-}
-
 template <StrainTags strainTag, typename MaterialImpl>
 auto testMaterialWithStrain(const MaterialImpl& mat, const double tol = 1e-13) {
   TestSuite t(mat.name() + " InputStrainMeasure: " + toString(strainTag));
@@ -298,11 +269,7 @@ auto checkBlatzKo() {
   std::array<double, 1> mu_og    = {mu};
   std::array<double, 1> alpha_og = {2.0};
 
-  auto compressibleOgdenPre = CompressibleOgden<1>(mu_og, alpha_og);
-  auto dev_1                = DeviatoricPart<decltype(compressibleOgdenPre), false>(compressibleOgdenPre);
-  auto vol                  = VolumetricPart({Lambda}, VF3{});
-  auto ogden_1              = Hyperelastic(dev_1, vol);
-
+  auto ogden_1    = makeCompressibleOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
   auto energy_og1 = ogden_1.storedEnergy<CauchyGreen>(c);
   auto stress_og1 = ogden_1.stresses<CauchyGreen>(c);
   auto moduli_og1 = ogden_1.tangentModuli<CauchyGreen>(c);
@@ -311,9 +278,7 @@ auto checkBlatzKo() {
   std::cout << "Stress (OG 1):\n" << stress_og1 << std::endl;
   std::cout << "MatTangent (OG 1):\n" << moduli_og1 << std::endl;
 
-  auto ogPre   = Ogden<1>(mu_og, alpha_og);
-  auto dev2    = DeviatoricPart<decltype(ogPre), false>(ogPre);
-  auto ogden_2 = Hyperelastic(dev2, vol);
+  auto ogden_2 = makeIncompressibleOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
 
   auto energy_og2 = ogden_2.storedEnergy<CauchyGreen>(c);
   auto stress_og2 = ogden_2.stresses<CauchyGreen>(c);
@@ -322,6 +287,8 @@ auto checkBlatzKo() {
   std::cout << "Energy (OG 2):\n" << energy_og2 << std::endl;
   std::cout << "Stress (OG 2):\n" << stress_og2 << std::endl;
   std::cout << "MatTangent (OG 2):\n" << moduli_og2 << std::endl;
+
+  auto og_inc = makeIncompressibleOgden<1>(mu_og, alpha_og);
 
   return t;
 }

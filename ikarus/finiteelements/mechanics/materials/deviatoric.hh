@@ -14,7 +14,13 @@
 
 namespace Ikarus {
 
-template <typename DF, bool useIsochoricStretches = true>
+/**
+ * \brief
+ *
+ * \tparam DF
+ * \tparam useIsochoricStretches if this is true, the stretches get scaled by $J^{-\dfrac{1}{3}}
+ */
+template <typename DF, bool useIsochoricStretches>
 struct DeviatoricPart
 {
   using ScalarType         = typename DF::ScalarType;
@@ -35,14 +41,12 @@ struct DeviatoricPart
 
   StressMatrix stressesImpl(const PrincipalStretches& lambda) const {
     auto lambdaBar = transformStretches(lambda);
-    auto P = deviatoricFunction_.firstDerivativeImpl(lambdaBar);
+    auto P         = deviatoricFunction_.firstDerivativeImpl(lambdaBar);
 
     // Compute the principal PK2 stresses by dividing by the stretches
-
     StressMatrix S;
-    for (auto k : dimensionRange()) {
-      S[k] = P[k] / lambdaBar[k];
-    }
+    for (auto k : dimensionRange())
+      S[k] = P[k] / lambda[k];
 
     return S;
   }
@@ -59,17 +63,17 @@ struct DeviatoricPart
 
     for (auto i : dimensionRange()) {
       for (auto k : dimensionRange()) {
-        L(i, i, k, k) = 1.0 / lambdaBar(k) * dS(i, k);
+        L(i, i, k, k) = 1.0 / lambda(k) * dS(i, k);
       }
     }
 
     for (auto i : dimensionRange()) {
       for (auto k : dimensionRange()) {
         if (i != k) {
-          if (Dune::FloatCmp::eq(lambdaBar(i), lambdaBar(k), 1e-8)) {
+          if (Dune::FloatCmp::eq(lambda(i), lambda(k), 1e-8)) {
             L(i, k, i, k) = 0.5 * (L(i, i, i, i) - L(i, i, k, k));
           } else {
-            L(i, k, i, k) += (S(i) - S(k)) / (std::pow(lambdaBar(i), 2) - std::pow(lambdaBar(k), 2));
+            L(i, k, i, k) += (S(i) - S(k)) / (pow(lambda(i), 2) - pow(lambda(k), 2));
           }
         }
       }
@@ -78,6 +82,12 @@ struct DeviatoricPart
     return L;
   };
 
+  template <typename STO>
+  auto rebind() const {
+    auto reboundDF = deviatoricFunction_.template rebind<STO>();
+    return DeviatoricPart<decltype(reboundDF), useIsochoricStretches>{reboundDF};
+  }
+
 private:
   DF deviatoricFunction_;
 
@@ -85,8 +95,8 @@ private:
 
   PrincipalStretches transformStretches(const PrincipalStretches& lambdas) const {
     if constexpr (useIsochoricStretches) {
-      ScalarType J    = std::accumulate(lambdas.begin(), lambdas.end(), 1.0, std::multiplies());
-      ScalarType Jmod = std::pow(J, -1.0 / 3.0);
+      ScalarType J    = std::accumulate(lambdas.begin(), lambdas.end(), ScalarType{1.0}, std::multiplies());
+      ScalarType Jmod = pow(J, -1.0 / 3.0);
 
       auto lambdasBar = PrincipalStretches::Zero().eval();
       for (auto i : dimensionRange())

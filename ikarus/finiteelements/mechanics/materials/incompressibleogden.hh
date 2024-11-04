@@ -15,7 +15,7 @@
 namespace Ikarus {
 
 template <typename ST, int n>
-struct OgdenT
+struct IncompressibleOgdenT
 {
   using ScalarType         = ST;
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
@@ -32,10 +32,10 @@ struct OgdenT
   [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "Ogden"; }
 
   /**
-   * \brief Constructor for OgdenT.
+   * \brief Constructor for IncompressibleOgdenT.
    * \param mpt The Lame's parameters (first parameter and shear modulus).
    */
-  explicit OgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
+  explicit IncompressibleOgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
       : materialParameters_{mpt},
         ogdenParameters_{opt} {}
 
@@ -52,36 +52,26 @@ struct OgdenT
     auto& mu    = materialParameters_;
     auto& alpha = ogdenParameters_;
 
-    for (auto i : parameterRange()) {
-      energy += mu[i] / alpha[i] *
-                (std::pow(lambdas[0], alpha[i]) + std::pow(lambdas[1], alpha[i]) + std::pow(lambdas[2], alpha[i]) - 3);
-    }
+    for (auto i : parameterRange())
+      energy +=
+          mu[i] / alpha[i] * (pow(lambdas[0], alpha[i]) + pow(lambdas[1], alpha[i]) + pow(lambdas[2], alpha[i]) - 3);
 
     return energy;
   }
 
-  FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambdas) const {
+  FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambdaBar) const {
     auto P = FirstDerivative::Zero().eval();
 
     auto& mu    = materialParameters_;
     auto& alpha = ogdenParameters_;
+    for (auto j : parameterRange()) {
+      auto p = (1.0 / 3.0) * (pow(lambdaBar[0], alpha[j]) + pow(lambdaBar[1], alpha[j]) + pow(lambdaBar[2], alpha[j]));
 
-    // for (auto j : parameterRange())
-    //   for (auto k : dimensionRange()) {
-    //     auto sum = std::pow(lambdas[0], alpha[j]) + std::pow(lambdas[1], alpha[j]) + std::pow(lambdas[2], alpha[j]);
-    //     // P[k] += mu[j] * std::pow(lambdas[k], alpha[j] - 1); // derivative
-    //     P[k] += mu[j] * (std::pow(lambdas[k], alpha[j]) - 1.0 / 3.0 * sum ); // derivative according to
-    //     Tarun MA
-    //   }
-
-    for (auto j : parameterRange()) { // iterate over Ogden terms
-      auto p = (1.0 / 3.0) *
-               (std::pow(lambdas[0], alpha[j]) + std::pow(lambdas[1], alpha[j]) + std::pow(lambdas[2], alpha[j]));
-      for (auto k : dimensionRange()) { // iterate over principal stretches
-        P[k] += mu[j] * (std::pow(lambdas[k], alpha[j]) - p);
+      for (auto k : dimensionRange()) {
+        P[k] += mu[j] * (pow(lambdaBar[k], alpha[j] - 1) - p);
       }
     }
-    // P *= 2 / (lambdas[0] * lambdas[1] * lambdas[2]);
+
     return P;
   }
 
@@ -92,24 +82,20 @@ struct OgdenT
     auto& alpha = ogdenParameters_;
 
     for (auto j : parameterRange())
-      for (auto k : dimensionRange()) {
-        auto p = (1.0 / 3.0) *
-                 (std::pow(lambdas[0], alpha[j]) + std::pow(lambdas[1], alpha[j]) + std::pow(lambdas[2], alpha[j]));
+      for (auto k : dimensionRange())
+        dS(k, k) = mu[j] * alpha[j] * (alpha[j] - 1) * pow(lambdas[k], alpha[j] - 2);
 
-        // dS(k, k) += mu[j] * ((alpha[j] - 1) * std::pow(lambdas[k], alpha[j] - 2) - p);
-        dS(k,k) = mu[j] * alpha[j] * (alpha[j] - 1) * std::pow(lambdas[k], alpha[j] - 2) + p;
-      }
     return dS;
   }
 
   /**
    * \brief Rebinds the material to a different scalar type.
    * \tparam STO The target scalar type.
-   * \return OgdenT<ScalarTypeOther> The rebound Ogden material.
+   * \return IncompressibleOgdenT<ScalarTypeOther> The rebound Ogden material.
    */
   template <typename STO>
   auto rebind() const {
-    return OgdenT<STO, nOgdenParameters>(materialParameters_);
+    return IncompressibleOgdenT<STO, nOgdenParameters>(materialParameters_, ogdenParameters_);
   }
 
 private:
@@ -121,9 +107,9 @@ private:
 };
 
 /**
- * \brief Alias for OgdenT with double as the default scalar type.
+ * \brief Alias for IncompressibleOgdenT with double as the default scalar type.
  */
 template <int n>
-using Ogden = OgdenT<double, n>;
+using IncompressibleOgden = IncompressibleOgdenT<double, n>;
 
 } // namespace Ikarus

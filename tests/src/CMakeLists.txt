@@ -38,6 +38,7 @@ set(programSourceFiles
     testresultfunction.cpp
     testtruss.cpp
     testvtkwriter.cpp
+    testmaterialswithad.cpp
 )
 
 set(TEST_DEPENDING_ON_LOCALFEFUNCTIONS
