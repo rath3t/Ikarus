@@ -99,6 +99,15 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
         auto Sdev = transformDeviatoricStresses(dev_.stressesImpl(lambdas), N);
         auto Svol = transformVolumetricStresses(vol_.firstDerivative(J), C, J);
 
+        if constexpr (DEV::useIsochoricStretches) {
+          const auto CT    = tensorView(C, std::array<Eigen::Index, 2>({3, 3}));
+          const auto CinvT = tensorView(C.inverse().eval(), std::array<Eigen::Index, 2>({3, 3}));
+          const auto proj  = identityFourthOrder() - (1.0 / 3.0) * dyadic(CinvT, CT);
+
+          auto pS = doubleContraction(proj, Sdev);
+          Sdev    = pow(J, -2.0 / 3.0) * pS;
+        }
+
         return Sdev + Svol;
       } else
         static_assert(!Concepts::EigenVector<Derived>,
@@ -210,7 +219,7 @@ private:
   auto detF(const Eigen::MatrixBase<Derived>& C) const -> typename VOL::JType {
     if constexpr (hasVolumetricPart) {
       const auto detC = C.determinant();
-      const auto J     = sqrt(detC);
+      const auto J    = sqrt(detC);
       checkPositiveDetC(J);
 
       return J;

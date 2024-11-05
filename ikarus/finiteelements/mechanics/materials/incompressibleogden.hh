@@ -67,9 +67,8 @@ struct IncompressibleOgdenT
     for (auto j : parameterRange()) {
       auto p = (1.0 / 3.0) * (pow(lambdaBar[0], alpha[j]) + pow(lambdaBar[1], alpha[j]) + pow(lambdaBar[2], alpha[j]));
 
-      for (auto k : dimensionRange()) {
-        P[k] += mu[j] * (pow(lambdaBar[k], alpha[j] - 1) - p);
-      }
+      for (auto k : dimensionRange())
+        P[k] = mu[j] * (pow(lambdaBar[k], alpha[j] - 1) - p);
     }
 
     return P;

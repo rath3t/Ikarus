@@ -20,14 +20,15 @@ namespace Ikarus {
  * \tparam DF
  * \tparam useIsochoricStretches if this is true, the stretches get scaled by $J^{-\dfrac{1}{3}}
  */
-template <typename DF, bool useIsochoricStretches>
+template <typename DF, bool useIsochoricStretches_>
 struct DeviatoricPart
 {
   using ScalarType         = typename DF::ScalarType;
   using PrincipalStretches = typename DF::PrincipalStretches;
   using MaterialParameters = typename DF::MaterialParameters;
 
-  static constexpr int worldDimension = 3;
+  static constexpr int worldDimension         = 3;
+  static constexpr bool useIsochoricStretches = useIsochoricStretches_;
 
   using StressMatrix   = Eigen::Vector<ScalarType, worldDimension>;
   using MaterialTensor = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>;
@@ -42,6 +43,7 @@ struct DeviatoricPart
   StressMatrix stressesImpl(const PrincipalStretches& lambda) const {
     auto lambdaBar = transformStretches(lambda);
     auto P         = deviatoricFunction_.firstDerivativeImpl(lambdaBar);
+    ScalarType J   = std::accumulate(lambda.begin(), lambda.end(), ScalarType{1.0}, std::multiplies());
 
     // Compute the principal PK2 stresses by dividing by the stretches
     StressMatrix S;
