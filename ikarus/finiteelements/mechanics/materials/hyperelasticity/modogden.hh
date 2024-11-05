@@ -15,7 +15,7 @@
 namespace Ikarus {
 
 template <typename ST, int n>
-struct CompressibleOgdenT : public Material<CompressibleOgdenT<ST, n>>
+struct ModifiedOgdenT : public Material<ModifiedOgdenT<ST, n>>
 {
   using ScalarType         = ST;
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
@@ -32,10 +32,10 @@ struct CompressibleOgdenT : public Material<CompressibleOgdenT<ST, n>>
   [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "CompressibleOgden"; }
 
   /**
-   * \brief Constructor for CompressibleOgdenT.
+   * \brief Constructor for ModifiedOgdenT.
    * \param mpt The Lame's parameters (first parameter and shear modulus).
    */
-  explicit CompressibleOgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
+  explicit ModifiedOgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
       : materialParameters_{mpt},
         ogdenParameters_{opt} {}
 
@@ -114,11 +114,11 @@ struct CompressibleOgdenT : public Material<CompressibleOgdenT<ST, n>>
   /**
    * \brief Rebinds the material to a different scalar type.
    * \tparam STO The target scalar type.
-   * \return CompressibleOgdenT<ScalarTypeOther> The rebound CompressibleOgden material.
+   * \return ModifiedOgdenT<ScalarTypeOther> The rebound CompressibleOgden material.
    */
   template <typename STO>
   auto rebind() const {
-    return CompressibleOgdenT<STO, nOgdenParameters>(materialParameters_, ogdenParameters_);
+    return ModifiedOgdenT<STO, nOgdenParameters>(materialParameters_, ogdenParameters_);
   }
 
 private:
@@ -131,9 +131,9 @@ private:
 };
 
 /**
- * \brief Alias for CompressibleOgdenT with double as the default scalar type.
+ * \brief Alias for ModifiedOgdenT with double as the default scalar type.
  */
 template <int n>
-using CompressibleOgden = CompressibleOgdenT<double, n>;
+using ModifiedOgden = ModifiedOgdenT<double, n>;
 
 } // namespace Ikarus

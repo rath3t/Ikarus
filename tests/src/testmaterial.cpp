@@ -246,15 +246,15 @@ auto testMaterialsByAD() {
   auto K      = convertLameConstants(matPar).toBulkModulus();
   auto Lambda = convertLameConstants(matPar).toLamesFirstParameter();
 
-  auto nh = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
+  // auto nh = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
 
-  auto energy_nh     = nh.storedEnergy<CauchyGreen>(c);
-  auto stress_nh     = nh.stresses<CauchyGreen>(c);
-  auto matTangent_nh = nh.tangentModuli<CauchyGreen>(c);
+  // auto energy_nh     = nh.storedEnergy<CauchyGreen>(c);
+  // auto stress_nh     = nh.stresses<CauchyGreen>(c);
+  // auto matTangent_nh = nh.tangentModuli<CauchyGreen>(c);
 
-  std::cout << "Energy (NH):\n" << energy_nh << std::endl;
-  std::cout << "Stress (NH):\n" << stress_nh << std::endl;
-  std::cout << "MatTangent (NH):\n" << matTangent_nh << std::endl;
+  // std::cout << "Energy (NH):\n" << energy_nh << std::endl;
+  // std::cout << "Stress (NH):\n" << stress_nh << std::endl;
+  // std::cout << "MatTangent (NH):\n" << matTangent_nh << std::endl;
 
   // auto bk = makeBlatzKo(ShearModulus{mu});
 
@@ -269,7 +269,7 @@ auto testMaterialsByAD() {
   std::array<double, 1> mu_og    = {mu};
   std::array<double, 1> alpha_og = {2.0};
 
-  auto ogden_1    = makeCompressibleOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
+  auto ogden_1    = makeModifiedOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
   auto energy_og1 = ogden_1.storedEnergy<CauchyGreen>(c);
   auto stress_og1 = ogden_1.stresses<CauchyGreen>(c);
   auto moduli_og1 = ogden_1.tangentModuli<CauchyGreen>(c);
@@ -278,7 +278,7 @@ auto testMaterialsByAD() {
   std::cout << "Stress (OG 1):\n" << stress_og1 << std::endl;
   std::cout << "MatTangent (OG 1):\n" << moduli_og1 << std::endl;
 
-  auto ogden_2 = makeIncompressibleOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
+  auto ogden_2 = makeOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
 
   auto energy_og2 = ogden_2.storedEnergy<CauchyGreen>(c);
   auto stress_og2 = ogden_2.stresses<CauchyGreen>(c);
@@ -287,8 +287,6 @@ auto testMaterialsByAD() {
   std::cout << "Energy (OG 2):\n" << energy_og2 << std::endl;
   std::cout << "Stress (OG 2):\n" << stress_og2 << std::endl;
   std::cout << "MatTangent (OG 2):\n" << moduli_og2 << std::endl;
-
-  auto og_inc = makeIncompressibleOgden<1>(mu_og, alpha_og);
 
   return t;
 }

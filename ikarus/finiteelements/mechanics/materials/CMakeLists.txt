@@ -19,3 +19,4 @@ install(
         vanishinghelpers.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/materials
 )
+add_subdirectory(hyperelasticity)

@@ -18,17 +18,17 @@ namespace Ikarus {
  * \brief
  *
  * \tparam DF
- * \tparam useIsochoricStretches if this is true, the stretches get scaled by $J^{-\dfrac{1}{3}}
  */
-template <typename DF, bool useIsochoricStretches_>
+template <typename DF>
 struct DeviatoricPart
 {
   using ScalarType         = typename DF::ScalarType;
   using PrincipalStretches = typename DF::PrincipalStretches;
   using MaterialParameters = typename DF::MaterialParameters;
 
-  static constexpr int worldDimension         = 3;
-  static constexpr bool useIsochoricStretches = useIsochoricStretches_;
+  using FirstDerivative = typename DF::FirstDerivative;
+
+  static constexpr int worldDimension = 3;
 
   using StressMatrix   = Eigen::Vector<ScalarType, worldDimension>;
   using MaterialTensor = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>;
@@ -37,27 +37,23 @@ struct DeviatoricPart
       : deviatoricFunction_{df} {}
 
   ScalarType storedEnergyImpl(const PrincipalStretches& lambdas) const {
-    return deviatoricFunction_.storedEnergyImpl(transformStretches(lambdas));
+    return deviatoricFunction_.storedEnergyImpl(lambdas);
   };
 
   StressMatrix stressesImpl(const PrincipalStretches& lambda) const {
-    auto lambdaBar = transformStretches(lambda);
-    auto P         = deviatoricFunction_.firstDerivativeImpl(lambdaBar);
-    ScalarType J   = std::accumulate(lambda.begin(), lambda.end(), ScalarType{1.0}, std::multiplies());
+    auto dWdLambda = deviatoricFunction_.firstDerivativeImpl(lambda);
 
     // Compute the principal PK2 stresses by dividing by the stretches
     StressMatrix S;
     for (auto k : dimensionRange())
-      S[k] = P[k] / lambda[k];
+      S[k] = dWdLambda[k] / lambda[k];
 
     return S;
   }
 
   MaterialTensor tangentModuliImpl(const PrincipalStretches& lambda) const {
-    auto lambdaBar = transformStretches(lambda);
-
-    auto S  = stressesImpl(lambdaBar);
-    auto dS = deviatoricFunction_.secondDerivativeImpl(lambdaBar);
+    auto S  = stressesImpl(lambda);
+    auto dS = deviatoricFunction_.secondDerivativeImpl(lambda);
 
     // Konvektive coordinates
     auto L = MaterialTensor{};
@@ -82,7 +78,7 @@ struct DeviatoricPart
   template <typename STO>
   auto rebind() const {
     auto reboundDF = deviatoricFunction_.template rebind<STO>();
-    return DeviatoricPart<decltype(reboundDF), useIsochoricStretches>{reboundDF};
+    return DeviatoricPart<decltype(reboundDF)>{reboundDF};
   }
 
 private:
@@ -90,18 +86,19 @@ private:
 
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(worldDimension); }
 
-  PrincipalStretches transformStretches(const PrincipalStretches& lambdas) const {
-    if constexpr (useIsochoricStretches) {
-      ScalarType J    = std::accumulate(lambdas.begin(), lambdas.end(), ScalarType{1.0}, std::multiplies());
-      ScalarType Jmod = pow(J, -1.0 / 3.0);
+  // FirstDerivative firstPiolaKirchhoff(const FirstDerivative& dWdLambdaBar, const PrincipalStretches& lambda,
+  //                                     const PrincipalStretches& lambdaBar) const {
+  //   if constexpr (useIsochoricStretches) {
+  //     ScalarType sumLambdaBar{0.0};
+  //     for (auto b : dimensionRange())
+  //       sumLambdaBar += lambdaBar[b] * dWdLambdaBar[b];
 
-      auto lambdasBar = PrincipalStretches::Zero().eval();
-      for (auto i : dimensionRange())
-        lambdasBar[i] = Jmod * lambdas[i];
-
-      return lambdasBar;
-    } else
-      return lambdas;
-  }
+  // FirstDerivative P{};
+  // for (auto i : dimensionRange())
+  //   P[i] = (lambdaBar[i] * dWdLambdaBar[i] - (1.0 / 3.0) * sumLambdaBar) / lambda[i];
+  // return P;
+  // } else
+  // return dWdLambdaBar;
+  // }
 };
 } // namespace Ikarus
