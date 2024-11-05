@@ -63,23 +63,18 @@ struct DeviatoricPart
     auto L = MaterialTensor{};
     L.setZero();
 
-    for (auto i : dimensionRange()) {
-      for (auto k : dimensionRange()) {
+    for (auto i : dimensionRange())
+      for (auto k : dimensionRange())
         L(i, i, k, k) = 1.0 / lambda(k) * dS(i, k);
-      }
-    }
 
-    for (auto i : dimensionRange()) {
-      for (auto k : dimensionRange()) {
+    for (auto i : dimensionRange())
+      for (auto k : dimensionRange())
         if (i != k) {
-          if (Dune::FloatCmp::eq(lambda(i), lambda(k), 1e-8)) {
+          if (Dune::FloatCmp::eq(lambda(i), lambda(k), 1e-8))
             L(i, k, i, k) = 0.5 * (L(i, i, i, i) - L(i, i, k, k));
-          } else {
+          else
             L(i, k, i, k) += (S(i) - S(k)) / (pow(lambda(i), 2) - pow(lambda(k), 2));
-          }
         }
-      }
-    }
 
     return L;
   };

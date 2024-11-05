@@ -102,7 +102,9 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
         if constexpr (DEV::useIsochoricStretches) {
           const auto CT    = tensorView(C, std::array<Eigen::Index, 2>({3, 3}));
           const auto CinvT = tensorView(C.inverse().eval(), std::array<Eigen::Index, 2>({3, 3}));
-          const auto proj  = identityFourthOrder() - (1.0 / 3.0) * dyadic(CinvT, CT);
+
+          const Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> proj =
+              identityFourthOrder() - (1.0 / 3.0) * dyadic(CinvT, CT);
 
           auto pS = doubleContraction(proj, Sdev);
           Sdev    = pow(J, -2.0 / 3.0) * pS;
@@ -170,7 +172,7 @@ private:
     MaterialTensor moduli{};
     moduli.setZero();
 
-    for (int i = 0; i < worldDimension; ++i) {
+    for (int i = 0; i < worldDimension; ++i)
       for (int k = 0; k < worldDimension; ++k) {
         // First term: L[i, i, k, k] * ((N[i] ⊗ N[i]) ⊗ (N[k] ⊗ N[k]))
         auto NiNi = dyadic(N.col(i).eval(), N.col(i).eval());
@@ -186,7 +188,7 @@ private:
           moduli += L(i, k, i, k) * dyadic(NiNk, NiNk + NkNi);
         }
       }
-    }
+
     return moduli;
   }
 
@@ -219,10 +221,9 @@ private:
   auto detF(const Eigen::MatrixBase<Derived>& C) const -> typename VOL::JType {
     if constexpr (hasVolumetricPart) {
       const auto detC = C.determinant();
-      const auto J    = sqrt(detC);
-      checkPositiveDetC(J);
+      checkPositiveDetC(detC);
 
-      return J;
+      return sqrt(detC);
     }
     return 0.0;
   }

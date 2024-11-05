@@ -222,7 +222,7 @@ auto testMaterial(Material mat) {
 // return t;
 // }
 
-auto checkBlatzKo() {
+auto testMaterialsByAD() {
   TestSuite t;
 
   // Eigen::Matrix3d e;
@@ -299,7 +299,7 @@ int main(int argc, char** argv) {
 
   LamesFirstParameterAndShearModulus matPar{.lambda = 1000, .mu = 500};
 
-  t.subTest(checkBlatzKo());
+  t.subTest(testMaterialsByAD());
 
   // auto svk = StVenantKirchhoff(matPar);
   // t.subTest(testMaterial(svk));

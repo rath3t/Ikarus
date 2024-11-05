@@ -65,7 +65,7 @@ struct VF2T
   using ScalarType = ST;
   using JType      = ScalarType;
 
-  ScalarType storedEnergyImpl(const JType& J) const { return 0.25 * (pow(J - 1, 2) + pow(std::log(J), 2)); };
+  ScalarType storedEnergyImpl(const JType& J) const { return 0.25 * (pow(J - 1, 2) + pow(log(J), 2)); };
 
   ScalarType firstDerivativeImpl(const JType& J) const { return 0.5 * (J - 1 + 1 / J * log(J)); }
 
@@ -105,7 +105,7 @@ struct VF4T
   using JType      = ScalarType;
 
   ScalarType storedEnergyImpl(const JType& J) const {
-    return (1 / pow(beta_, 2)) * ((1 / pow(J, beta_)) - 1 + beta_ * std::log(J));
+    return (1 / pow(beta_, 2)) * ((1 / pow(J, beta_)) - 1 + beta_ * log(J));
   };
 
   ScalarType firstDerivativeImpl(const JType& J) const { return (1 / beta_) * ((1 / J) - (1 / (pow(J, 1 + beta_)))); }
@@ -132,7 +132,7 @@ struct VF5T
   using ScalarType = ST;
   using JType      = ScalarType;
 
-  ScalarType storedEnergyImpl(const JType& J) const { return 0.25 * (pow(J, 2) - 1 - 2 * std::log(J)); };
+  ScalarType storedEnergyImpl(const JType& J) const { return 0.25 * (pow(J, 2) - 1 - 2 * log(J)); };
 
   ScalarType firstDerivativeImpl(const JType& J) const { return 0.5 * (J - (1 / J)); }
 
@@ -150,7 +150,7 @@ struct VF6T
   using ScalarType = ST;
   using JType      = ScalarType;
 
-  ScalarType storedEnergyImpl(const JType& J) const { return J - std::log(J) - 1; };
+  ScalarType storedEnergyImpl(const JType& J) const { return J - log(J) - 1; };
 
   ScalarType firstDerivativeImpl(const JType& J) const { return 1 - (1 / J); }
 
@@ -197,6 +197,12 @@ struct VolumetricPart<VF0T<ST>>
   ScalarType firstDerivative(const JType& /* J */) const { return 0; }
 
   ScalarType secondDerivative(const JType& /* J */) const { return 0; };
+
+  template <typename STO>
+  auto rebind() const {
+    using VF0R = VF0T<STO>;
+    return VolumetricPart<VF0R>(0.0, VF0R{});
+  }
 };
 using NoVolumetricPart = VolumetricPart<VF0T<double>>;
 
