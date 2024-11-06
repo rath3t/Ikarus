@@ -132,7 +132,7 @@ auto cantileverBeamTest(const MAT& reducedMat) {
 }
 
 template <int gridDim, typename TestSuitType, typename MAT>
-void easAutoDiffTest(const TestSuitType& t, const MAT& mat) {
+void easAutoDiffTest(TestSuitType& t, const MAT& mat) {
   using namespace Dune::Functions::BasisFactory;
   std::array<int, (gridDim == 2) ? 4 : 3> easParameters;
   if constexpr (gridDim == 2)
@@ -146,8 +146,8 @@ void easAutoDiffTest(const TestSuitType& t, const MAT& mat) {
 
   for (const int numberOfEASParameters : easParameters) {
     auto sk = skills(nonLinearElastic(mat), eas(numberOfEASParameters));
-    checkFESByAutoDiff(gridView, power<gridDim>(lagrange<1>()), sk, AffordanceCollections::elastoStatics,
-                       " (numberOfEASParameters = " + std::to_string(numberOfEASParameters) + ")");
+    t.subTest(checkFESByAutoDiff(gridView, power<gridDim>(lagrange<1>()), sk, AffordanceCollections::elastoStatics,
+                                 " (numberOfEASParameters = " + std::to_string(numberOfEASParameters) + ")"));
   }
 }
 

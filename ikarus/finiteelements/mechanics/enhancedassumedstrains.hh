@@ -17,7 +17,6 @@
   #include <ikarus/finiteelements/fehelper.hh>
   #include <ikarus/finiteelements/ferequirements.hh>
   #include <ikarus/finiteelements/mechanics/easvariants.hh>
-  #include <ikarus/finiteelements/mixin.hh>
   #include <ikarus/utils/concepts.hh>
 
 namespace Ikarus {
@@ -115,14 +114,14 @@ public:
       auto calculateAtContribution = [&]<typename EAST>(const EAST& easFunction) {
         typename EAST::DType D;
         calculateDAndLMatrix(easFunction, req, D, L_);
-        const auto ufunc = underlying().displacementFunction(req);
-        const auto disp  = Dune::viewAsFlatEigenVector(ufunc.coefficientsRef());
-        const auto C     = underlying().materialTangentFunction(req);
-        const auto alpha = (-D.inverse() * L_ * disp).eval();
-        const auto M     = easFunction.calcM(local);
-        const auto CEval = C(local);
-        auto easStress   = (CEval * M * alpha).eval();
-        resultWrapper    = resultVector.asVec() + easStress;
+        const auto ufunc     = underlying().displacementFunction(req);
+        const auto disp      = Dune::viewAsFlatEigenVector(ufunc.coefficientsRef());
+        const auto alpha     = (-D.inverse() * L_ * disp).eval();
+        const auto M         = easFunction.calcM(local);
+        const auto easStrain = (M * alpha).eval();
+        const auto C         = underlying().materialTangent(easStrain);
+        auto easStress       = (C * easStrain).eval();
+        resultWrapper        = resultVector.asVec() + easStress;
       };
       easVariant_(calculateAtContribution);
       return resultWrapper;
@@ -167,19 +166,14 @@ protected:
    */
   void updateStateImpl(const Requirement& par, typename Traits::template VectorTypeConst<> correction) {
     using ScalarType = Traits::ctype;
+    easApplicabilityCheck();
     if (isDisplacementBased())
       return;
     const auto& Rtilde      = calculateRtilde<ScalarType>(par);
     const auto localdxBlock = Ikarus::FEHelper::localSolutionBlockVector<Traits, Eigen::VectorXd, double>(
         correction, underlying().localView());
-    const auto localdx = Dune::viewAsFlatEigenVector(localdxBlock);
-
-    decltype(auto) LMat = [this]() -> decltype(auto) {
-      if constexpr (std::is_same_v<ScalarType, double>)
-        return [this]() -> Eigen::MatrixXd& { return L_; }();
-      else
-        return Eigen::MatrixX<ScalarType>{};
-    }();
+    const auto localdx  = Dune::viewAsFlatEigenVector(localdxBlock);
+    decltype(auto) LMat = LMatFunc<ScalarType>();
 
     auto correctAlpha = [&]<typename EAST>(const EAST& easFunction) {
       constexpr int enhancedStrainSize = EAST::enhancedStrainSize;
@@ -194,9 +188,9 @@ protected:
 
   inline void easApplicabilityCheck() const {
     const auto& numberOfNodes = underlying().numberOfNodes();
-    assert(not(not((numberOfNodes == 4 and Traits::mydim == 2) or (numberOfNodes == 8 and Traits::mydim == 3)) and
-               (not isDisplacementBased())) &&
-           "EAS is only supported for Q1 or H1 elements");
+    if (not((numberOfNodes == 4 and Traits::mydim == 2) or (numberOfNodes == 8 and Traits::mydim == 3)) and
+        (not isDisplacementBased()))
+      DUNE_THROW(Dune::NotImplemented, "EAS is only supported for Q1 or H1 elements");
   }
 
   template <typename ScalarType>
@@ -211,35 +205,22 @@ protected:
     if (isDisplacementBased())
       return;
 
-    decltype(auto) LMat = [this]() -> decltype(auto) {
-      if constexpr (Concepts::AutodiffScalar<ScalarType>)
-        return Eigen::MatrixX<ScalarType>{};
-      else
-        return [this]() -> Eigen::MatrixXd& { return L_; }();
-    }();
-
     auto strainFunction      = underlying().strainFunction(par, dx);
-    const auto C             = underlying().materialTangentFunction(par);
+    const auto kFunction     = underlying().template stiffnessMatrixFunction<ScalarType>(par, K, dx);
     const auto geo           = underlying().localView().element().geometry();
     const auto numberOfNodes = underlying().numberOfNodes();
+    decltype(auto) LMat      = LMatFunc<ScalarType>();
 
     auto calculateMatrixContribution = [&]<typename EAST>(const EAST& easFunction) {
       typename EAST::DType D;
       calculateDAndLMatrix(easFunction, par, D, LMat, dx);
 
       for (const auto& [gpIndex, gp] : strainFunction.viewOverIntegrationPoints()) {
-        const auto M            = easFunction.calcM(gp.position());
-        const double intElement = geo.integrationElement(gp.position()) * gp.weight();
-        const auto EVoigt       = strainFunction.evaluate(gpIndex, on(gridElement)).eval();
-        const auto CEval        = C(gpIndex);
-        auto stresses           = (CEval * M * alpha_).eval();
-        for (size_t i = 0; i < numberOfNodes; ++i) {
-          for (size_t j = 0; j < numberOfNodes; ++j) {
-            const auto kgIJ =
-                strainFunction.evaluateDerivative(gpIndex, wrt(coeff(i, j)), along(stresses), on(gridElement));
-            K.template block<Traits::mydim, Traits::mydim>(i * Traits::mydim, j * Traits::mydim) += kgIJ * intElement;
-          }
-        }
+        const auto M           = easFunction.calcM(gp.position());
+        const auto EVoigt      = strainFunction.evaluate(gpIndex, on(gridElement));
+        const auto easStrain   = (M * alpha_).eval().template cast<ScalarType>();
+        const auto totalStrain = (EVoigt + easStrain).eval();
+        kFunction(totalStrain, gpIndex, gp);
       }
 
       K.template triangularView<Eigen::Upper>() -= LMat.transpose() * D.inverse() * LMat;
@@ -272,8 +253,8 @@ protected:
     using namespace Dune::DerivativeDirections;
     const auto uFunction      = underlying().displacementFunction(par, dx);
     auto strainFunction       = underlying().strainFunction(par, dx);
+    const auto fIntFunction   = underlying().template internalForcesFunction<ScalarType>(par, force, dx);
     const auto& numberOfNodes = underlying().numberOfNodes();
-    const auto C              = underlying().materialTangentFunction(par);
 
     auto calculateForceContribution = [&]<typename EAST>(const EAST& easFunction) {
       typename EAST::DType D;
@@ -283,14 +264,11 @@ protected:
       const auto geo     = underlying().localView().element().geometry();
       const auto& Rtilde = calculateRtilde(par, dx);
       for (const auto& [gpIndex, gp] : strainFunction.viewOverIntegrationPoints()) {
-        const auto M            = easFunction.calcM(gp.position());
-        const double intElement = geo.integrationElement(gp.position()) * gp.weight();
-        const auto CEval        = C(gpIndex);
-        auto stresses           = (CEval * M * alpha_).eval();
-        for (size_t i = 0; i < numberOfNodes; ++i) {
-          const auto bopI = strainFunction.evaluateDerivative(gpIndex, wrt(coeff(i)), on(gridElement));
-          force.template segment<Traits::worlddim>(Traits::worlddim * i) += bopI.transpose() * stresses * intElement;
-        }
+        const auto M           = easFunction.calcM(gp.position());
+        const auto EVoigt      = strainFunction.evaluate(gpIndex, on(gridElement));
+        const auto easStrain   = (M * alpha_).eval().template cast<ScalarType>();
+        const auto totalStrain = (EVoigt + easStrain).eval();
+        fIntFunction(totalStrain, gpIndex, gp);
       }
       force -= L_.transpose() * D.inverse() * Rtilde;
     };
@@ -316,6 +294,14 @@ private:
     alpha_.setZero();
   }
 
+  template <typename ScalarType>
+  decltype(auto) LMatFunc() const {
+    if constexpr (Concepts::AutodiffScalar<ScalarType>)
+      return Eigen::MatrixX<ScalarType>{};
+    else
+      return [this]() -> Eigen::MatrixXd& { return L_; }();
+  }
+
   template <typename ScalarType, int enhancedStrainSize>
   void calculateDAndLMatrix(
       const auto& easFunction, const auto& par, Eigen::Matrix<double, enhancedStrainSize, enhancedStrainSize>& DMat,
@@ -325,20 +311,22 @@ private:
     using namespace Dune::DerivativeDirections;
 
     auto strainFunction      = underlying().strainFunction(par, dx);
-    const auto C             = underlying().materialTangentFunction(par);
     const auto geo           = underlying().localView().element().geometry();
     const auto numberOfNodes = underlying().numberOfNodes();
     DMat.setZero();
     LMat.setZero(enhancedStrainSize, underlying().localView().size());
     for (const auto& [gpIndex, gp] : strainFunction.viewOverIntegrationPoints()) {
+      const auto EVoigt       = strainFunction.evaluate(gpIndex, on(gridElement)).eval();
       const auto M            = easFunction.calcM(gp.position());
-      const auto CEval        = C(gpIndex);
-      const double detJTimesW = geo.integrationElement(gp.position()) * gp.weight();
-      DMat += M.transpose() * CEval * M * detJTimesW;
+      const auto easStrain    = (M * alpha_).eval().template cast<ScalarType>();
+      const auto totalStrain  = (EVoigt + easStrain).eval();
+      const auto CEval        = underlying().materialTangent(totalStrain);
+      const double intElement = geo.integrationElement(gp.position()) * gp.weight();
+      DMat += M.transpose() * CEval * M * intElement;
       for (size_t i = 0U; i < numberOfNodes; ++i) {
         const size_t I = Traits::worlddim * i;
         const auto Bi  = strainFunction.evaluateDerivative(gpIndex, wrt(coeff(i)), on(gridElement));
-        LMat.template block<enhancedStrainSize, Traits::worlddim>(0, I) += M.transpose() * CEval * Bi * detJTimesW;
+        LMat.template block<enhancedStrainSize, Traits::worlddim>(0, I) += M.transpose() * CEval * Bi * intElement;
       }
     }
   }
@@ -351,7 +339,6 @@ private:
     using namespace Dune::DerivativeDirections;
     const auto geo      = underlying().localView().element().geometry();
     auto strainFunction = underlying().strainFunction(par, dx);
-    const auto C        = underlying().materialTangentFunction(par);
     Eigen::VectorX<ScalarType> Rtilde;
     Rtilde.setZero(numberOfEASParameters());
 
@@ -360,9 +347,9 @@ private:
         const auto M            = easFunction.calcM(gp.position());
         const double intElement = geo.integrationElement(gp.position()) * gp.weight();
         const auto EVoigt       = (strainFunction.evaluate(gpIndex, on(gridElement))).eval();
-        const auto CEval        = C(gpIndex);
-        auto stresses           = ((CEval * M * alpha_).template cast<ScalarType>()).eval();
-        stresses += underlying().getStress(EVoigt).eval();
+        const auto easStrain    = (M * alpha_).eval().template cast<ScalarType>();
+        const auto totalStrain  = (EVoigt + easStrain).eval();
+        auto stresses           = underlying().stress(totalStrain);
         Rtilde += (M.transpose() * stresses).eval() * intElement;
       }
     };

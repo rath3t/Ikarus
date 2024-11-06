@@ -19,14 +19,18 @@ namespace Ikarus {
  * variables of the finite elements.
  */
 template <typename Assembler>
-void updateStates(std::shared_ptr<Assembler>& assembler, const auto& correction) {
-  if constexpr (Concepts::FlatAssembler<Assembler>) {
-    auto fes = assembler->finiteElements();
-    auto req = assembler->requirement();
-    for (auto& fe : fes)
-      updateState(fe, req, correction);
-  } else {
-    /* Dummy branch used if std::is_same_v<Assembler, Impl::NoAssembler> */
-  }
+requires(Concepts::FlatAssembler<Assembler>)
+void updateStates(std::shared_ptr<Assembler>& assembler,
+                  const typename Assembler::FERequirement::SolutionVectorType& correction) {
+  auto fes = assembler->finiteElements();
+  auto req = assembler->requirement();
+  for (auto& fe : fes)
+    updateState(fe, req, correction);
+}
+
+template <typename Assembler>
+requires(not Concepts::FlatAssembler<Assembler>)
+void updateStates(std::shared_ptr<Assembler>&, const auto&) {
+  /* Dummy function used if (std::is_same_v<Assembler, Impl::NoAssembler>) */
 }
 } // namespace Ikarus

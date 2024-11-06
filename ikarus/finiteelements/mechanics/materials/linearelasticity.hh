@@ -115,8 +115,7 @@ struct LinearElasticityT : Material<LinearElasticityT<ST>>
    */
   template <typename STO>
   auto rebind() const {
-    LinearElasticityT<STO> leRebound;
-    leRebound.svk = svk_.template rebind<STO>();
+    LinearElasticityT<STO> leRebound{svk_.template rebind<STO>().materialParametersImpl()};
     return leRebound;
   }
 

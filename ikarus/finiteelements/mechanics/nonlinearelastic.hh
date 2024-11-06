@@ -21,6 +21,7 @@
   #include <ikarus/finiteelements/febase.hh>
   #include <ikarus/finiteelements/fehelper.hh>
   #include <ikarus/finiteelements/ferequirements.hh>
+  #include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
   #include <ikarus/finiteelements/mechanics/loads.hh>
   #include <ikarus/finiteelements/mechanics/materials/tags.hh>
   #include <ikarus/finiteelements/physicshelper.hh>
@@ -75,6 +76,7 @@ public:
   using LocalBasisType = decltype(std::declval<LocalView>().tree().child(0).finiteElement().localBasis());
 
   static constexpr int myDim       = Traits::mydim;
+  static constexpr bool hasEAS     = FE::hasEAS;
   static constexpr auto strainType = StrainTags::greenLagrangian;
 
   /**
@@ -142,36 +144,6 @@ public:
   }
 
   /**
-   * \brief Get the material tangent for the given strain.
-   *
-   * \tparam ScalarType The scalar type for the material and strain.
-   * \tparam strainDim The dimension of the strain vector.
-   * \tparam voigt Flag indicating whether to use Voigt notation.
-   * \param strain The strain vector.
-   * \return The material tangent calculated using the material's tangentModuli function.
-   */
-  template <typename ScalarType, int strainDim, bool voigt = true>
-  auto materialTangent(const Eigen::Vector<ScalarType, strainDim>& strain) const {
-    return material<ScalarType>().template tangentModuli<strainType, voigt>(strain);
-  }
-
-  /**
-   * \brief Gets the material tangent function for the given Requirement.
-   *
-   * \param par The Requirement object.
-   * \return The material tangent function.
-   */
-  auto materialTangentFunction([[maybe_unused]] const Requirement& par) const {
-    return [&]([[maybe_unused]] auto gpIndex) {
-      using namespace Dune::DerivativeDirections;
-      using namespace Dune;
-      const auto eps    = strainFunction(par);
-      const auto EVoigt = (eps.evaluate(gpIndex, on(gridElement))).eval();
-      return materialTangent(EVoigt);
-    };
-  }
-
-  /**
    * \brief Get the internal energy for the given strain.
    *
    * \tparam ScalarType The scalar type for the material and strain.
@@ -180,7 +152,7 @@ public:
    * \return The internal energy calculated using the material's storedEnergy function.
    */
   template <typename ScalarType, int strainDim>
-  auto getInternalEnergy(const Eigen::Vector<ScalarType, strainDim>& strain) const {
+  auto internalEnergy(const Eigen::Vector<ScalarType, strainDim>& strain) const {
     return material<ScalarType>().template storedEnergy<strainType>(strain);
   }
 
@@ -194,8 +166,22 @@ public:
    * \return The stress vector calculated using the material's stresses function.
    */
   template <typename ScalarType, int strainDim, bool voigt = true>
-  auto getStress(const Eigen::Vector<ScalarType, strainDim>& strain) const {
+  auto stress(const Eigen::Vector<ScalarType, strainDim>& strain) const {
     return material<ScalarType>().template stresses<strainType, voigt>(strain);
+  }
+
+  /**
+   * \brief Get the material tangent for the given strain for the given Requirement.
+   *
+   * \tparam ScalarType The scalar type for the material and strain.
+   * \tparam strainDim The dimension of the strain vector.
+   * \tparam voigt Flag indicating whether to use Voigt notation.
+   * \param strain The strain vector.
+   * \return The material tangent calculated using the material's tangentModuli function.
+   */
+  template <typename ScalarType, int strainDim, bool voigt = true>
+  auto materialTangent(const Eigen::Vector<ScalarType, strainDim>& strain) const {
+    return material<ScalarType>().template tangentModuli<strainType, voigt>(strain);
   }
 
   const Geometry& geometry() const { return *geo_; }
@@ -252,6 +238,73 @@ private:
   size_t numberOfNodes_{0};
   int order_{};
 
+  template <typename ScalarType>
+  decltype(auto) material() const {
+    if constexpr (Concepts::AutodiffScalar<ScalarType>)
+      return mat_.template rebind<ScalarType>();
+    else
+      return mat_;
+  }
+
+public:
+  /**
+   * \brief Get a lambda function that evaluates the stiffness matrix for a given strain, Gauss point and its index.
+   *
+   * \tparam ScalarType The scalar type for the material and strain.
+   * \param par The Requirement object.
+   * \param dx Optional displacement vector.
+   * \param K The matrix to store the calculated result.
+   * \return A lambda function that evaluates the stiffness matrix for a given strain, Gauss point and its index.
+   */
+  template <typename ScalarType>
+  auto stiffnessMatrixFunction(
+      const Requirement& par, typename Traits::template MatrixType<> K,
+      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+    return [&]<int strainDim>(const Eigen::Vector<ScalarType, strainDim>& strain, auto gpIndex, auto gp) {
+      using namespace Dune::DerivativeDirections;
+      using namespace Dune;
+      const auto eps          = strainFunction(par, dx);
+      const auto C            = materialTangent(strain);
+      const auto stresses     = stress(strain);
+      const double intElement = geo_->integrationElement(gp.position()) * gp.weight();
+      for (size_t i = 0; i < numberOfNodes_; ++i) {
+        const auto bopI = eps.evaluateDerivative(gpIndex, wrt(coeff(i)), on(gridElement));
+        for (size_t j = 0; j < numberOfNodes_; ++j) {
+          const auto bopJ = eps.evaluateDerivative(gpIndex, wrt(coeff(j)), on(gridElement));
+          const auto kgIJ = eps.evaluateDerivative(gpIndex, wrt(coeff(i, j)), along(stresses), on(gridElement));
+          K.template block<myDim, myDim>(i * myDim, j * myDim) += (bopI.transpose() * C * bopJ + kgIJ) * intElement;
+        }
+      }
+    };
+  }
+
+  /**
+   * \brief Get a lambda function that evaluates the internal force vector for a given strain, Gauss point and its
+   * index.
+   *
+   * \tparam ScalarType The scalar type for the material and strain.
+   * \param par The Requirement object.
+   * \param dx Optional displacement vector.
+   * \param force The vector to store the calculated result.
+   * \return A lambda function that evaluates the intenral force vector for a given strain, Gauss point and its index.
+   */
+  template <typename ScalarType>
+  auto internalForcesFunction(
+      const Requirement& par, typename Traits::template VectorType<ScalarType> force,
+      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+    return [&]<int strainDim>(const Eigen::Vector<ScalarType, strainDim>& strain, auto gpIndex, auto gp) {
+      using namespace Dune::DerivativeDirections;
+      using namespace Dune;
+      const double intElement = geo_->integrationElement(gp.position()) * gp.weight();
+      const auto eps          = strainFunction(par, dx);
+      auto stresses           = stress(strain);
+      for (size_t i = 0; i < numberOfNodes_; ++i) {
+        const auto bopI = eps.evaluateDerivative(gpIndex, wrt(coeff(i)), on(gridElement));
+        force.template segment<myDim>(myDim * i) += bopI.transpose() * stresses * intElement;
+      }
+    };
+  }
+
 protected:
   /**
    * \brief Calculate the matrix associated with the given Requirement.
@@ -264,25 +317,17 @@ protected:
   void calculateMatrixImpl(
       const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+    if constexpr (hasEAS)
+      if (underlying().numberOfEASParameters() != 0)
+        return;
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
     const auto uFunction = displacementFunction(par, dx);
     const auto eps       = strainFunction(par, dx);
+    const auto kFunction = stiffnessMatrixFunction<ScalarType>(par, K, dx);
     for (const auto& [gpIndex, gp] : eps.viewOverIntegrationPoints()) {
-      const double intElement = geo_->integrationElement(gp.position()) * gp.weight();
-      const auto EVoigt       = (eps.evaluate(gpIndex, on(gridElement))).eval();
-      const auto u            = (uFunction.evaluate(gpIndex, on(gridElement))).eval();
-      const auto C            = materialTangent(EVoigt);
-
-      const auto stresses = getStress(EVoigt);
-      for (size_t i = 0; i < numberOfNodes_; ++i) {
-        const auto bopI = eps.evaluateDerivative(gpIndex, wrt(coeff(i)), on(gridElement));
-        for (size_t j = 0; j < numberOfNodes_; ++j) {
-          const auto bopJ = eps.evaluateDerivative(gpIndex, wrt(coeff(j)), on(gridElement));
-          const auto kgIJ = eps.evaluateDerivative(gpIndex, wrt(coeff(i, j)), along(stresses), on(gridElement));
-          K.template block<myDim, myDim>(i * myDim, j * myDim) += (bopI.transpose() * C * bopJ + kgIJ) * intElement;
-        }
-      }
+      const auto EVoigt = (eps.evaluate(gpIndex, on(gridElement))).eval();
+      kFunction(EVoigt, gpIndex, gp);
     }
   }
 
@@ -298,9 +343,8 @@ protected:
     ScalarType energy  = 0.0;
 
     for (const auto& [gpIndex, gp] : eps.viewOverIntegrationPoints()) {
-      const auto EVoigt         = (eps.evaluate(gpIndex, on(gridElement))).eval();
-      const auto internalEnergy = getInternalEnergy(EVoigt);
-      energy += internalEnergy * geo_->integrationElement(gp.position()) * gp.weight();
+      const auto EVoigt = (eps.evaluate(gpIndex, on(gridElement))).eval();
+      energy += internalEnergy(EVoigt) * geo_->integrationElement(gp.position()) * gp.weight();
     }
 
     return energy;
@@ -310,19 +354,18 @@ protected:
   void calculateVectorImpl(
       const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+    if constexpr (hasEAS)
+      if (underlying().numberOfEASParameters() != 0)
+        return;
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
-    const auto eps = strainFunction(par, dx);
+    const auto eps          = strainFunction(par, dx);
+    const auto fIntFunction = internalForcesFunction<ScalarType>(par, force, dx);
 
     // Internal forces
     for (const auto& [gpIndex, gp] : eps.viewOverIntegrationPoints()) {
-      const double intElement = geo_->integrationElement(gp.position()) * gp.weight();
-      const auto EVoigt       = (eps.evaluate(gpIndex, on(gridElement))).eval();
-      const auto stresses     = getStress(EVoigt);
-      for (size_t i = 0; i < numberOfNodes_; ++i) {
-        const auto bopI = eps.evaluateDerivative(gpIndex, wrt(coeff(i)), on(gridElement));
-        force.template segment<myDim>(myDim * i) += bopI.transpose() * stresses * intElement;
-      }
+      const auto EVoigt = (eps.evaluate(gpIndex, on(gridElement))).eval();
+      fIntFunction(EVoigt, gpIndex, gp);
     }
   }
   void updateStateImpl(const Requirement& /* par */, typename Traits::template VectorTypeConst<> /* correction */) {}

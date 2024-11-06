@@ -82,7 +82,7 @@ SPDX-License-Identifier: LGPL-3.0-or-later
     - `updateState()` function is added to `mixin.hh`, which can be used to update the internal state variables of the skills.
         - `updateStateImpl()` now has to be implemented by every skill.
         - For EAS, `updateStateImpl()` is used to update the internal variable `alpha` in a nonlinear analysis.
-    - Missing functions like `getStress` and `materialTangentFunction` are added to `LinearElastic` and `NonLinearElastic`, respectively.
+    - Synchronize functions like `internalEnergy`, `stress` and `materialTangent` between `LinearElastic` and `NonLinearElastic`.
     - A `helperfunctions.hh` file is added that contains the helper functions used by the nonlinear solvers.
         - This contains the function `updateStates()` that calls the `updateState()` function for every finite element.
         - `updateStates()` is called by nonlinear solvers during every iteration, whenever the correction vector is updated.

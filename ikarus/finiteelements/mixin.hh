@@ -12,6 +12,7 @@
 #include <dune/common/tuplevector.hh>
 
 #include <ikarus/finiteelements/fetraits.hh>
+#include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
 
 namespace Ikarus {
 /**
@@ -89,6 +90,7 @@ public:
   using Requirement             = RequirementType<requirementDetected>::type;
   using LocalView               = typename Traits::LocalView;
   static constexpr int worldDim = Traits::worlddim;
+  static constexpr bool hasEAS  = hasSkill<EnhancedAssumedStrainsPre::Skill>();
 
   /**
    * @brief Create a Requirement object.
