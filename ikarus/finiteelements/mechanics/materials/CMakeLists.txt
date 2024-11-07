@@ -6,11 +6,6 @@ install(
   FILES interface.hh
         linearelasticity.hh
         neohooke.hh
-        blatzko.hh
-        compressibleogden.hh
-        incompressibleogden.hh
-        deviatoric.hh
-        volumetric.hh
         strainconversions.hh
         svk.hh
         tags.hh

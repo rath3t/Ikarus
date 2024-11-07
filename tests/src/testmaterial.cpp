@@ -256,7 +256,7 @@ auto testMaterialsByAD() {
   // std::cout << "Stress (NH):\n" << stress_nh << std::endl;
   // std::cout << "MatTangent (NH):\n" << matTangent_nh << std::endl;
 
-  // auto bk = makeBlatzKo(ShearModulus{mu});
+  auto bk = makeBlatzKo(ShearModulus{mu});
 
   // auto energy_bk     = bk.storedEnergy<CauchyGreen>(c);
   // auto stress_bk     = bk.stresses<CauchyGreen>(c);
@@ -287,6 +287,13 @@ auto testMaterialsByAD() {
   std::cout << "Energy (OG 2):\n" << energy_og2 << std::endl;
   std::cout << "Stress (OG 2):\n" << stress_og2 << std::endl;
   std::cout << "MatTangent (OG 2):\n" << moduli_og2 << std::endl;
+
+  auto ogden_3 = makeOgden<1>(mu_og, alpha_og);
+
+  std::cout << bk.name() << std::endl;
+  std::cout << ogden_1.name() << std::endl;
+  std::cout << ogden_2.name() << std::endl;
+  std::cout << ogden_3.name() << std::endl;
 
   return t;
 }

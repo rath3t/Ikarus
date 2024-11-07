@@ -9,13 +9,14 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <string>
+
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus {
 
 template <typename ST, int n>
-struct ModifiedOgdenT : public Material<ModifiedOgdenT<ST, n>>
+struct ModifiedOgdenT
 {
   using ScalarType         = ST;
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
@@ -29,7 +30,9 @@ struct ModifiedOgdenT : public Material<ModifiedOgdenT<ST, n>>
   using MaterialParameters = std::array<double, nOgdenParameters>;
   using OgdenParameters    = std::array<double, nOgdenParameters>;
 
-  [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "CompressibleOgden"; }
+  [[nodiscard]] constexpr static std::string name() noexcept {
+    return "Modified Ogden (n=" + std::to_string(nOgdenParameters) + ")";
+  }
 
   /**
    * \brief Constructor for ModifiedOgdenT.
@@ -59,8 +62,7 @@ struct ModifiedOgdenT : public Material<ModifiedOgdenT<ST, n>>
 
     for (auto i : parameterRange()) {
       energy +=
-          mu[i] / alpha[i] *
-              (pow(lambdas[0], alpha[i]) + pow(lambdas[1], alpha[i]) + pow(lambdas[2], alpha[i]) - 3) -
+          mu[i] / alpha[i] * (pow(lambdas[0], alpha[i]) + pow(lambdas[1], alpha[i]) + pow(lambdas[2], alpha[i]) - 3) -
           mu[i] * log(J);
     }
 
@@ -127,7 +129,6 @@ private:
 
   inline auto parameterRange() const { return Dune::Hybrid::integralRange(nOgdenParameters); }
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(worldDimension); }
-
 };
 
 /**

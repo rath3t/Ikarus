@@ -16,7 +16,7 @@ namespace Ikarus {
 
 
 template <typename ST>
-struct BlatzKoT : public Material<BlatzKoT<ST>>
+struct BlatzKoT
 {
   using ScalarType         = ST;
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
@@ -28,7 +28,7 @@ struct BlatzKoT : public Material<BlatzKoT<ST>>
 
   using MaterialParameters = ShearModulus;
 
-  [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "BlatzKo"; }
+  [[nodiscard]] constexpr static std::string name() noexcept { return "BlatzKo"; }
 
   /**
    * \brief Constructor for BlatzKoT.

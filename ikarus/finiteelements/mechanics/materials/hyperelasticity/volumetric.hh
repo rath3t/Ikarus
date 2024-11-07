@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <ikarus/finiteelements/physicshelper.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus {
@@ -19,6 +19,8 @@ struct VolumetricPart
 {
   using ScalarType = typename VF::ScalarType;
   using JType      = typename VF::JType;
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Volumetric function: " + VF::name(); }
 
   VolumetricPart(BulkModulus K, const VF vf)
       : K_{K},
@@ -57,6 +59,8 @@ struct VF1T
   auto rebind() const {
     return VF1T<STO>();
   }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 1"; }
 };
 
 template <typename ST>
@@ -78,6 +82,8 @@ struct VF2T
   auto rebind() const {
     return VF2T<STO>();
   }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 2"; }
 };
 
 template <typename ST>
@@ -96,6 +102,8 @@ struct VF3T
   auto rebind() const {
     return VF3T<STO>();
   }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 3"; }
 };
 
 template <typename ST>
@@ -122,6 +130,8 @@ struct VF4T
     return VF4T<STO>(beta_);
   }
 
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 4"; }
+
 private:
   double beta_;
 };
@@ -142,6 +152,8 @@ struct VF5T
   auto rebind() const {
     return VF5T<STO>();
   }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 5"; }
 };
 
 template <typename ST>
@@ -160,6 +172,8 @@ struct VF6T
   auto rebind() const {
     return VF6T<STO>();
   }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 6"; }
 };
 
 using VF1 = VF1T<double>;
@@ -181,6 +195,8 @@ struct VF0T
   ScalarType firstDerivativeImpl(const JType& /* J */) const { return 0; }
 
   ScalarType secondDerivativeImpl(const JType& /* J */) const { return 0; };
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "None"; }
 };
 
 template <typename ST>
@@ -188,6 +204,8 @@ struct VolumetricPart<VF0T<ST>>
 {
   using ScalarType = ST;
   using JType      = typename VF0T<ST>::JType;
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Volumetric function: " + VF0T<ST>::name(); }
 
   VolumetricPart() {}
   VolumetricPart(auto, const auto&) {}

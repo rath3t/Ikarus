@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/interface.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus {
@@ -29,7 +28,9 @@ struct OgdenT
   using MaterialParameters = std::array<double, nOgdenParameters>;
   using OgdenParameters    = std::array<double, nOgdenParameters>;
 
-  [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "Ogden"; }
+  [[nodiscard]] constexpr static std::string name() noexcept {
+    return "Ogden (n=" + std::to_string(nOgdenParameters) + ")";
+  }
 
   /**
    * \brief Constructor for OgdenT.

@@ -9,16 +9,14 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <dune/common/float_cmp.hh>
+
 #include <ikarus/utils/tensorutils.hh>
+
 
 namespace Ikarus {
 
-/**
- * \brief
- *
- * \tparam DF
- */
+
 template <typename DF>
 struct DeviatoricPart
 {
@@ -32,6 +30,8 @@ struct DeviatoricPart
 
   using StressMatrix   = Eigen::Vector<ScalarType, worldDimension>;
   using MaterialTensor = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>;
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Deviatoric function: " + DF::name(); }
 
   DeviatoricPart(const DF df)
       : deviatoricFunction_{df} {}
@@ -85,20 +85,5 @@ private:
   DF deviatoricFunction_;
 
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(worldDimension); }
-
-  // FirstDerivative firstPiolaKirchhoff(const FirstDerivative& dWdLambdaBar, const PrincipalStretches& lambda,
-  //                                     const PrincipalStretches& lambdaBar) const {
-  //   if constexpr (useIsochoricStretches) {
-  //     ScalarType sumLambdaBar{0.0};
-  //     for (auto b : dimensionRange())
-  //       sumLambdaBar += lambdaBar[b] * dWdLambdaBar[b];
-
-  // FirstDerivative P{};
-  // for (auto i : dimensionRange())
-  //   P[i] = (lambdaBar[i] * dWdLambdaBar[i] - (1.0 / 3.0) * sumLambdaBar) / lambda[i];
-  // return P;
-  // } else
-  // return dWdLambdaBar;
-  // }
 };
 } // namespace Ikarus
