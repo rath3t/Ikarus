@@ -224,9 +224,9 @@ public:
                                  (subsidiaryArgs.dfdDD.dot(sol2d.col(1)) + subsidiaryArgs.dfdDlambda);
       deltaD = sol2d.col(0) + deltalambda * sol2d.col(1);
 
+      updateStates(nonLinearOperator().assembler(), deltaD);
       updateFunction_(x, deltaD);
       updateFunction_(subsidiaryArgs.DD, deltaD);
-      updateStates(nonLinearOperator().assembler(), deltaD);
 
       lambda += deltalambda;
       subsidiaryArgs.Dlambda += deltalambda;

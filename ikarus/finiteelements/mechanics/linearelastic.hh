@@ -21,8 +21,8 @@
   #include <ikarus/finiteelements/fehelper.hh>
   #include <ikarus/finiteelements/ferequirements.hh>
   #include <ikarus/finiteelements/feresulttypes.hh>
-  #include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
   #include <ikarus/finiteelements/mechanics/materials.hh>
+  #include <ikarus/finiteelements/mechanics/materials/tags.hh>
   #include <ikarus/finiteelements/physicshelper.hh>
 
 namespace Ikarus {
@@ -68,9 +68,12 @@ public:
   using Material  = PRE::Material;
   using Pre       = PRE;
 
-  static constexpr int myDim   = Traits::mydim;
-  static constexpr bool hasEAS = FE::hasEAS;
-  using LocalBasisType         = decltype(std::declval<LocalView>().tree().child(0).finiteElement().localBasis());
+  using LocalBasisType = decltype(std::declval<LocalView>().tree().child(0).finiteElement().localBasis());
+
+  static constexpr int myDim       = Traits::mydim;
+  static constexpr bool hasEAS     = FE::hasEAS;
+  static constexpr auto strainType = StrainTags::linear;
+  static constexpr auto stressType = StressTags::linear;
 
   /**
    * \brief Constructor for the LinearElastic class.
@@ -178,7 +181,7 @@ public:
   auto materialTangent(
       const Eigen::Vector<ScalarType, strainDim>& strain = Eigen::Vector<ScalarType, strainDim>::Zero()) const {
     // Since that material is independent of the strains, a zero strain is passed here
-    return material<ScalarType>().template tangentModuli<StrainTags::linear, voigt>(strain);
+    return material<ScalarType>().template tangentModuli<strainType, voigt>(strain);
   }
 
   const Geometry& geometry() const { return *geo_; }
@@ -243,6 +246,13 @@ private:
       return mat_;
   }
 
+  bool hasEASSkill() const {
+    if constexpr (hasEAS)
+      return underlying().numberOfEASParameters() != 0;
+    else
+      return false;
+  }
+
 public:
   /**
    * \brief Get a lambda function that evaluates the stiffness matrix for a given strain, Gauss point and its index.
@@ -255,7 +265,7 @@ public:
    */
   template <typename ScalarType>
   auto stiffnessMatrixFunction(
-      const Requirement& par, typename Traits::template MatrixType<> K,
+      const Requirement& par, typename Traits::template MatrixType<>& K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     return [&]<int strainDim>(const Eigen::Vector<ScalarType, strainDim>& strain, auto gpIndex, auto gp) {
       using namespace Dune::DerivativeDirections;
@@ -285,7 +295,7 @@ public:
    */
   template <typename ScalarType>
   auto internalForcesFunction(
-      const Requirement& par, typename Traits::template VectorType<ScalarType> force,
+      const Requirement& par, typename Traits::template VectorType<ScalarType>& force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     return [&]<int strainDim>(const Eigen::Vector<ScalarType, strainDim>& strain, auto gpIndex, auto gp) {
       using namespace Dune::DerivativeDirections;
@@ -307,9 +317,8 @@ protected:
   void calculateMatrixImpl(
       const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
-    if constexpr (hasEAS)
-      if (underlying().numberOfEASParameters() != 0)
-        return;
+    if (hasEASSkill())
+      return;
     const auto eps       = strainFunction(par, dx);
     const auto kFunction = stiffnessMatrixFunction<ScalarType>(par, K, dx);
     using namespace Dune::DerivativeDirections;
@@ -325,13 +334,15 @@ protected:
   auto calculateScalarImpl(const Requirement& par, ScalarAffordance affordance,
                            const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx =
                                std::nullopt) const -> ScalarType {
+    ScalarType energy = 0.0;
+    if (hasEASSkill())
+      return energy;
     const auto uFunction = displacementFunction(par, dx);
     const auto eps       = strainFunction(par, dx);
     const auto& lambda   = par.parameter();
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
 
-    ScalarType energy = 0.0;
     for (const auto& [gpIndex, gp] : eps.viewOverIntegrationPoints()) {
       const auto epsVoigt = eps.evaluate(gpIndex, on(gridElement));
       energy += internalEnergy(epsVoigt) * geo_->integrationElement(gp.position()) * gp.weight();
@@ -343,9 +354,8 @@ protected:
   void calculateVectorImpl(
       const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
-    if constexpr (hasEAS)
-      if (underlying().numberOfEASParameters() != 0)
-        return;
+    if (hasEASSkill())
+      return;
     const auto eps          = strainFunction(par, dx);
     const auto fIntFunction = internalForcesFunction<ScalarType>(par, force, dx);
     using namespace Dune::DerivativeDirections;

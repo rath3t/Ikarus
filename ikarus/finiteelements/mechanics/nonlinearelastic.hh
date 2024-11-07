@@ -21,7 +21,6 @@
   #include <ikarus/finiteelements/febase.hh>
   #include <ikarus/finiteelements/fehelper.hh>
   #include <ikarus/finiteelements/ferequirements.hh>
-  #include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
   #include <ikarus/finiteelements/mechanics/loads.hh>
   #include <ikarus/finiteelements/mechanics/materials/tags.hh>
   #include <ikarus/finiteelements/physicshelper.hh>
@@ -78,6 +77,7 @@ public:
   static constexpr int myDim       = Traits::mydim;
   static constexpr bool hasEAS     = FE::hasEAS;
   static constexpr auto strainType = StrainTags::greenLagrangian;
+  static constexpr auto stressType = StressTags::PK2;
 
   /**
    * \brief Constructor for the NonLinearElastic class.
@@ -246,6 +246,13 @@ private:
       return mat_;
   }
 
+  bool hasEASSkill() const {
+    if constexpr (hasEAS)
+      return underlying().numberOfEASParameters() != 0;
+    else
+      return false;
+  }
+
 public:
   /**
    * \brief Get a lambda function that evaluates the stiffness matrix for a given strain, Gauss point and its index.
@@ -258,7 +265,7 @@ public:
    */
   template <typename ScalarType>
   auto stiffnessMatrixFunction(
-      const Requirement& par, typename Traits::template MatrixType<> K,
+      const Requirement& par, typename Traits::template MatrixType<>& K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     return [&]<int strainDim>(const Eigen::Vector<ScalarType, strainDim>& strain, auto gpIndex, auto gp) {
       using namespace Dune::DerivativeDirections;
@@ -290,7 +297,7 @@ public:
    */
   template <typename ScalarType>
   auto internalForcesFunction(
-      const Requirement& par, typename Traits::template VectorType<ScalarType> force,
+      const Requirement& par, typename Traits::template VectorType<ScalarType>& force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     return [&]<int strainDim>(const Eigen::Vector<ScalarType, strainDim>& strain, auto gpIndex, auto gp) {
       using namespace Dune::DerivativeDirections;
@@ -317,9 +324,8 @@ protected:
   void calculateMatrixImpl(
       const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
-    if constexpr (hasEAS)
-      if (underlying().numberOfEASParameters() != 0)
-        return;
+    if (hasEASSkill())
+      return;
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
     const auto uFunction = displacementFunction(par, dx);
@@ -335,12 +341,14 @@ protected:
   auto calculateScalarImpl(const Requirement& par, ScalarAffordance affordance,
                            const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx =
                                std::nullopt) const -> ScalarType {
+    ScalarType energy = 0.0;
+    if (hasEASSkill())
+      return energy;
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
 
     const auto eps     = strainFunction(par, dx);
     const auto& lambda = par.parameter();
-    ScalarType energy  = 0.0;
 
     for (const auto& [gpIndex, gp] : eps.viewOverIntegrationPoints()) {
       const auto EVoigt = (eps.evaluate(gpIndex, on(gridElement))).eval();
@@ -354,9 +362,8 @@ protected:
   void calculateVectorImpl(
       const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
-    if constexpr (hasEAS)
-      if (underlying().numberOfEASParameters() != 0)
-        return;
+    if (hasEASSkill())
+      return;
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
     const auto eps          = strainFunction(par, dx);

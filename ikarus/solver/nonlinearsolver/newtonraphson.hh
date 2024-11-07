@@ -177,13 +177,12 @@ public:
         linearSolver_.factorize(Ax);
         linearSolver_.solve(correction_, -rx);
         dNorm = correction_.norm();
-        updateFunction_(x, correction_);
       } else {
         correction_ = -linearSolver_(rx, Ax);
         dNorm       = norm(correction_);
-        updateFunction_(x, correction_);
       }
       updateStates(nonLinearOperator().assembler(), correction_);
+      updateFunction_(x, correction_);
       this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
       this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
       nonLinearOperator().updateAll();
