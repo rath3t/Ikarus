@@ -17,8 +17,9 @@ namespace Ikarus {
 template <typename VF>
 struct VolumetricPart
 {
-  using ScalarType = typename VF::ScalarType;
-  using JType      = typename VF::JType;
+  using ScalarType         = typename VF::ScalarType;
+  using JType              = typename VF::JType;
+  using VolumetricFunction = VF;
 
   [[nodiscard]] constexpr static std::string name() noexcept { return "Volumetric function: " + VF::name(); }
 
@@ -196,32 +197,14 @@ struct VF0T
 
   ScalarType secondDerivativeImpl(const JType& /* J */) const { return 0; };
 
+  template <typename STO>
+  auto rebind() const {
+    return VF0T<STO>();
+  }
+
   [[nodiscard]] constexpr static std::string name() noexcept { return "None"; }
 };
 
-template <typename ST>
-struct VolumetricPart<VF0T<ST>>
-{
-  using ScalarType = ST;
-  using JType      = typename VF0T<ST>::JType;
-
-  [[nodiscard]] constexpr static std::string name() noexcept { return "Volumetric function: " + VF0T<ST>::name(); }
-
-  VolumetricPart() {}
-  VolumetricPart(auto, const auto&) {}
-
-  ScalarType storedEnergy(const JType& /* J */) const { return 0; };
-
-  ScalarType firstDerivative(const JType& /* J */) const { return 0; }
-
-  ScalarType secondDerivative(const JType& /* J */) const { return 0; };
-
-  template <typename STO>
-  auto rebind() const {
-    using VF0R = VF0T<STO>;
-    return VolumetricPart<VF0R>(0.0, VF0R{});
-  }
-};
 using NoVolumetricPart = VolumetricPart<VF0T<double>>;
 
 } // namespace Ikarus

@@ -13,9 +13,7 @@
 
 #include <ikarus/utils/tensorutils.hh>
 
-
 namespace Ikarus {
-
 
 template <typename DF>
 struct DeviatoricPart
@@ -23,6 +21,8 @@ struct DeviatoricPart
   using ScalarType         = typename DF::ScalarType;
   using PrincipalStretches = typename DF::PrincipalStretches;
   using MaterialParameters = typename DF::MaterialParameters;
+
+  using DeviatoricFunction = DF;
 
   using FirstDerivative = typename DF::FirstDerivative;
 
@@ -36,11 +36,11 @@ struct DeviatoricPart
   DeviatoricPart(const DF df)
       : deviatoricFunction_{df} {}
 
-  ScalarType storedEnergyImpl(const PrincipalStretches& lambdas) const {
+  ScalarType storedEnergy(const PrincipalStretches& lambdas) const {
     return deviatoricFunction_.storedEnergyImpl(lambdas);
   };
 
-  StressMatrix stressesImpl(const PrincipalStretches& lambda) const {
+  StressMatrix stresses(const PrincipalStretches& lambda) const {
     auto dWdLambda = deviatoricFunction_.firstDerivativeImpl(lambda);
 
     // Compute the principal PK2 stresses by dividing by the stretches
@@ -51,8 +51,8 @@ struct DeviatoricPart
     return S;
   }
 
-  MaterialTensor tangentModuliImpl(const PrincipalStretches& lambda) const {
-    auto S  = stressesImpl(lambda);
+  MaterialTensor tangentModuli(const PrincipalStretches& lambda) const {
+    auto S  = stresses(lambda);
     auto dS = deviatoricFunction_.secondDerivativeImpl(lambda);
 
     // Konvektive coordinates

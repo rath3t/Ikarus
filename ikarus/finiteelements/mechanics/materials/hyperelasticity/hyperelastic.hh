@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/concepts.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/volumetric.hh>
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
 #include <ikarus/utils/tensorutils.hh>
@@ -23,6 +24,10 @@ template <typename DEV, typename VOL = NoVolumetricPart>
 requires(std::same_as<typename DEV::ScalarType, typename VOL::ScalarType>)
 struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
 {
+  // Checking concepts here results in better compiler error messages (at least for clang)
+  static_assert(Concepts::DeviatoricPartConcept<DEV>);
+  static_assert(Concepts::VolumetricPartConcept<VOL>);
+
   using ScalarType                        = typename DEV::ScalarType;
   static constexpr bool hasVolumetricPart = not std::same_as<VOL, NoVolumetricPart>;
 
@@ -55,7 +60,7 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   explicit Hyperelastic(const DEV& dev)
   requires(not hasVolumetricPart)
       : dev_{dev},
-        vol_(NoVolumetricPart{}) {}
+        vol_(NoVolumetricPart{BulkModulus{}, {}}) {}
 
   Hyperelastic(const DEV& dev, const VOL& vol)
       : dev_(dev),
@@ -79,7 +84,7 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
       auto lambdas = principalStretches(C, Eigen::EigenvaluesOnly).first;
       auto J       = detF(C);
 
-      return dev_.storedEnergyImpl(lambdas) + vol_.storedEnergy(J);
+      return dev_.storedEnergy(lambdas) + vol_.storedEnergy(J);
 
     } else
       static_assert(!Concepts::EigenVector<Derived>,
@@ -101,7 +106,7 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
         auto [lambdas, N] = principalStretches(C);
         auto J            = detF(C);
 
-        auto Sdev = transformDeviatoricStresses(dev_.stressesImpl(lambdas), N);
+        auto Sdev = transformDeviatoricStresses(dev_.stresses(lambdas), N);
         auto Svol = transformVolumetricStresses(vol_.firstDerivative(J), C, J);
 
         return Sdev + Svol;
@@ -126,7 +131,7 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
       auto [lambdas, N] = principalStretches(C);
       auto J            = detF(C);
 
-      auto moduliDev = transformDeviatoricTangentModuli(dev_.tangentModuliImpl(lambdas), N);
+      auto moduliDev = transformDeviatoricTangentModuli(dev_.tangentModuli(lambdas), N);
       auto moduliVol = transformVolumetricTangentModuli(vol_.firstDerivative(J), vol_.secondDerivative(J), C, J);
 
       return moduliDev + moduliVol;
