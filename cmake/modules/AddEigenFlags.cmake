@@ -12,6 +12,7 @@ endif()
 # add function to link against the eigen library
 function(add_dune_Eigen3_flags _targets)
   if(Eigen3_FOUND)
+    message("Eigen added")
     foreach(_target ${_targets})
       target_link_libraries(${_target} PUBLIC Eigen3::Eigen)
       target_compile_definitions(${_target} PUBLIC ENABLE_EIGEN=1)

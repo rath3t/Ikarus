@@ -15,13 +15,14 @@
 #include <dune/python/pybind11/stl.h>
 
 #include <ikarus/finiteelements/mechanics/materials.hh>
+#include <ikarus/finiteelements/mechanics/materials/muesli/mueslimaterials.hh>
 #include <ikarus/utils/concepts.hh>
 
 #define MAKE_MaterialFunction(clsName, materialName, functionname, vecSize)                                    \
   clsName.def(                                                                                                 \
       #functionname,                                                                                           \
       [](materialName& self, StrainTags straintag, Eigen::Ref<const Eigen::Vector<double, vecSize>> eVoigt_) { \
-        if constexpr (not Concepts::IsMaterial<Materials::LinearElasticityT, materialName>) {                  \
+        if constexpr (not(materialName::strainTag == StrainTags::linear)) {                                    \
           Eigen::Vector<double, vecSize> eVoigt = eVoigt_;                                                     \
           if (straintag == StrainTags::rightCauchyGreenTensor)                                                 \
             return self.template functionname<StrainTags::rightCauchyGreenTensor>(eVoigt);                     \
@@ -59,20 +60,9 @@ namespace Impl {
     auto converter =
         convertLameConstants(T{kwargs[param1.c_str()].cast<double>(), kwargs[param2.c_str()].cast<double>()});
 
-    // This is necessary as the converter can't convert to a parameter already present due to compile-time constraints
-    double lamesFirst = [&]() {
-      if constexpr (requires { converter.toLamesFirstParameter(); })
-        return converter.toLamesFirstParameter();
-      else
-        return kwargs["Lambda"].cast<double>();
-    }();
-    double shearModulus = [&]() {
-      if constexpr (requires { converter.toShearModulus(); })
-        return converter.toShearModulus();
-      else
-        return kwargs["mu"].cast<double>();
-    }();
-    return {lamesFirst, shearModulus};
+    double lambda = converter.toLamesFirstParameter();
+    double mu     = converter.toShearModulus();
+    return {lambda, mu};
   }
 
   Ikarus::LamesFirstParameterAndShearModulus extractMaterialParameters(const pybind11::kwargs& kwargs) {
@@ -102,16 +92,19 @@ namespace Impl {
                "K), (E, Lambda), (K, Lambda), (Lambda, nu)");
   }
 } // namespace Impl
-
-template <class Material, size_t vecSize, class... options>
+template <class Material, size_t vecSize, bool registerConstructor, class... options>
 void registerMaterial(pybind11::handle scope, pybind11::class_<Material, options...> cls) {
   using pybind11::operator""_a;
   namespace py = pybind11;
 
-  cls.def(pybind11::init([](const py::kwargs& kwargs) {
-    auto matParameter = Impl::extractMaterialParameters(kwargs);
-    return new Material(matParameter);
-  }));
+  if constexpr (registerConstructor) {
+    cls.def(pybind11::init([](const py::kwargs& kwargs) {
+      auto matParameter = Impl::extractMaterialParameters(kwargs);
+      return new Material(matParameter);
+    }));
+  }
+
+  cls.def_property_readonly("name", [](Material& self) { return self.name(); });
 
   std::string materialname = Material::name();
 
@@ -205,10 +198,40 @@ void registerMaterial(pybind11::handle scope, pybind11::class_<Material, options
 #define MAKE_MATERIAL_REGISTRY_FUNCTION(name, vecSize)                                      \
   template <class Material, class... options>                                               \
   void register##name(pybind11::handle scope, pybind11::class_<Material, options...> cls) { \
-    Ikarus::Python::registerMaterial<Material, vecSize>(scope, cls);                        \
+    Ikarus::Python::registerMaterial<Material, vecSize, true>(scope, cls);                  \
   }
 
-MAKE_MATERIAL_REGISTRY_FUNCTION(LinearElasticity, 6);
-MAKE_MATERIAL_REGISTRY_FUNCTION(StVenantKirchhoff, 6);
-MAKE_MATERIAL_REGISTRY_FUNCTION(NeoHooke, 6);
+MAKE_MATERIAL_REGISTERY_FUNCTION(LinearElasticity, 6);
+MAKE_MATERIAL_REGISTERY_FUNCTION(StVenantKirchhoff, 6);
+MAKE_MATERIAL_REGISTERY_FUNCTION(NeoHooke, 6);
+
+template <class MuesliMaterial, class... options>
+void registerMuesliMaterial(pybind11::handle scope, pybind11::class_<MuesliMaterial, options...> cls) {
+  Ikarus::Python::registerMaterial<MuesliMaterial, 6, false>(scope, cls);
+
+  cls.def(pybind11::init([](const pybind11::kwargs& kwargs) {
+    if constexpr (std::same_as<typename MuesliMaterial::MaterialModel, Materials::Muesli::NeoHooke> or
+                  std::same_as<typename MuesliMaterial::MaterialModel, Materials::Muesli::StVenantKirchhoff> or
+                  std::same_as<typename MuesliMaterial::MaterialModel, Materials::Muesli::LinearElasticity>) {
+      auto matParameter     = Impl::extractMaterialParameters(kwargs);
+      auto muesliParameters = Ikarus::Materials::Muesli::propertiesFromIkarusMaterialParameters(matParameter);
+      return new MuesliMaterial(muesliParameters);
+    } else if constexpr (std::same_as<typename MuesliMaterial::MaterialModel, Materials::Muesli::ArrudaBoyce>) {
+      bool compressible = kwargs.contains("compressible") ? kwargs["compressible"].cast<bool>() : true;
+      return Materials::Muesli::makeArrudaBoyce(kwargs["C1"].cast<double>(), kwargs["lambda_m"].cast<double>(),
+                                                kwargs["K"].cast<double>(), true);
+    } else if constexpr (std::same_as<typename MuesliMaterial::MaterialModel, Materials::Muesli::Yeoh>) {
+      bool compressible = kwargs.contains("compressible") ? kwargs["compressible"].cast<bool>() : true;
+      return Materials::Muesli::makeYeoh(kwargs["C"].cast<std::array<double, 3>>(), kwargs["K"].cast<double>(), true);
+    } else if constexpr (std::same_as<typename MuesliMaterial::MaterialModel, Materials::Muesli::MooneyRivlin>) {
+      bool incompressible = kwargs.contains("incompressible") ? kwargs["incompressible"].cast<bool>() : false;
+      return Materials::Muesli::makeMooneyRivlin(kwargs["alpha"].cast<std::array<double, 3>>(), incompressible);
+    } else {
+      DUNE_THROW(Dune::NotImplemented, "No known constructor for the specified Muesli material mode");
+    }
+  }));
+
+  cls.def("printDescription", [](MuesliMaterial& self) { self.material().print(std::cout); });
+}
+
 } // namespace Ikarus::Python

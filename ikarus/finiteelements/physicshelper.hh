@@ -72,14 +72,10 @@ concept MPTuple =
  *
  * \tparam ValuePair Type of the value pair to convert.
  */
-template <typename ValuePair>
+template <MPTuple ValuePair>
 struct ConvertLameConstants
 {
-  constexpr double toLamesFirstParameter()
-  requires(!std::is_same_v<ValuePair, YoungsModulusAndLamesFirstParameter> and
-           !std::is_same_v<ValuePair, BulkModulusAndLamesFirstParameter> and
-           !std::is_same_v<ValuePair, LamesFirstParameterAndShearModulus>)
-  {
+  constexpr double toLamesFirstParameter() {
     if constexpr (std::is_same_v<ValuePair, YoungsModulusAndPoissonsRatio>) {
       const auto& E  = vp_.emodul;
       const auto& nu = vp_.nu;
@@ -93,14 +89,13 @@ struct ConvertLameConstants
       const auto& E = vp_.emodul;
       const auto& K = vp_.K;
       return 3.0 * K * (3.0 * K - E) / (9.0 * K - E);
-    } else
+    } else if constexpr (requires { vp_.lambda; })
+      return vp_.lambda;
+    else
       assert(false && "Your LameParameter request is not implemented");
   }
 
-  constexpr double toBulkModulus()
-  requires(!std::is_same_v<ValuePair, YoungsModulusAndBulkModulus> and
-           !std::is_same_v<ValuePair, BulkModulusAndLamesFirstParameter>)
-  {
+  constexpr double toBulkModulus() {
     if constexpr (std::is_same_v<ValuePair, YoungsModulusAndPoissonsRatio>) {
       const auto& E  = vp_.emodul;
       const auto& nu = vp_.nu;
@@ -117,14 +112,13 @@ struct ConvertLameConstants
       const auto& lambda = vp_.lambda;
       const auto& mu     = vp_.mu;
       return lambda + 2.0 * mu / 3.0;
-    } else
+    } else if constexpr (requires { vp_.K; })
+      return vp_.K;
+    else
       assert(false && "Your LameParameter request is not implemented");
   }
 
-  constexpr double toShearModulus()
-  requires(!std::is_same_v<ValuePair, YoungsModulusAndShearModulus> and
-           !std::is_same_v<ValuePair, LamesFirstParameterAndShearModulus>)
-  {
+  constexpr double toShearModulus() {
     if constexpr (std::is_same_v<ValuePair, YoungsModulusAndPoissonsRatio>) {
       const auto& E  = vp_.emodul;
       const auto& nu = vp_.nu;
@@ -141,7 +135,9 @@ struct ConvertLameConstants
       const auto& K      = vp_.K;
       const auto& lambda = vp_.lambda;
       return 3.0 * (K - lambda) / 2.0;
-    } else
+    } else if constexpr (requires { vp_.mu; })
+      return vp_.mu;
+    else
       assert(false && "Your LameParameter request is not implemented");
   }
 
@@ -174,9 +170,7 @@ struct ConvertLameConstants
       assert(false && "Your LameParameter request is not implemented");
   }
 
-  constexpr double toPoissonsRatio()
-  requires(!std::is_same_v<ValuePair, YoungsModulusAndPoissonsRatio>)
-  {
+  constexpr double toPoissonsRatio() {
     if constexpr (std::is_same_v<ValuePair, YoungsModulusAndShearModulus>) {
       const auto& E  = vp_.emodul;
       const auto& mu = vp_.mu;
@@ -197,23 +191,22 @@ struct ConvertLameConstants
       const auto& lambda = vp_.lambda;
       const auto& mu     = vp_.mu;
       return lambda / (2.0 * (lambda + mu));
-    } else
+    } else if constexpr (requires { vp_.nu; })
+      return vp_.nu;
+    else
       assert(false && "Your LameParameter request is not implemented");
   }
 
-  constexpr double toYoungsModulus()
-  requires(!std::is_same_v<ValuePair, YoungsModulusAndPoissonsRatio> and
-           !std::is_same_v<ValuePair, YoungsModulusAndShearModulus> and
-           !std::is_same_v<ValuePair, YoungsModulusAndBulkModulus> and
-           !std::is_same_v<ValuePair, YoungsModulusAndLamesFirstParameter>)
-  {
+  constexpr double toYoungsModulus() {
     if constexpr (std::is_same_v<ValuePair, BulkModulusAndLamesFirstParameter>) {
       return 9.0 * vp_.K * (vp_.K - vp_.lambda) / (3.0 * vp_.K - vp_.lambda);
     } else if constexpr (std::is_same_v<ValuePair, LamesFirstParameterAndShearModulus>) {
       const auto& lambda = vp_.lambda;
       const auto& mu     = vp_.mu;
       return mu * (3.0 * lambda + 2.0 * mu) / (lambda + mu);
-    } else
+    } else if constexpr (requires { vp_.emodul; })
+      return vp_.emodul;
+    else
       assert(false && "Your LameParameter request is not implemented");
   }
 

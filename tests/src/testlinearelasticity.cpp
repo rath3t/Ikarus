@@ -13,6 +13,7 @@
 
 #include <ikarus/finiteelements/feresulttypes.hh>
 #include <ikarus/finiteelements/mechanics/linearelastic.hh>
+#include <ikarus/finiteelements/mechanics/materials/muesli/mueslimaterials.hh>
 #include <ikarus/io/resultevaluators.hh>
 #include <ikarus/utils/init.hh>
 
@@ -40,6 +41,10 @@ int main(int argc, char** argv) {
   // Test cube 2D
   auto linearElasticFunc3D = [](const Ikarus::YoungsModulusAndPoissonsRatio& parameter) {
     LinearElasticity lin(Ikarus::toLamesFirstParameterAndShearModulus(parameter));
+    return Ikarus::linearElastic(lin);
+  };
+  auto linearElasticFunc3D_Muesli = [](const Ikarus::YoungsModulusAndPoissonsRatio& parameter) {
+    auto lin = Ikarus::Materials::Muesli::makeLinearElasticity(parameter);
     return Ikarus::linearElastic(lin);
   };
   auto linearElasticFuncPlaneStress = [](const Ikarus::YoungsModulusAndPoissonsRatio& parameter) {
@@ -135,6 +140,10 @@ int main(int argc, char** argv) {
                           Dune::ReferenceElements<double, 3>::cube(), linearElasticFunc3D, skills(),
                           AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
                           checkJacobianFunctor, checkFEByAutoDiffFunctor));
+  t.subTest(testFEElement(firstOrderLagrangePrePower3Basis, "LinearElastic", randomlyDistorted,
+                          Dune::ReferenceElements<double, 3>::cube(), linearElasticFunc3D_Muesli, Ikarus::skills(),
+                          Ikarus::AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
+                          checkJacobianFunctor));
 
   t.subTest(testFEElement(
       firstOrderLagrangePrePower3Basis, "LinearElastic", unDistorted, Dune::ReferenceElements<double, 3>::cube(),

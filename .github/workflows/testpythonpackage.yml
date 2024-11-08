@@ -28,7 +28,7 @@ jobs:
   build-n-test:
     runs-on: ubuntu-latest
     container:
-      image: ikarusproject/ikarus-dev-clang:latest
+      image: henrij22/ikarus-dev-extra-clang:latest
       options: --memory-swap="20g" --memory="20g" --cpus="2" --user root
 
     steps:

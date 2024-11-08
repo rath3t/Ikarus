@@ -6,6 +6,7 @@
 
 #include "testnonlinearelasticity.hh"
 
+#include <ikarus/finiteelements/mechanics/materials/muesli/mueslimaterials.hh>
 #include <ikarus/utils/init.hh>
 
 using Dune::TestSuite;
@@ -20,6 +21,7 @@ int main(int argc, char** argv) {
 
   Materials::NeoHooke matNH1(matParameter1);
   Materials::NeoHooke matNH2(matParameter2);
+  auto matNH1M = Materials::Muesli::makeNeoHooke(matParameter1, false);
 
   auto planeStressMat1 = planeStress(matNH1, 1e-8);
   auto planeStressMat2 = planeStress(matNH2, 1e-8);
@@ -27,6 +29,7 @@ int main(int argc, char** argv) {
   t.subTest(NonLinearElasticityLoadControlNRandTR<Grids::Alu>(matNH1));
   t.subTest(NonLinearElasticityLoadControlNRandTR<Grids::Yasp>(matNH1));
   t.subTest(NonLinearElasticityLoadControlNRandTR<Grids::IgaSurfaceIn2D>(matNH1));
+  t.subTest(NonLinearElasticityLoadControlNRandTR<Grids::Yasp>(matNH1M));
 
   autoDiffTest<2>(t, planeStressMat1, " nu != 0", 1e-7);
   autoDiffTest<2>(t, planeStressMat2, " nu = 0", 1e-7);
