@@ -55,7 +55,7 @@ auto cantileverBeamTest(const MAT& reducedMat) {
   using namespace Dune::Functions::BasisFactory;
   auto basis = Ikarus::makeBasis(gridView, power<2>(lagrange<1>(), FlatInterleaved()));
 
-  auto sk      = skills(nonLinearElastic(reducedMat), eas(4));
+  auto sk      = skills(nonLinearElastic(reducedMat), eas<StrainTags::greenLagrangian>(4));
   using FEType = decltype(makeFE(basis, sk));
   std::vector<FEType> fes;
 
@@ -145,7 +145,7 @@ void easAutoDiffTest(TestSuitType& t, const MAT& mat) {
   auto gridView = grid->leafGridView();
 
   for (const int numberOfEASParameters : easParameters) {
-    auto sk = skills(nonLinearElastic(mat), eas(numberOfEASParameters));
+    auto sk = skills(nonLinearElastic(mat), eas<StrainTags::greenLagrangian>(numberOfEASParameters));
     t.subTest(checkFESByAutoDiff(gridView, power<gridDim>(lagrange<1>()), sk, AffordanceCollections::elastoStatics,
                                  " (numberOfEASParameters = " + std::to_string(numberOfEASParameters) + ")"));
   }

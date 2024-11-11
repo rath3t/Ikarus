@@ -6,7 +6,7 @@ import debug_info
 debug_info.setDebugFlags()
 
 import ikarus as iks
-from ikarus import finite_elements, utils, assembler
+from ikarus import finite_elements, utils, assembler, materials
 import numpy as np
 import scipy as sp
 from scipy.optimize import minimize
@@ -66,7 +66,7 @@ def nonlinElasticTest(easBool):
     svkPS = svk.asPlaneStress()
 
     nonLinElastic = iks.finite_elements.nonLinearElastic(svkPS)
-    easF = iks.finite_elements.eas(4)
+    easF = iks.finite_elements.eas(4, materials.StrainTags.greenLagrangian)
 
     fes = []
     for e in grid.elements:
@@ -177,7 +177,6 @@ def nonlinElasticTest(easBool):
         assert resultd4.success
 
         feReq.insertGlobalSolution(sparseAssembler.createFullVector(resultd4.x))
-        # fes[0].calculateAt(feReq, np.array([0.5, 0.5]), "PK2Stress")
 
     [successNR, resultNR] = solveWithNewtonRaphson(
         gradient, hess, sparseAssembler, fes, feReq

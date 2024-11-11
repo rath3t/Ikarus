@@ -6,9 +6,10 @@
 #include "testcommon.hh"
 
 #include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
+#include <ikarus/finiteelements/mechanics/materials.hh>
 
 template <typename FE>
-requires(FE::template hasSkill<Ikarus::EnhancedAssumedStrainsPre::Skill>())
+requires(FE::template hasEAS<Ikarus::StrainTags::linear>)
 struct ElementTest<FE>
 {
   [[nodiscard]] static auto test() {

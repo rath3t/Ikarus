@@ -221,7 +221,8 @@ protected:
     force += E * A * Egl * L * dEdu;
   }
 
-  void updateStateImpl(const Requirement& /* par */, typename Traits::template VectorTypeConst<> /* correction */) {}
+  void updateStateImpl(const Requirement& /* par */,
+                       typename Traits::template VectorTypeConst<> /* correction */) const {}
 };
 
 /**

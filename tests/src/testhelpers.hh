@@ -85,6 +85,15 @@ void checkScalars(TestSuiteType& t, const ScalarType val, const ScalarType expec
                                 << " Actual:\t" << val << messageIfFailed;
 }
 
+template <typename TestSuiteType, int rows, int cols>
+requires(rows == cols)
+void checkSymmetricMatrix(TestSuiteType& t, const Eigen::Matrix<double, rows, cols>& mat, double tol,
+                          const std::string& matrixName = "") {
+  t.check(isApproxSame(mat, mat.transpose(), tol), "Matrix " + matrixName + " is not symmetric.\n")
+      << "Matrix " + matrixName + " is \n"
+      << mat;
+}
+
 template <typename TestSuiteType, typename ScalarType>
 requires(not std::is_integral_v<ScalarType>)
 void checkScalars(TestSuiteType& t, const ScalarType val, const ScalarType expectedVal,

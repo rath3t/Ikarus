@@ -75,9 +75,9 @@ public:
   using LocalBasisType = decltype(std::declval<LocalView>().tree().child(0).finiteElement().localBasis());
 
   static constexpr int myDim       = Traits::mydim;
-  static constexpr bool hasEAS     = FE::hasEAS;
   static constexpr auto strainType = StrainTags::greenLagrangian;
   static constexpr auto stressType = StressTags::PK2;
+  static constexpr bool hasEAS     = FE::template hasEAS<strainType>;
 
   /**
    * \brief Constructor for the NonLinearElastic class.
@@ -213,6 +213,8 @@ public:
     using namespace Dune::DerivativeDirections;
 
     using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
+    if (hasEASSkill())
+      return RTWrapper{};
     if constexpr (isSameResultType<RT, ResultTypes::PK2Stress> or isSameResultType<RT, ResultTypes::PK2StressFull>) {
       const auto uFunction = displacementFunction(req);
       const auto H         = uFunction.evaluateDerivative(local, Dune::wrt(spatialAll), Dune::on(gridElement));
@@ -375,7 +377,8 @@ protected:
       fIntFunction(EVoigt, gpIndex, gp);
     }
   }
-  void updateStateImpl(const Requirement& /* par */, typename Traits::template VectorTypeConst<> /* correction */) {}
+  void updateStateImpl(const Requirement& /* par */,
+                       typename Traits::template VectorTypeConst<> /* correction */) const {}
 };
 
 /**

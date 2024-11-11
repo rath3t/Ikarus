@@ -208,7 +208,7 @@ public:
     } else
       return value_;
   }
-  explicit ResultWrapper() = default;
+  explicit ResultWrapper() { value_.setZero(); }
   explicit ResultWrapper(StoredType&& value) { this->value_ = std::move(value); }
   explicit ResultWrapper(const StoredType& value) { this->value_ = value; }
   ResultWrapper& operator=(const StoredType& value) {

@@ -90,7 +90,9 @@ public:
   using Requirement             = RequirementType<requirementDetected>::type;
   using LocalView               = typename Traits::LocalView;
   static constexpr int worldDim = Traits::worlddim;
-  static constexpr bool hasEAS  = hasSkill<EnhancedAssumedStrainsPre::Skill>();
+
+  template <StrainTags ES>
+  static constexpr bool hasEAS = hasSkill<EnhancedAssumedStrainsPre<ES>::template Skill>();
 
   /**
    * @brief Create a Requirement object.
@@ -267,7 +269,7 @@ private:
 public:
   template <typename ScalarType>
   requires implementsUpdateStateImpl
-  void updateStateImpl(const Requirement& par, typename Traits::template VectorTypeConst<> correction) {
+  void updateStateImpl(const Requirement& par, typename Traits::template VectorTypeConst<> correction) const {
     (Skills<PreFE, typename PreFE::template FE<Skills...>>::updateStateImpl(par, correction), ...);
   }
 
