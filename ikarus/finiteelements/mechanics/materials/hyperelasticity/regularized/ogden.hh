@@ -2,28 +2,29 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file Ogden.hh
- * \brief Implementation of the Ogden material model.
+ * \file ogden.hh
+ * \brief Implementation of the regularized Ogden material model.
  * \ingroup  materials
  */
 
 #pragma once
 
+#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/regularized/regularizedhelpers.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus {
 
 template <typename ST, int n>
-struct OgdenT
+struct RegOgdenT
 {
   using ScalarType         = ST;
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
 
   static constexpr int nOgdenParameters = n;
-  static constexpr int worldDimension   = 3;
+  static constexpr int dim              = 3;
 
-  using FirstDerivative  = Eigen::Vector<ScalarType, worldDimension>;
-  using SecondDerivative = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
+  using FirstDerivative  = Eigen::Vector<ScalarType, dim>;
+  using SecondDerivative = Eigen::Matrix<ScalarType, dim, dim>;
 
   using MaterialParameters = std::array<double, nOgdenParameters>;
   using OgdenParameters    = std::array<double, nOgdenParameters>;
@@ -36,7 +37,7 @@ struct OgdenT
    * \brief Constructor for OgdenT.
    * \param mpt The Lame's parameters (first parameter and shear modulus).
    */
-  explicit OgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
+  explicit RegOgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
       : materialParameters_{mpt},
         ogdenParameters_{opt} {}
 
@@ -48,7 +49,7 @@ struct OgdenT
   OgdenParameters ogdenParameters() const { return materialParameters_; }
 
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
-    auto lambdaBar = transformStretches(lambda);
+    auto lambdaBar = Impl::regularizeStretches(lambda);
 
     auto& mu    = materialParameters_;
     auto& alpha = ogdenParameters_;
@@ -62,7 +63,7 @@ struct OgdenT
   }
 
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
-    auto lambdaBar = transformStretches(lambda);
+    auto lambdaBar = Impl::regularizeStretches(lambda);
 
     auto& mu    = materialParameters_;
     auto& alpha = ogdenParameters_;
@@ -84,7 +85,7 @@ struct OgdenT
   }
 
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
-    auto lambdaBar = transformStretches(lambda);
+    auto lambdaBar = Impl::regularizeStretches(lambda);
     auto S         = firstDerivativeImpl(lambda);
 
     auto& mu    = materialParameters_;
@@ -140,7 +141,7 @@ struct OgdenT
    */
   template <typename STO>
   auto rebind() const {
-    return OgdenT<STO, nOgdenParameters>(materialParameters_, ogdenParameters_);
+    return RegOgdenT<STO, nOgdenParameters>(materialParameters_, ogdenParameters_);
   }
 
 private:
@@ -148,24 +149,13 @@ private:
   OgdenParameters ogdenParameters_;
 
   inline auto parameterRange() const { return Dune::Hybrid::integralRange(nOgdenParameters); }
-  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(worldDimension); }
-
-  PrincipalStretches transformStretches(const PrincipalStretches& lambda) const {
-    ScalarType J    = std::accumulate(lambda.begin(), lambda.end(), ScalarType{1.0}, std::multiplies());
-    ScalarType Jmod = pow(J, -1.0 / 3.0);
-
-    auto lambdaBar = PrincipalStretches::Zero().eval();
-    for (auto i : dimensionRange())
-      lambdaBar[i] = Jmod * lambda[i];
-
-    return lambdaBar;
-  }
+  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
 };
 
 /**
  * \brief Alias for OgdenT with double as the default scalar type.
  */
 template <int n>
-using Ogden = OgdenT<double, n>;
+using RegOgden = RegOgdenT<double, n>;
 
 } // namespace Ikarus

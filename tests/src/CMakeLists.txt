@@ -38,6 +38,7 @@ set(programSourceFiles
     testresultfunction.cpp
     testtruss.cpp
     testvtkwriter.cpp
+    testhyperelasticity.cpp
     testmaterialswithad.cpp
 )
 

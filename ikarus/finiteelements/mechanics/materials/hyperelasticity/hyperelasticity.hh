@@ -9,29 +9,42 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/blatzko.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/deviatoric.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/hyperelastic.hh>
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/modogden.hh>
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/ogden.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/modified/blatzko.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/modified/ogden.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/regularized/ogden.hh>
+
 
 namespace Ikarus {
 auto makeBlatzKo(ShearModulus mu) {
   auto bk  = BlatzKo(mu);
-  auto dev = DeviatoricPart<decltype(bk)>(bk);
+  auto dev = Deviatoric<decltype(bk)>(bk);
 
   return Hyperelastic(dev);
 }
 
+MAKE_ENUM(RegularizedTag, regularized, modified);
+
+template <int n, RegularizedTag tag, typename VolumetricFunction = VF0T<double>>
+auto makeOgden(const typename RegOgden<n>::MaterialParameters& mu, const typename RegOgden<n>::OgdenParameters og,
+               BulkModulus K = {0.0}, const VolumetricFunction& vf = VolumetricFunction{}) {
+  if constexpr (tag == RegularizedTag::regularized)
+    return makeRegularizedOgden<n>(mu, og, K, vf);
+  else
+    return makeModifiedOgden<n>(mu, og, K, vf);
+}
+
 /**
- * \brief This returns the compressible version of the ogden material using the modified stretches
+ * \brief This returns the compressible version of the ogden material using the regularized stretches
  */
 template <int n, typename VolumetricFunction = VF0T<double>>
-auto makeOgden(const typename Ogden<n>::MaterialParameters& mu, const typename Ogden<n>::OgdenParameters og,
-               BulkModulus K = {0.0}, const VolumetricFunction& vf = VolumetricFunction{}) {
-  auto ogPre = Ogden<n>(mu, og);
-  auto dev   = DeviatoricPart<decltype(ogPre)>(ogPre);
-  auto vol   = VolumetricPart(K, vf);
+auto makeRegularizedOgden(const typename RegOgden<n>::MaterialParameters& mu,
+                          const typename RegOgden<n>::OgdenParameters og, BulkModulus K = {0.0},
+                          const VolumetricFunction& vf = VolumetricFunction{}) {
+  auto ogPre = RegOgden<n>(mu, og);
+  auto dev   = Deviatoric<decltype(ogPre)>(ogPre);
+  auto vol   = Volumetric(K, vf);
 
   return Hyperelastic(dev, vol);
 }
@@ -41,12 +54,12 @@ auto makeOgden(const typename Ogden<n>::MaterialParameters& mu, const typename O
  * component in the energy of  -mu * ln(J) to ensure a stress free reference configuration
  */
 template <int n, typename VolumetricFunction = VF0T<double>>
-auto makeModifiedOgden(const typename ModifiedOgden<n>::MaterialParameters& mu,
-                       const typename ModifiedOgden<n>::OgdenParameters og, BulkModulus K = {0.0},
+auto makeModifiedOgden(const typename ModOgden<n>::MaterialParameters& mu,
+                       const typename ModOgden<n>::OgdenParameters og, BulkModulus K = {0.0},
                        const VolumetricFunction& vf = VolumetricFunction{}) {
-  auto ogPre = ModifiedOgden<n>(mu, og);
-  auto dev   = DeviatoricPart<decltype(ogPre)>(ogPre);
-  auto vol   = VolumetricPart(K, vf);
+  auto ogPre = ModOgden<n>(mu, og);
+  auto dev   = Deviatoric<decltype(ogPre)>(ogPre);
+  auto vol   = Volumetric(K, vf);
 
   return Hyperelastic(dev, vol);
 }

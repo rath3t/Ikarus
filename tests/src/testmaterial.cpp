@@ -127,174 +127,98 @@ auto testMaterial(Material mat) {
   return t;
 }
 
-// template <StrainTags strainTag, typename MaterialImpl>
-// auto testPlaneStrainAgainstPlaneStress(const double tol = 1e-10) {
-//   TestSuite t(MaterialImpl::name() + " InputStrainMeasure: " + toString(strainTag));
-//   std::cout << "TestPlaneStrinAgainstPlaneStress: " << t.name() << " started\n";
+template <StrainTags strainTag, typename MaterialImpl>
+auto testPlaneStrainAgainstPlaneStress(const double tol = 1e-10) {
+  TestSuite t(MaterialImpl::name() + " InputStrainMeasure: " + toString(strainTag));
+  std::cout << "TestPlaneStrinAgainstPlaneStress: " << t.name() << " started\n";
 
-// Eigen::Matrix3d e;
-// e.setRandom();
+  Eigen::Matrix3d e;
+  e.setRandom();
 
-// transformStrainAccordingToStrain<strainTag>(e);
-
-// // instantiate material models
-// LamesFirstParameterAndShearModulus matPar{.lambda = 0, .mu = 1000}; // nu = 0
-
-// auto mat            = MaterialImpl{matPar};
-// auto planeStrainMat = planeStrain(mat);
-// auto planeStressMat = planeStress(mat);
-
-// // energy should be the same for plane stress and plane strain for nu = 0
-// auto energies = std::array<double, 2>{planeStrainMat.template storedEnergy<strainTag>(e),
-//                                       planeStressMat.template storedEnergy<strainTag>(e)};
-
-// t.check(Dune::FloatCmp::le(std::abs(energies[0] - energies[1]), tol))
-//     << "Energies for plane strain and plane stress should be the same but are"
-//     << "\n"
-//     << energies[0] << " and " << energies[1] << "\n Diff: " << energies[0] - energies[1] << " with tol: " << tol;
-
-// // Stresses should be the same for nu = 0
-// auto stressPlaneStrain = planeStrainMat.template stresses<strainTag>(e);
-// auto stressPlaneStress = planeStressMat.template stresses<strainTag>(e);
-
-// t.check(isApproxSame(stressPlaneStrain, stressPlaneStress, tol))
-//     << "Stresses for plane strain and plane stress should be the same but are"
-//     << "\n"
-//     << stressPlaneStrain << "\nand\n " << stressPlaneStress << "\nDiff:\n"
-//     << stressPlaneStrain - stressPlaneStress << " with tol: " << tol;
-
-// // If we compare the plain stress material tensor with plain strain material tensor it should be the same for nu = 0
-// auto matTangentPlaneStrain = planeStrainMat.template tangentModuli<strainTag>(e);
-// auto matTangentPlaneStress = planeStressMat.template tangentModuli<strainTag>(e);
-
-// t.check(isApproxSame(matTangentPlaneStrain, matTangentPlaneStress, tol))
-//     << "Material Tangent for plane strain and plane stress should be the same but are"
-//     << "\n"
-//     << matTangentPlaneStrain << "\nand\n"
-//     << matTangentPlaneStress << "\n Diff:\n"
-//     << matTangentPlaneStrain - matTangentPlaneStress << " with tol: " << tol;
-
-// // Sanity check, for nu != 0 the quantities should differ
-// matPar         = {.lambda = 1000, .mu = 50}; // nu = 0
-// mat            = MaterialImpl{matPar};
-// planeStrainMat = planeStrain(mat);
-// planeStressMat = planeStress(mat);
-
-// energies = std::array<double, 2>{planeStrainMat.template storedEnergy<strainTag>(e),
-//                                  planeStressMat.template storedEnergy<strainTag>(e)};
-
-// t.check(not Dune::FloatCmp::eq(energies[0], energies[1], tol))
-//     << "Energies for plane strain and plane stress should not be the same but are"
-//     << "\n"
-//     << energies[0] << " and " << energies[1] << " with tol: " << tol;
-
-// stressPlaneStrain = planeStrainMat.template stresses<strainTag>(e);
-// stressPlaneStress = planeStressMat.template stresses<strainTag>(e);
-
-// t.check(not isApproxSame(stressPlaneStrain, stressPlaneStress, tol))
-//     << "Stresses for plane strain and plane stress should not be the same but are"
-//     << "\n"
-//     << stressPlaneStrain << "\nand\n " << stressPlaneStress << " with tol: " << tol;
-
-// return t;
-// }
-
-// template <typename MAT>
-// auto checkThrowNeoHooke(const MAT& matNH) {
-//   static_assert(std::is_same_v<MAT, NeoHookeT<double>>,
-//                 "checkThrowNeoHooke is only implemented for Neo-Hooke material law.");
-//   TestSuite t("NeoHooke Test - Checks the throw message for negative determinant of C");
-//   Eigen::Vector3d E;
-//   E << 2.045327969583023, 0.05875570522766141, 0.3423966429644326;
-//   auto reducedMat = planeStress(matNH, 1e-8);
-
-// t.checkThrow<Dune::InvalidStateException>(
-//     [&]() { const auto moduli = (reducedMat.template tangentModuli<StrainTags::greenLagrangian, true>(E)); },
-//     "Neo-Hooke test (tangentModuli) should have failed with negative detC for the given E");
-
-// t.checkThrow<Dune::InvalidStateException>(
-//     [&]() { const auto stress = (reducedMat.template stresses<StrainTags::greenLagrangian, true>(E)); },
-//     "Neo-Hooke test (stresses) should have failed with negative detC for the given E");
-
-// t.checkThrow<Dune::InvalidStateException>(
-//     [&]() { const auto energy = (reducedMat.template storedEnergy<StrainTags::greenLagrangian>(E)); },
-//     "Neo-Hooke test (stresses) should have failed with negative detC for the given E");
-// return t;
-// }
-
-auto testMaterialsByAD() {
-  TestSuite t;
-
-  // Eigen::Matrix3d e;
-  // e.setRandom();
-  // transformStrainAccordingToStrain<StrainTags::rightCauchyGreenTensor>(e);
-
-  constexpr auto CauchyGreen = StrainTags::rightCauchyGreenTensor;
-
-  // auto c = Eigen::Matrix3d::Identity().eval();
-  Eigen::Matrix3d c{
-      { 0.600872, -0.179083, 0},
-      {-0.179083,  0.859121, 0},
-      {        0,         0, 1}
-  };
+  transformStrainAccordingToStrain<strainTag>(e);
 
   // instantiate material models
-  double Emod = 1000;
-  double nu   = 0.25; // Blatz Ko assumes nu = 0.25
-  auto matPar = YoungsModulusAndPoissonsRatio{.emodul = Emod, .nu = nu};
-  auto mu     = convertLameConstants(matPar).toShearModulus();
-  auto K      = convertLameConstants(matPar).toBulkModulus();
-  auto Lambda = convertLameConstants(matPar).toLamesFirstParameter();
+  LamesFirstParameterAndShearModulus matPar{.lambda = 0, .mu = 1000}; // nu = 0
 
-  // auto nh = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
+  auto mat            = MaterialImpl{matPar};
+  auto planeStrainMat = planeStrain(mat);
+  auto planeStressMat = planeStress(mat);
 
-  // auto energy_nh     = nh.storedEnergy<CauchyGreen>(c);
-  // auto stress_nh     = nh.stresses<CauchyGreen>(c);
-  // auto matTangent_nh = nh.tangentModuli<CauchyGreen>(c);
+  // energy should be the same for plane stress and plane strain for nu = 0
+  auto energies = std::array<double, 2>{planeStrainMat.template storedEnergy<strainTag>(e),
+                                        planeStressMat.template storedEnergy<strainTag>(e)};
 
-  // std::cout << "Energy (NH):\n" << energy_nh << std::endl;
-  // std::cout << "Stress (NH):\n" << stress_nh << std::endl;
-  // std::cout << "MatTangent (NH):\n" << matTangent_nh << std::endl;
+  t.check(Dune::FloatCmp::le(std::abs(energies[0] - energies[1]), tol))
+      << "Energies for plane strain and plane stress should be the same but are"
+      << "\n"
+      << energies[0] << " and " << energies[1] << "\n Diff: " << energies[0] - energies[1] << " with tol: " << tol;
 
-  auto bk = makeBlatzKo(ShearModulus{mu});
+  // Stresses should be the same for nu = 0
+  auto stressPlaneStrain = planeStrainMat.template stresses<strainTag>(e);
+  auto stressPlaneStress = planeStressMat.template stresses<strainTag>(e);
 
-  // auto energy_bk     = bk.storedEnergy<CauchyGreen>(c);
-  // auto stress_bk     = bk.stresses<CauchyGreen>(c);
-  // auto matTangent_bk = bk.tangentModuli<CauchyGreen>(c);
+  t.check(isApproxSame(stressPlaneStrain, stressPlaneStress, tol))
+      << "Stresses for plane strain and plane stress should be the same but are"
+      << "\n"
+      << stressPlaneStrain << "\nand\n " << stressPlaneStress << "\nDiff:\n"
+      << stressPlaneStrain - stressPlaneStress << " with tol: " << tol;
 
-  // std::cout << "Energy (BK):\n" << energy_bk << std::endl;
-  // std::cout << "Stress (BK):\n" << stress_bk << std::endl;
-  // std::cout << "MatTangent (BK):\n" << matTangent_bk << std::endl;
+  // If we compare the plain stress material tensor with plain strain material tensor it should be the same for nu = 0
+  auto matTangentPlaneStrain = planeStrainMat.template tangentModuli<strainTag>(e);
+  auto matTangentPlaneStress = planeStressMat.template tangentModuli<strainTag>(e);
 
-  std::array<double, 1> mu_og    = {mu};
-  std::array<double, 1> alpha_og = {2.0};
+  t.check(isApproxSame(matTangentPlaneStrain, matTangentPlaneStress, tol))
+      << "Material Tangent for plane strain and plane stress should be the same but are"
+      << "\n"
+      << matTangentPlaneStrain << "\nand\n"
+      << matTangentPlaneStress << "\n Diff:\n"
+      << matTangentPlaneStrain - matTangentPlaneStress << " with tol: " << tol;
 
-  auto ogden_1    = makeModifiedOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
-  auto energy_og1 = ogden_1.storedEnergy<CauchyGreen>(c);
-  auto stress_og1 = ogden_1.stresses<CauchyGreen>(c);
-  auto moduli_og1 = ogden_1.tangentModuli<CauchyGreen>(c);
+  // Sanity check, for nu != 0 the quantities should differ
+  matPar         = {.lambda = 1000, .mu = 50}; // nu = 0
+  mat            = MaterialImpl{matPar};
+  planeStrainMat = planeStrain(mat);
+  planeStressMat = planeStress(mat);
 
-  std::cout << "Energy (OG 1):\n" << energy_og1 << std::endl;
-  std::cout << "Stress (OG 1):\n" << stress_og1 << std::endl;
-  std::cout << "MatTangent (OG 1):\n" << moduli_og1 << std::endl;
+  energies = std::array<double, 2>{planeStrainMat.template storedEnergy<strainTag>(e),
+                                   planeStressMat.template storedEnergy<strainTag>(e)};
 
-  auto ogden_2 = makeOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
+  t.check(not Dune::FloatCmp::eq(energies[0], energies[1], tol))
+      << "Energies for plane strain and plane stress should not be the same but are"
+      << "\n"
+      << energies[0] << " and " << energies[1] << " with tol: " << tol;
 
-  auto energy_og2 = ogden_2.storedEnergy<CauchyGreen>(c);
-  auto stress_og2 = ogden_2.stresses<CauchyGreen>(c);
-  auto moduli_og2 = ogden_2.tangentModuli<CauchyGreen>(c);
+  stressPlaneStrain = planeStrainMat.template stresses<strainTag>(e);
+  stressPlaneStress = planeStressMat.template stresses<strainTag>(e);
 
-  std::cout << "Energy (OG 2):\n" << energy_og2 << std::endl;
-  std::cout << "Stress (OG 2):\n" << stress_og2 << std::endl;
-  std::cout << "MatTangent (OG 2):\n" << moduli_og2 << std::endl;
+  t.check(not isApproxSame(stressPlaneStrain, stressPlaneStress, tol))
+      << "Stresses for plane strain and plane stress should not be the same but are"
+      << "\n"
+      << stressPlaneStrain << "\nand\n " << stressPlaneStress << " with tol: " << tol;
 
-  auto ogden_3 = makeOgden<1>(mu_og, alpha_og);
+  return t;
+}
 
-  std::cout << bk.name() << std::endl;
-  std::cout << ogden_1.name() << std::endl;
-  std::cout << ogden_2.name() << std::endl;
-  std::cout << ogden_3.name() << std::endl;
+template <typename MAT>
+auto checkThrowNeoHooke(const MAT& matNH) {
+  static_assert(std::is_same_v<MAT, NeoHookeT<double>>,
+                "checkThrowNeoHooke is only implemented for Neo-Hooke material law.");
+  TestSuite t("NeoHooke Test - Checks the throw message for negative determinant of C");
+  Eigen::Vector3d E;
+  E << 2.045327969583023, 0.05875570522766141, 0.3423966429644326;
+  auto reducedMat = planeStress(matNH, 1e-8);
 
+  t.checkThrow<Dune::InvalidStateException>(
+      [&]() { const auto moduli = (reducedMat.template tangentModuli<StrainTags::greenLagrangian, true>(E)); },
+      "Neo-Hooke test (tangentModuli) should have failed with negative detC for the given E");
+
+  t.checkThrow<Dune::InvalidStateException>(
+      [&]() { const auto stress = (reducedMat.template stresses<StrainTags::greenLagrangian, true>(E)); },
+      "Neo-Hooke test (stresses) should have failed with negative detC for the given E");
+
+  t.checkThrow<Dune::InvalidStateException>(
+      [&]() { const auto energy = (reducedMat.template storedEnergy<StrainTags::greenLagrangian>(E)); },
+      "Neo-Hooke test (stresses) should have failed with negative detC for the given E");
   return t;
 }
 
@@ -304,74 +228,72 @@ int main(int argc, char** argv) {
 
   LamesFirstParameterAndShearModulus matPar{.lambda = 1000, .mu = 500};
 
-  t.subTest(testMaterialsByAD());
+  auto svk = StVenantKirchhoff(matPar);
+  t.subTest(testMaterial(svk));
 
-  // auto svk = StVenantKirchhoff(matPar);
-  // t.subTest(testMaterial(svk));
+  auto nh = NeoHooke(matPar);
+  t.subTest(testMaterial(nh));
+  t.subTest(checkThrowNeoHooke(nh));
 
-  // auto nh = NeoHooke(matPar);
-  // t.subTest(testMaterial(nh));
-  // t.subTest(checkThrowNeoHooke(nh));
+  auto le = LinearElasticity(matPar);
+  t.subTest(testMaterial(le));
 
-  // auto le = LinearElasticity(matPar);
-  // t.subTest(testMaterial(le));
+  auto leRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(le, 1e-12);
+  t.subTest(testMaterial(leRed));
 
-  // auto leRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(le, 1e-12);
-  // t.subTest(testMaterial(leRed));
+  auto svkRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(svk, 1e-12);
+  t.subTest(testMaterial(svkRed));
 
-  // auto svkRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(svk, 1e-12);
-  // t.subTest(testMaterial(svkRed));
+  auto nhRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(nh, 1e-12);
+  t.subTest(testMaterial(nhRed));
 
-  // auto nhRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(nh, 1e-12);
-  // t.subTest(testMaterial(nhRed));
+  auto nhRed2 = makeVanishingStress<Impl::MatrixIndexPair{1, 1}, Impl::MatrixIndexPair{2, 2}>(nh, 1e-12);
+  t.subTest(testMaterial(nhRed2));
 
-  // auto nhRed2 = makeVanishingStress<Impl::MatrixIndexPair{1, 1}, Impl::MatrixIndexPair{2, 2}>(nh, 1e-12);
-  // t.subTest(testMaterial(nhRed2));
+  auto nhRed3 =
+      makeVanishingStress<Impl::MatrixIndexPair{2, 1}, Impl::MatrixIndexPair{2, 0}, Impl::MatrixIndexPair{2, 2}>(nh,
+                                                                                                                 1e-12);
+  t.subTest(testMaterial(nhRed3));
 
-  // auto nhRed3 =
-  //     makeVanishingStress<Impl::MatrixIndexPair{2, 1}, Impl::MatrixIndexPair{2, 0}, Impl::MatrixIndexPair{2, 2}>(nh,
-  //                                                                                                                1e-12);
-  // t.subTest(testMaterial(nhRed3));
+  auto nhRed4 = shellMaterial(nh, 1e-12);
+  t.subTest(testMaterial(nhRed4));
 
-  // auto nhRed4 = shellMaterial(nh, 1e-12);
-  // t.subTest(testMaterial(nhRed4));
+  auto nhRed5 = beamMaterial(nh, 1e-12);
+  t.subTest(testMaterial(nhRed5));
 
-  // auto nhRed5 = beamMaterial(nh, 1e-12);
-  // t.subTest(testMaterial(nhRed5));
+  auto nhRed6 = planeStress(nh, 1e-12);
+  t.subTest(testMaterial(nhRed6));
 
-  // auto nhRed6 = planeStress(nh, 1e-12);
-  // t.subTest(testMaterial(nhRed6));
+  auto svkPlaneStrain = planeStrain(svk);
+  t.subTest(testMaterial(svkPlaneStrain));
 
-  // auto svkPlaneStrain = planeStrain(svk);
-  // t.subTest(testMaterial(svkPlaneStrain));
+  auto nhPlaneStrain = planeStrain(nh);
+  t.subTest(testMaterial(nhPlaneStrain));
 
-  // auto nhPlaneStrain = planeStrain(nh);
-  // t.subTest(testMaterial(nhPlaneStrain));
+  auto linPlaneStrain = planeStrain(le);
+  t.subTest(testMaterialWithStrain<StrainTags::linear>(linPlaneStrain));
 
-  // auto linPlaneStrain = planeStrain(le);
-  // t.subTest(testMaterialWithStrain<StrainTags::linear>(linPlaneStrain));
+  auto nhRed8 = makeVanishingStrain<Impl::MatrixIndexPair{1, 1}, Impl::MatrixIndexPair{2, 2}>(nh);
+  t.subTest(testMaterial(nhRed8));
 
-  // auto nhRed8 = makeVanishingStrain<Impl::MatrixIndexPair{1, 1}, Impl::MatrixIndexPair{2, 2}>(nh);
-  // t.subTest(testMaterial(nhRed8));
-
-  // t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::linear, LinearElasticity>());
-  // t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::greenLagrangian, StVenantKirchhoff>());
-  // t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::rightCauchyGreenTensor, NeoHooke>());
+  t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::linear, LinearElasticity>());
+  t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::greenLagrangian, StVenantKirchhoff>());
+  t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::rightCauchyGreenTensor, NeoHooke>());
 
   // Hyperelasticity
-  // auto bk = Hyperelastic(BlatzKo({matPar.mu}));
-  // t.subTest(testMaterial(bk));
+  auto K = convertLameConstants(matPar).toBulkModulus();
 
-  // auto K     = convertLameConstants(matPar).toBulkModulus();
-  // auto hyper = Hyperelastic(BlatzKo({matPar.mu}), VolumetricPart({K}, VF2{}));
-  // t.subTest(testMaterial(hyper));
+  auto bk = makeBlatzKo({matPar.mu});
+  t.subTest(testMaterial(bk));
 
-  // // Material parameters (example values)
-  // std::array<double, 2> mu_og = {1.0, 2.0}; // Material constants
-  // std::array<double, 2> alpha_og    = {2.0, 3.0}; // Exponents
+  // Material parameters (example values)
+  // std::array<double, 2> mu_og    = {1.0, 2.0}; // Material constants
+  // std::array<double, 2> alpha_og = {2.0, 3.0}; // Exponents
 
-  // auto og = Hyperelastic(Ogden<2>(mu_og, alpha_og));
-  // t.subTest(testMaterial(og));
+  std::array<double, 1> mu_og    = {matPar.mu};
+  std::array<double, 1> alpha_og = {2.0};
+
+  // auto ogden = makeOgden<1, Ikarus::RegularizedTag::modified>(mu_og, alpha_og, {Lambda}, VF3{});
 
   return t.exit();
 }

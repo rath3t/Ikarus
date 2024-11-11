@@ -70,8 +70,8 @@ auto mattangentByADWithEnergy(const MAT& mat, const auto& c) {
   dx = toVoigt(c);
   autodiff::dual2nd e;
   Eigen::VectorXd g(6);
-
   auto h = Eigen::Matrix<double, 6, 6>{};
+  
   hessian(f, autodiff::wrt(dx), autodiff::at(dx), e, g, h);
 
   auto matTangent_ad = (MAT::derivativeFactor * MAT::derivativeFactor * h).eval();
@@ -103,7 +103,7 @@ auto testMaterial(const MAT& mat, const auto& c, double prec = 1e-8) {
   return t;
 }
 
-auto testMaterialsByAD() {
+auto playground() {
   TestSuite t;
 
   // Eigen::Matrix3d e;
@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
   // t.subTest(testMaterial<CauchyGreen>(bk, c0));
   // t.subTest(testMaterial<CauchyGreen>(bk, c));
 
-  testMaterialsByAD();
+  playground();
 
   return t.exit();
 }

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file Hyperelastic.hh
+ * \file hyperelastic.hh
  * \brief Implementation of the Hyperelastic material model.
  * \ingroup  materials
  */
@@ -12,42 +12,47 @@
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/concepts.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/volumetric.hh>
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/vanishinghelpers.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus {
 
 /**
  * \brief Implementation of a general Hyperelastic Material material model.
+ * \details $\Psi(\BC) = \hat{\Psi}(\lambda_1 + \lambda_2 + \lambda_3) + U(J)$ with $\hat{\Psi}$ beeing the deviatoric
+ * part of the strain energy function and U(J) the volumetric part.
  * \ingroup materials
  */
 template <typename DEV, typename VOL = NoVolumetricPart>
 requires(std::same_as<typename DEV::ScalarType, typename VOL::ScalarType>)
 struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
 {
-  // Checking concepts here results in better compiler error messages (at least for clang)
-  static_assert(Concepts::DeviatoricPartConcept<DEV>);
-  static_assert(Concepts::VolumetricPartConcept<VOL>);
+  // Checking concepts here results in better compiler error messages because of CRTP
+  static_assert(Concepts::DeviatoricPart<DEV>);
+  static_assert(Concepts::VolumetricPart<VOL>);
 
   using ScalarType                        = typename DEV::ScalarType;
   static constexpr bool hasVolumetricPart = not std::same_as<VOL, NoVolumetricPart>;
 
-  static constexpr int worldDimension = 3;
-  using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
+  static constexpr int dim = 3;
+  using StrainMatrix                  = Eigen::Matrix<ScalarType, dim, dim>;
   using StressMatrix                  = StrainMatrix;
   using MaterialTensor                = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>;
 
   using MaterialParametersDEV = typename DEV::MaterialParameters;
+  using MaterialParametersVOL = typename VOL::MaterialParameter;
   using MaterialParameters =
-      std::conditional_t<hasVolumetricPart, std::pair<MaterialParametersDEV, BulkModulus>, MaterialParametersDEV>;
+      std::conditional_t<hasVolumetricPart, std::pair<MaterialParametersDEV, MaterialParametersVOL>,
+                         MaterialParametersDEV>;
 
   static constexpr auto strainTag              = StrainTags::rightCauchyGreenTensor;
   static constexpr auto stressTag              = StressTags::PK2;
   static constexpr auto tangentModuliTag       = TangentModuliTags::Material;
-  static constexpr bool energyAcceptsVoigt     = false;
+  static constexpr bool energyAcceptsVoigt     = true;
   static constexpr bool stressToVoigt          = false;
-  static constexpr bool stressAcceptsVoigt     = false;
+  static constexpr bool stressAcceptsVoigt     = true;
   static constexpr bool moduliToVoigt          = false;
-  static constexpr bool moduliAcceptsVoigt     = false;
+  static constexpr bool moduliAcceptsVoigt     = true;
   static constexpr double derivativeFactorImpl = 2;
 
   [[nodiscard]] constexpr static std::string nameImpl() noexcept {
@@ -80,15 +85,11 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   template <typename Derived>
   ScalarType storedEnergyImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
-    if constexpr (!Concepts::EigenVector<Derived>) {
-      auto lambdas = principalStretches(C, Eigen::EigenvaluesOnly).first;
-      auto J       = detF(C);
 
-      return dev_.storedEnergy(lambdas) + vol_.storedEnergy(J);
+    auto lambdas = principalStretches(C, Eigen::EigenvaluesOnly).first;
+    auto J       = detF(C);
 
-    } else
-      static_assert(!Concepts::EigenVector<Derived>,
-                    "Hyperelastic energy can only be called with a matrix and not a vector in Voigt notation");
+    return dev_.storedEnergy(lambdas) + vol_.storedEnergy(J);
   }
 
   /**
@@ -102,17 +103,13 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   StressMatrix stressesImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
-      if constexpr (!Concepts::EigenVector<Derived>) {
-        auto [lambdas, N] = principalStretches(C);
-        auto J            = detF(C);
+      auto [lambdas, N] = principalStretches(C);
+      auto J            = detF(C);
 
-        auto Sdev = transformDeviatoricStresses(dev_.stresses(lambdas), N);
-        auto Svol = transformVolumetricStresses(vol_.firstDerivative(J), C, J);
+      auto Sdev = transformDeviatoricStresses(dev_.stresses(lambdas), N);
+      auto Svol = transformVolumetricStresses(vol_.firstDerivative(J), C, J);
 
-        return Sdev + Svol;
-      } else
-        static_assert(!Concepts::EigenVector<Derived>,
-                      "Hyperelastic can only be called with a matrix and not a vector in Voigt notation");
+      return Sdev + Svol;
     } else
       static_assert(voigt == false, "Hyperelastic does not support returning stresses in Voigt notation");
   }
@@ -171,8 +168,8 @@ private:
     MaterialTensor moduli{};
     moduli.setZero();
 
-    for (int i = 0; i < worldDimension; ++i)
-      for (int k = 0; k < worldDimension; ++k) {
+    for (int i = 0; i < dim; ++i)
+      for (int k = 0; k < dim; ++k) {
         // First term: L[i, i, k, k] * ((N[i] ⊗ N[i]) ⊗ (N[k] ⊗ N[k]))
         auto NiNi = dyadic(N.col(i).eval(), N.col(i).eval());
         auto NkNk = dyadic(N.col(k).eval(), N.col(k).eval());
@@ -204,20 +201,31 @@ private:
     return moduli;
   }
 
-  // TODO: Can we use SelfAdjointSolver?
+  /**
+   * \brief Calculates the principal stretches of the input strain matrix C
+   *
+   * \tparam Derived The derived type of the input matrix
+   * \param Craw the input strain matrix
+   * \param options should be either `Eigen::ComputeEigenvectors` or `Eigen::EigenvaluesOnly`
+   * \return auto pair of principalstretches and corresponding eigenvectors (if `Eigen::EigenvaluesOnly` the
+   * eigenvectors is a zero matrix )
+   */
   template <typename Derived>
-  auto principalStretches(const Eigen::MatrixBase<Derived>& C, int options = Eigen::ComputeEigenvectors) const {
-    Eigen::SelfAdjointEigenSolver<Derived> eigensolver(C, options);
+  auto principalStretches(const Eigen::MatrixBase<Derived>& Craw, int options = Eigen::ComputeEigenvectors) const {
+    StrainMatrix C = Impl::maybeFromVoigt(Craw);
+    Eigen::SelfAdjointEigenSolver<StrainMatrix> eigensolver(C, options);
 
     auto& eigenvalues  = eigensolver.eigenvalues();
-    auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : Derived::Zero();
+    auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : StrainMatrix::Zero();
 
     auto principalStretches = eigenvalues.array().sqrt().eval();
     return std::make_pair(principalStretches, eigenvectors);
   }
 
   template <typename Derived>
-  auto detF(const Eigen::MatrixBase<Derived>& C) const -> typename VOL::JType {
+  auto detF(const Eigen::MatrixBase<Derived>& Craw) const -> typename VOL::JType {
+    StrainMatrix C = Impl::maybeFromVoigt(Craw);
+
     if constexpr (hasVolumetricPart) {
       const auto detC = C.determinant();
       checkPositiveDetC(detC);

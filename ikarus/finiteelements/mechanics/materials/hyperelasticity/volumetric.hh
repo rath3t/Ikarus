@@ -2,48 +2,87 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file BlatzKo.hh
- * \brief Implementation of the BlatzKo material model.
+ * \file volumetric.hh
+ * \brief Implementation of the volumetric part of a hyperelastic material.
  * \ingroup  materials
  */
 
 #pragma once
 
+#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/concepts.hh>
 #include <ikarus/finiteelements/physicshelper.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus {
 
-template <typename VF>
-struct VolumetricPart
+/**
+ * \brief Interface for the volumetric part opf a hyperelastic material. Has to be parametrized with a volumetric
+ * function.
+ *
+ * \tparam VF volumetric function, has to adhere to the concept `VolumetricConcept`
+ */
+template <Concepts::VolumetricFunction VF>
+struct Volumetric
 {
-  using ScalarType         = typename VF::ScalarType;
-  using JType              = typename VF::JType;
+  using ScalarType = typename VF::ScalarType;
+  using JType      = typename VF::JType;
+
   using VolumetricFunction = VF;
+  using MaterialParameter  = BulkModulus;
 
   [[nodiscard]] constexpr static std::string name() noexcept { return "Volumetric function: " + VF::name(); }
 
-  VolumetricPart(BulkModulus K, const VF vf)
+  /**
+   * \brief Construct a new volumetric part
+   *
+   * \param K Materialparameter is most often the bulk modulus, but it is also common for modified material laws to use
+   * lamés first parameter
+   * \param vf the volumetric function
+   */
+  Volumetric(MaterialParameter K, const VF vf)
       : K_{K},
         volumetricFunction_{vf} {}
 
+  /**
+   * \brief Computes stored energy of the volumetric function
+   * 
+   * \param J determinant of the deformation gradient $J = \det\BF$
+   * \return ScalarType energy
+   */
   ScalarType storedEnergy(const JType& J) const { return K_.K * volumetricFunction_.storedEnergyImpl(J); };
 
+  /**
+   * \brief Computes the first derivatives of the energy of the volumetric function w.r.t $J$
+   * 
+   * \param J determinant of the deformation gradient $J = \det\BF$
+   * \return ScalarType energy
+   */
   ScalarType firstDerivative(const JType& J) const { return K_.K * volumetricFunction_.firstDerivativeImpl(J); }
 
+  /**
+   * \brief Computes the second derivatives of the energy of the volumetric function w.r.t $J$
+   * 
+   * \param J determinant of the deformation gradient $J = \det\BF$
+   * \return ScalarType energy
+   */
   ScalarType secondDerivative(const JType& J) const { return K_.K * volumetricFunction_.secondDerivativeImpl(J); };
 
   template <typename STO>
   auto rebind() const {
     auto reboundVF = volumetricFunction_.template rebind<STO>();
-    return VolumetricPart<decltype(reboundVF)>(K_, reboundVF);
+    return Volumetric<decltype(reboundVF)>(K_, reboundVF);
   }
 
 private:
-  BulkModulus K_;
+  MaterialParameter K_;
   VF volumetricFunction_;
 };
 
+/**
+ * \brief Volumetric function No. 1 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details $U(J) = \frac{1}{2}(J - 1)^2$
+ * \tparam ST ScalarType
+ */
 template <typename ST>
 struct VF1T
 {
@@ -64,6 +103,11 @@ struct VF1T
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 1"; }
 };
 
+/**
+ * \brief Volumetric function No. 2 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details $U(J) = \frac{1}{4}\left((J - 1)^2 + (\ln J )^2 \right)$ according to Simo and Taylot 1982
+ * \tparam ST ScalarType
+ */
 template <typename ST>
 struct VF2T
 {
@@ -132,6 +176,8 @@ struct VF4T
   }
 
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 4"; }
+
+  double beta() const { return beta_; }
 
 private:
   double beta_;
@@ -205,6 +251,6 @@ struct VF0T
   [[nodiscard]] constexpr static std::string name() noexcept { return "None"; }
 };
 
-using NoVolumetricPart = VolumetricPart<VF0T<double>>;
+using NoVolumetricPart = Volumetric<VF0T<double>>;
 
 } // namespace Ikarus

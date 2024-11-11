@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 # install headers
-install(FILES hyperelasticity.hh blatzko.hh compressibleogden.hh incompressibleogden.hh
-              deviatoric.hh volumetric.hh
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/materials
+install(
+  FILES hyperelasticity.hh deviatoric.hh concepts.hh volumetric.hh
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/materials/hyperelasticity
 )
+
+add_subdirectory(modified)
+add_subdirectory(regularized)

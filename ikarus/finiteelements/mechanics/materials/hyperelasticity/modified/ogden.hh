@@ -16,16 +16,16 @@
 namespace Ikarus {
 
 template <typename ST, int n>
-struct ModifiedOgdenT
+struct ModOgdenT
 {
   using ScalarType         = ST;
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
 
   static constexpr int nOgdenParameters = n;
-  static constexpr int worldDimension   = 3;
+  static constexpr int dim              = 3;
 
-  using FirstDerivative  = Eigen::Vector<ScalarType, worldDimension>;
-  using SecondDerivative = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
+  using FirstDerivative  = Eigen::Vector<ScalarType, dim>;
+  using SecondDerivative = Eigen::Matrix<ScalarType, dim, dim>;
 
   using MaterialParameters = std::array<double, nOgdenParameters>;
   using OgdenParameters    = std::array<double, nOgdenParameters>;
@@ -38,7 +38,7 @@ struct ModifiedOgdenT
    * \brief Constructor for ModifiedOgdenT.
    * \param mpt The Lame's parameters (first parameter and shear modulus).
    */
-  explicit ModifiedOgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
+  explicit ModOgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
       : materialParameters_{mpt},
         ogdenParameters_{opt} {}
 
@@ -47,12 +47,6 @@ struct ModifiedOgdenT
    */
   MaterialParameters materialParametersImpl() const { return materialParameters_; }
 
-  /**
-   * \brief Computes the stored energy in the Neo-Hookean material model.
-   * \tparam Derived The derived type of the input matrix.
-   * \param C The right Cauchy-Green tensor.
-   * \return ScalarType The stored energy.
-   */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambdas) const {
     ScalarType energy{};
     auto J = lambdas[0] * lambdas[1] * lambdas[2];
@@ -69,13 +63,6 @@ struct ModifiedOgdenT
     return energy;
   }
 
-  /**
-   * \brief Computes the stresses in the Neo-Hookean material model.
-   * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
-   * \tparam Derived The derived type of the input matrix.
-   * \param C The right Cauchy-Green tensor.
-   * \return StressMatrix The stresses.
-   */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambdas) const {
     auto P = FirstDerivative::Zero().eval();
 
@@ -89,14 +76,6 @@ struct ModifiedOgdenT
     }
     return P;
   }
-
-  /**
-   * \brief Computes the tangent moduli in the Neo-Hookean material model.
-   * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
-   * \tparam Derived The derived type of the input matrix.
-   * \param C The right Cauchy-Green tensor.
-   * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> The tangent moduli.
-   */
 
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambdas) const {
     auto dS = SecondDerivative::Zero().eval();
@@ -120,7 +99,7 @@ struct ModifiedOgdenT
    */
   template <typename STO>
   auto rebind() const {
-    return ModifiedOgdenT<STO, nOgdenParameters>(materialParameters_, ogdenParameters_);
+    return ModOgdenT<STO, nOgdenParameters>(materialParameters_, ogdenParameters_);
   }
 
 private:
@@ -128,13 +107,13 @@ private:
   OgdenParameters ogdenParameters_;
 
   inline auto parameterRange() const { return Dune::Hybrid::integralRange(nOgdenParameters); }
-  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(worldDimension); }
+  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
 };
 
 /**
  * \brief Alias for ModifiedOgdenT with double as the default scalar type.
  */
 template <int n>
-using ModifiedOgden = ModifiedOgdenT<double, n>;
+using ModOgden = ModOgdenT<double, n>;
 
 } // namespace Ikarus

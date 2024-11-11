@@ -14,17 +14,16 @@
 
 namespace Ikarus {
 
-
 template <typename ST>
 struct BlatzKoT
 {
   using ScalarType         = ST;
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
 
-  static constexpr int worldDimension = 3;
+  static constexpr int dim = 3;
 
-  using FirstDerivative  = Eigen::Vector<ScalarType, worldDimension>;
-  using SecondDerivative = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
+  using FirstDerivative  = Eigen::Vector<ScalarType, dim>;
+  using SecondDerivative = Eigen::Matrix<ScalarType, dim, dim>;
 
   using MaterialParameters = ShearModulus;
 
@@ -42,41 +41,40 @@ struct BlatzKoT
    */
   MaterialParameters materialParametersImpl() const { return materialParameter_; }
 
-
   ScalarType storedEnergyImpl(const PrincipalStretches& lambdas) const {
     return materialParameter_.mu / 2 *
            (1 / pow(lambdas[0], 2) + 1 / pow(lambdas[1], 2) + 1 / pow(lambdas[2], 2) +
             2 * lambdas[0] * lambdas[1] * lambdas[2] - 5);
   }
 
+  FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
+    auto dWdLambda = FirstDerivative::Zero().eval();
 
-  FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambdas) const {
-    // principal PK1 stress
-    auto P1 = materialParameter_.mu * (-2 / pow(lambdas[0], 3) + 2 * lambdas[1] * lambdas[2]) / 2;
-    auto P2 = materialParameter_.mu * (-2 / pow(lambdas[1], 3) + 2 * lambdas[0] * lambdas[2]) / 2;
-    auto P3 = materialParameter_.mu * (-2 / pow(lambdas[2], 3) + 2 * lambdas[0] * lambdas[1]) / 2;
+    dWdLambda[0] = materialParameter_.mu * (-2 / pow(lambda[0], 3) + 2 * lambda[1] * lambda[2]) / 2;
+    dWdLambda[1] = materialParameter_.mu * (-2 / pow(lambda[1], 3) + 2 * lambda[0] * lambda[2]) / 2;
+    dWdLambda[2] = materialParameter_.mu * (-2 / pow(lambda[2], 3) + 2 * lambda[0] * lambda[1]) / 2;
 
-    return FirstDerivative{P1, P2, P3};
+    return dWdLambda;
   }
 
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
-    auto dS = SecondDerivative::Zero().eval();
+    auto ddWdLambda = SecondDerivative::Zero().eval();
+    double mu       = materialParameter_.mu;
 
-    double mu = materialParameter_.mu;
-    dS(0, 0)  = -mu * (-2.0 / pow(lambda(0), 3) + 2.0 * lambda(1) * lambda(2)) / (2.0 * pow(lambda(0), 2)) +
-               3.0 * mu / pow(lambda(0), 5);
-    dS(0, 1) = mu * lambda(2) / lambda(0);
-    dS(0, 2) = mu * lambda(1) / lambda(0);
-    dS(1, 0) = mu * lambda(2) / lambda(1);
-    dS(1, 1) = -mu * (-2.0 / pow(lambda(1), 3) + 2.0 * lambda(0) * lambda(2)) / (2.0 * pow(lambda(1), 2)) +
-               3.0 * mu / pow(lambda(1), 5);
-    dS(1, 2) = mu * lambda(0) / lambda(1);
-    dS(2, 0) = mu * lambda(1) / lambda(2);
-    dS(2, 1) = mu * lambda(0) / lambda(2);
-    dS(2, 2) = -mu * (-2.0 / pow(lambda(2), 3) + 2.0 * lambda(0) * lambda(1)) / (2.0 * pow(lambda(2), 2)) +
-               3.0 * mu / pow(lambda(2), 5);
+    ddWdLambda(0, 0) = -mu * (-2.0 / pow(lambda(0), 3) + 2.0 * lambda(1) * lambda(2)) / (2.0 * pow(lambda(0), 2)) +
+                       3.0 * mu / pow(lambda(0), 5);
+    ddWdLambda(0, 1) = mu * lambda(2) / lambda(0);
+    ddWdLambda(0, 2) = mu * lambda(1) / lambda(0);
+    ddWdLambda(1, 0) = mu * lambda(2) / lambda(1);
+    ddWdLambda(1, 1) = -mu * (-2.0 / pow(lambda(1), 3) + 2.0 * lambda(0) * lambda(2)) / (2.0 * pow(lambda(1), 2)) +
+                       3.0 * mu / pow(lambda(1), 5);
+    ddWdLambda(1, 2) = mu * lambda(0) / lambda(1);
+    ddWdLambda(2, 0) = mu * lambda(1) / lambda(2);
+    ddWdLambda(2, 1) = mu * lambda(0) / lambda(2);
+    ddWdLambda(2, 2) = -mu * (-2.0 / pow(lambda(2), 3) + 2.0 * lambda(0) * lambda(1)) / (2.0 * pow(lambda(2), 2)) +
+                       3.0 * mu / pow(lambda(2), 5);
 
-    return dS;
+    return ddWdLambda;
   }
 
   /**
@@ -91,7 +89,6 @@ struct BlatzKoT
 
 private:
   MaterialParameters materialParameter_;
-  
 };
 
 /**
