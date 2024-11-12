@@ -13,7 +13,7 @@
 #include <ikarus/finiteelements/physicshelper.hh>
 #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 /**
  * \brief Interface for the volumetric part opf a hyperelastic material. Has to be parametrized with a volumetric
@@ -105,7 +105,7 @@ struct VF1T
 
 /**
  * \brief Volumetric function No. 2 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details $U(J) = \frac{1}{4}\left((J - 1)^2 + (\ln J )^2 \right)$ according to Simo and Taylot 1982
+ * \details $U(J) = \frac{1}{4}\left((J - 1)^2 + (\ln J )^2 \right)$ according to Simo and Taylor 1982
  * \tparam ST ScalarType
  */
 template <typename ST>

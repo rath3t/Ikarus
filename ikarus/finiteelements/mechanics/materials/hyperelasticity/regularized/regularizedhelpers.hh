@@ -14,7 +14,7 @@
 
 #include <dune/common/hybridutilities.hh>
 
-namespace Ikarus::Impl {
+namespace Ikarus::Materials::Impl {
 
 template <typename PrincipalStretches>
 inline PrincipalStretches regularizeStretches(const PrincipalStretches& lambda) {

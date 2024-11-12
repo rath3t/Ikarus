@@ -12,10 +12,10 @@
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/concepts.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/volumetric.hh>
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
-#include <ikarus/finiteelements/mechanics/materials/vanishinghelpers.hh>
+#include <ikarus/finiteelements/mechanics/materials/materialhelpers.hh>
 #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of a general Hyperelastic Material material model.

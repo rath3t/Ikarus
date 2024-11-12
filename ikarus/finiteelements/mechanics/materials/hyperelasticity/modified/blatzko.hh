@@ -12,7 +12,7 @@
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
 #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 template <typename ST>
 struct BlatzKoT

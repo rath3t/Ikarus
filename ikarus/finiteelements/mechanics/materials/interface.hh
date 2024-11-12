@@ -16,7 +16,7 @@
 #include <ikarus/utils/linearalgebrahelper.hh>
 #include <ikarus/utils/traits.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 #ifndef DOXYGEN
 template <class MImpl>
@@ -225,4 +225,4 @@ private:
   }
 };
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials

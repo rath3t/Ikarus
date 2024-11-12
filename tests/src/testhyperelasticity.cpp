@@ -21,6 +21,7 @@
 #include <ikarus/utils/nonlinearoperator.hh>
 
 using namespace Ikarus;
+using namespace Materials;
 using Dune::TestSuite;
 
 inline auto testMatrix() {
@@ -115,7 +116,7 @@ auto recoverNeoHookeThroughOgden() {
   std::array<double, 1> mu_og    = {mu};
   std::array<double, 1> alpha_og = {2.0};
 
-  auto ogden = makeOgden<1, Ikarus::RegularizedTag::modified>(mu_og, alpha_og, {Lambda}, VF3{});
+  auto ogden = makeOgden<1, StretchTag::principal>(mu_og, alpha_og, {Lambda}, VF3{});
   auto nh    = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
 
   auto energy_og = ogden.storedEnergy<rightCauchyGreenTensor>(c);

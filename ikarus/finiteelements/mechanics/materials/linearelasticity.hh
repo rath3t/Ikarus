@@ -13,7 +13,7 @@
 
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of the Linear Elasticity material model.
@@ -37,11 +37,12 @@ struct LinearElasticityT : Material<LinearElasticityT<ST>>
   using ScalarType = ST;
   using Base       = StVenantKirchhoffT<ScalarType>;
 
-  using field_type                    = ScalarType;
-  static constexpr int worldDimension = 3;
-  using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
-  using StressMatrix                  = StrainMatrix;
-  using MaterialParameters            = typename Base::MaterialParameters;
+  using field_type         = ScalarType;
+  static constexpr int dim = Base::dim;
+  using StrainMatrix       = typename Base::StrainMatrix;
+  using StressMatrix       = StrainMatrix;
+
+  using MaterialParameters = typename Base::MaterialParameters;
 
   static constexpr auto strainTag              = StrainTags::linear;
   static constexpr auto stressTag              = StressTags::linear;
@@ -128,4 +129,4 @@ private:
  */
 using LinearElasticity = LinearElasticityT<double>;
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials

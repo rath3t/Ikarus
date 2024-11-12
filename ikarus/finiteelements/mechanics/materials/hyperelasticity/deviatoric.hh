@@ -14,7 +14,7 @@
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/concepts.hh>
 #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 /**
  * \brief This is the interface implementation for the deviatoric part of a hyperelastic material.

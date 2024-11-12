@@ -3,14 +3,19 @@
 
 #pragma once
 
+/**
+ * \file materialhelpers.hh
+ * \brief helper functions used by material model implementations.
+ * \ingroup  materials
+ */
+
 #include <ranges>
 
 #include <Eigen/Dense>
 
 #include <ikarus/utils/concepts.hh>
 
-namespace Ikarus::Impl {
-
+namespace Ikarus::Materials {
 /**
  * \brief Represents a pair of stress matrix indices (row and column).
  */
@@ -19,6 +24,8 @@ struct MatrixIndexPair
   Eigen::Index row; ///< Row index.
   Eigen::Index col; ///< Column index.
 };
+} // namespace Ikarus::Materials
+namespace Ikarus::Materials::Impl {
 
 /**
  * \brief Helper function to create an array of free Voigt indices.
@@ -81,4 +88,4 @@ decltype(auto) maybeFromVoigt(const Eigen::MatrixBase<Derived>& E) {
     return E.derived();
 }
 
-} // namespace Ikarus::Impl
+} // namespace Ikarus::Materials::Impl

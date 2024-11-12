@@ -19,6 +19,7 @@
 #include <ikarus/utils/init.hh>
 
 using namespace Ikarus;
+using namespace Ikarus::Materials;
 using Dune::TestSuite;
 
 template <typename MAT, StrainTags strainTag>
@@ -65,14 +66,13 @@ auto mattangentByADWithEnergy(const MAT& mat, const auto& c) {
 
   auto f = [&](const auto& x) { return mat_ad.template storedEnergy<strainTag>(x); };
 
-  auto dx = Eigen::Vector<autodiff::dual2nd, 6>{};
+  Eigen::Matrix<autodiff::dual2nd, 6, 1> dx = toVoigt(c);
 
-  dx = toVoigt(c);
   autodiff::dual2nd e;
-  Eigen::VectorXd g(6);
-  auto h = Eigen::Matrix<double, 6, 6>{};
-  
-  hessian(f, autodiff::wrt(dx), autodiff::at(dx), e, g, h);
+  Eigen::Matrix<double, 6, 1> g;
+  Eigen::Matrix<double, 6, 6> h;
+
+  h = autodiff::hessian(f, autodiff::wrt(dx), autodiff::at(dx), e, g);
 
   auto matTangent_ad = (MAT::derivativeFactor * MAT::derivativeFactor * h).eval();
 
@@ -96,29 +96,12 @@ auto testMaterial(const MAT& mat, const auto& c, double prec = 1e-8) {
   t.check(isApproxSame(matTangent_ad_e, matTangent_ad, prec));
 
 
-  // std::cout << "MatTangent (AD) test):\n" << matTangent_ad << std::endl;
-  // std::cout << "MatTangent test):\n" << matTangent << std::endl;
-
-
   return t;
 }
 
-auto playground() {
+auto testMaterialByAD() {
   TestSuite t;
 
-  // Eigen::Matrix3d e;
-  // e.setRandom();
-  // transformStrainAccordingToStrain<StrainTags::rightCauchyGreenTensor>(e);
-
-  // auto energy_nh     = nh.storedEnergy<CauchyGreen>(c);
-  // auto stress_nh     = nh.stresses<CauchyGreen>(c);
-  // auto matTangent_nh = nh.tangentModuli<CauchyGreen>(c);
-
-  // std::cout << "Energy (NH):\n" << energy_nh << std::endl;
-  // std::cout << "Stress (NH):\n" << stress_nh << std::endl;
-  // std::cout << "MatTangent (NH):\n" << matTangent_nh << std::endl;
-
-  // auto c = Eigen::Matrix3d::Identity().eval();
   Eigen::Matrix3d c{
       { 0.600872, -0.179083, 0},
       {-0.179083,  0.859121, 0},
@@ -157,22 +140,22 @@ auto playground() {
   // auto matTangent_og1_ad   = mattangentByAD<decltype(ogden_1), CauchyGreen>(ogden_1, c);
   // auto matTangent_og1_ad_e = mattangentByADWithEnergy<decltype(ogden_1), CauchyGreen>(ogden_1, c);
 
-  auto ogden_2 = makeOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
+  auto ogden_2 = makeOgden<1, StretchTag::principal>(mu_og, alpha_og, {Lambda}, VF3{});
 
-  auto stress_og2 = ogden_2.stresses<CauchyGreen>(c);
+  auto stress_og2    = ogden_2.stresses<CauchyGreen>(c);
   auto matTangent_og = ogden_2.tangentModuli<CauchyGreen>(c);
 
   std::cout << "Stress (OG 2):\n" << stress_og2 << std::endl;
   std::cout << "MatTangent (OG 2):\n" << matTangent_og << std::endl;
 
-  auto stress_og2_ad     = stressByAD<decltype(ogden_2), CauchyGreen>(ogden_2, c);
+  auto stress_og2_ad       = stressByAD<decltype(ogden_2), CauchyGreen>(ogden_2, c);
   auto matTangent_og2_ad_e = mattangentByADWithEnergy<decltype(ogden_2), CauchyGreen>(ogden_2, c);
-  auto matTangent_og2_ad = mattangentByAD<decltype(ogden_2), CauchyGreen>(ogden_2, c);
+  auto matTangent_og2_ad   = mattangentByAD<decltype(ogden_2), CauchyGreen>(ogden_2, c);
 
   std::cout << "Stress (OG 2) AD:\n" << stress_og2_ad << std::endl;
   std::cout << "MatTangent (OG 2) AD via energy:\n" << matTangent_og2_ad_e << std::endl;
   // std::cout << "MatTangent (OG 2) AD via stresses:\n" << matTangent_og2_ad << std::endl;
-  
+
   return t;
 }
 
@@ -202,7 +185,7 @@ int main(int argc, char** argv) {
 
   std::array<double, 1> mu_og    = {mu};
   std::array<double, 1> alpha_og = {2.0};
-  auto ogden_1                   = makeModifiedOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
+  // auto ogden_1                   = makeModifiedOgden<1, StretchTag::principal>(mu_og, alpha_og, {Lambda}, VF3{});
 
   // t.subTest(testMaterial<CauchyGreen>(nh, c0));
   // t.subTest(testMaterial<CauchyGreen>(nh, c));
@@ -214,7 +197,7 @@ int main(int argc, char** argv) {
   // t.subTest(testMaterial<CauchyGreen>(bk, c0));
   // t.subTest(testMaterial<CauchyGreen>(bk, c));
 
-  playground();
+  testMaterialByAD();
 
   return t.exit();
 }

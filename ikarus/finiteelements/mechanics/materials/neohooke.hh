@@ -4,7 +4,7 @@
 /**
  * \file neohooke.hh
  * \brief Implementation of the NeoHooke material model.
- * \ingroup  materials
+ * \ingroup materials
  */
 
 #pragma once
@@ -12,7 +12,7 @@
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
 #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of the Neo-Hookean material model.
@@ -35,11 +35,13 @@ namespace Ikarus {
 template <typename ST>
 struct NeoHookeT : public Material<NeoHookeT<ST>>
 {
-  using ScalarType                    = ST;
-  static constexpr int worldDimension = 3;
-  using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
-  using StressMatrix                  = StrainMatrix;
-  using MaterialParameters            = LamesFirstParameterAndShearModulus;
+  using ScalarType         = ST;
+  static constexpr int dim = 3;
+  using StrainMatrix       = Eigen::Matrix<ScalarType, dim, dim>;
+  using StressMatrix       = StrainMatrix;
+  using MaterialTensor     = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>>;
+
+  using MaterialParameters = LamesFirstParameterAndShearModulus;
 
   static constexpr auto strainTag              = StrainTags::rightCauchyGreenTensor;
   static constexpr auto stressTag              = StressTags::PK2;
@@ -94,7 +96,7 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
    * \return StressMatrix The stresses.
    */
   template <bool voigt, typename Derived>
-  auto stressesImpl(const Eigen::MatrixBase<Derived>& C) const {
+  StressMatrix stressesImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
       if constexpr (!Concepts::EigenVector<Derived>) {
@@ -116,10 +118,10 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
    * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
    * \param C The right Cauchy-Green tensor.
-   * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> The tangent moduli.
+   * \return MaterialTensor The tangent moduli.
    */
   template <bool voigt, typename Derived>
-  auto tangentModuliImpl(const Eigen::MatrixBase<Derived>& C) const {
+  MaterialTensor tangentModuliImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
       const auto invC = C.inverse().eval();
@@ -127,12 +129,11 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
       checkPositiveDetC(detC);
       const auto logdetF = log(sqrt(detC));
       const auto CTinv   = tensorView(invC, std::array<Eigen::Index, 2>({3, 3}));
-      // static_assert(Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3>>::NumIndices == 2);
-      Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli =
-          (materialParameter_.lambda * dyadic(CTinv, CTinv) +
-           2 * (materialParameter_.mu - materialParameter_.lambda * logdetF) *
-               symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3}))
-              .eval();
+
+      MaterialTensor moduli = (materialParameter_.lambda * dyadic(CTinv, CTinv) +
+                               2 * (materialParameter_.mu - materialParameter_.lambda * logdetF) *
+                                   symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3}))
+                                  .eval();
       return moduli;
     } else
       static_assert(voigt == false, "NeoHooke does not support returning tangent moduli in Voigt notation");
@@ -164,4 +165,4 @@ private:
  */
 using NeoHooke = NeoHookeT<double>;
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials

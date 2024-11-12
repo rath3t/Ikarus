@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "vanishinghelpers.hh"
+#include "materialhelpers.hh"
 
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
 #include <ikarus/solver/nonlinearsolver/newtonraphson.hh>
@@ -17,7 +17,7 @@
 #include <ikarus/utils/concepts.hh>
 #include <ikarus/utils/nonlinearoperator.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 /**
  * \brief VanishingStress material model that enforces stress components to be zero.
@@ -31,11 +31,11 @@ struct VanishingStress : public Material<VanishingStress<stressIndexPair, MI>>
   using Underlying         = MI; ///< The underlying material type.
   using MaterialParameters = typename Underlying::MaterialParameters;
 
-  static constexpr auto fixedPairs        = stressIndexPair;                     ///< Array of fixed stress components.
-  static constexpr auto freeVoigtIndices  = createfreeVoigtIndices(fixedPairs);  ///< Free Voigt indices.
-  static constexpr auto fixedVoigtIndices = createFixedVoigtIndices(fixedPairs); ///< Fixed Voigt indices.
+  static constexpr auto fixedPairs        = stressIndexPair; ///< Array of fixed stress components.
+  static constexpr auto freeVoigtIndices  = Impl::createfreeVoigtIndices(fixedPairs);  ///< Free Voigt indices.
+  static constexpr auto fixedVoigtIndices = Impl::createFixedVoigtIndices(fixedPairs); ///< Fixed Voigt indices.
   static constexpr auto fixedDiagonalVoigtIndicesSize =
-      countDiagonalIndices(fixedPairs);                                ///< Number of fixed diagonal indices.
+      Impl::countDiagonalIndices(fixedPairs);                          ///< Number of fixed diagonal indices.
   static constexpr auto freeStrains = freeVoigtIndices.size();         ///< Number of free strains.
   using ScalarType                  = typename Underlying::ScalarType; ///< Scalar type.
   static constexpr bool isAutoDiff  = Concepts::AutodiffScalar<ScalarType>;
@@ -217,7 +217,7 @@ private:
  * \param p_tol Tolerance for stress reduction.
  * \return VanishingStress The created VanishingStress material.
  */
-template <Impl::MatrixIndexPair... stressIndexPair, typename MaterialImpl>
+template <MatrixIndexPair... stressIndexPair, typename MaterialImpl>
 auto makeVanishingStress(MaterialImpl mat, typename MaterialImpl::ScalarType p_tol = 1e-12) {
   return VanishingStress<std::to_array({stressIndexPair...}), MaterialImpl>(mat, p_tol);
 }
@@ -231,8 +231,7 @@ auto makeVanishingStress(MaterialImpl mat, typename MaterialImpl::ScalarType p_t
  */
 template <typename MaterialImpl>
 auto planeStress(const MaterialImpl& mat, typename MaterialImpl::ScalarType tol = 1e-8) {
-  return makeVanishingStress<Impl::MatrixIndexPair{2, 1}, Impl::MatrixIndexPair{2, 0}, Impl::MatrixIndexPair{2, 2}>(
-      mat, tol);
+  return makeVanishingStress<MatrixIndexPair{2, 1}, MatrixIndexPair{2, 0}, MatrixIndexPair{2, 2}>(mat, tol);
 }
 
 /**
@@ -245,7 +244,7 @@ auto planeStress(const MaterialImpl& mat, typename MaterialImpl::ScalarType tol 
  */
 template <typename MaterialImpl>
 auto shellMaterial(const MaterialImpl& mat, typename MaterialImpl::ScalarType tol = 1e-8) {
-  return makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(mat, tol);
+  return makeVanishingStress<MatrixIndexPair{2, 2}>(mat, tol);
 }
 
 /**
@@ -258,6 +257,6 @@ auto shellMaterial(const MaterialImpl& mat, typename MaterialImpl::ScalarType to
  */
 template <typename MaterialImpl>
 auto beamMaterial(const MaterialImpl& mat, typename MaterialImpl::ScalarType tol = 1e-8) {
-  return makeVanishingStress<Impl::MatrixIndexPair{1, 1}, Impl::MatrixIndexPair{2, 2}>(mat, tol);
+  return makeVanishingStress<MatrixIndexPair{1, 1}, MatrixIndexPair{2, 2}>(mat, tol);
 }
-} // namespace Ikarus
+} // namespace Ikarus::Materials

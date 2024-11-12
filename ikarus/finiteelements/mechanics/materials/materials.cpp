@@ -11,7 +11,7 @@
 #include <ikarus/finiteelements/mechanics/materials/svk.hh>
 // #include <ikarus/finiteelements/mechanics/materials/blatzko.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 template struct LinearElasticityT<double>;
 template struct NeoHookeT<double>;

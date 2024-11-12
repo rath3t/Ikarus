@@ -16,6 +16,7 @@
 #include <ikarus/utils/nonlinearoperator.hh>
 
 using namespace Ikarus;
+using namespace Ikarus::Materials;
 using Dune::TestSuite;
 
 template <StrainTags strainTag, typename MaterialImpl>
@@ -108,12 +109,10 @@ auto testMaterial(Material mat) {
   TestSuite t("testMaterial");
   if constexpr (std::is_same_v<Material, LinearElasticity> or
                 std::is_same_v<Material,
-                               Ikarus::VanishingStress<std::array<Ikarus::Impl::MatrixIndexPair, 1>({{{2, 2}}}),
-                                                       Ikarus::LinearElasticity>>) {
+                               VanishingStress<std::array<MatrixIndexPair, 1>({{{2, 2}}}), LinearElasticity>>) {
     t.subTest(testMaterialWithStrain<StrainTags::linear>(mat));
-  } else if constexpr (std::is_same_v<Material,
-                                      Ikarus::VanishingStress<std::array<Ikarus::Impl::MatrixIndexPair, 1>({{{2, 2}}}),
-                                                              Ikarus::StVenantKirchhoff>>) {
+  } else if constexpr (std::is_same_v<Material, VanishingStress<std::array<MatrixIndexPair, 1>({{{2, 2}}}),
+                                                                Ikarus::Materials::StVenantKirchhoff>>) {
     t.subTest(testMaterialWithStrain<StrainTags::greenLagrangian>(mat));
   } else {
     if constexpr (Material::isReduced) {
@@ -238,21 +237,19 @@ int main(int argc, char** argv) {
   auto le = LinearElasticity(matPar);
   t.subTest(testMaterial(le));
 
-  auto leRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(le, 1e-12);
+  auto leRed = makeVanishingStress<MatrixIndexPair{2, 2}>(le, 1e-12);
   t.subTest(testMaterial(leRed));
 
-  auto svkRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(svk, 1e-12);
+  auto svkRed = makeVanishingStress<MatrixIndexPair{2, 2}>(svk, 1e-12);
   t.subTest(testMaterial(svkRed));
 
-  auto nhRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(nh, 1e-12);
+  auto nhRed = makeVanishingStress<MatrixIndexPair{2, 2}>(nh, 1e-12);
   t.subTest(testMaterial(nhRed));
 
-  auto nhRed2 = makeVanishingStress<Impl::MatrixIndexPair{1, 1}, Impl::MatrixIndexPair{2, 2}>(nh, 1e-12);
+  auto nhRed2 = makeVanishingStress<MatrixIndexPair{1, 1}, MatrixIndexPair{2, 2}>(nh, 1e-12);
   t.subTest(testMaterial(nhRed2));
 
-  auto nhRed3 =
-      makeVanishingStress<Impl::MatrixIndexPair{2, 1}, Impl::MatrixIndexPair{2, 0}, Impl::MatrixIndexPair{2, 2}>(nh,
-                                                                                                                 1e-12);
+  auto nhRed3 = makeVanishingStress<MatrixIndexPair{2, 1}, MatrixIndexPair{2, 0}, MatrixIndexPair{2, 2}>(nh, 1e-12);
   t.subTest(testMaterial(nhRed3));
 
   auto nhRed4 = shellMaterial(nh, 1e-12);
@@ -273,7 +270,7 @@ int main(int argc, char** argv) {
   auto linPlaneStrain = planeStrain(le);
   t.subTest(testMaterialWithStrain<StrainTags::linear>(linPlaneStrain));
 
-  auto nhRed8 = makeVanishingStrain<Impl::MatrixIndexPair{1, 1}, Impl::MatrixIndexPair{2, 2}>(nh);
+  auto nhRed8 = makeVanishingStrain<MatrixIndexPair{1, 1}, MatrixIndexPair{2, 2}>(nh);
   t.subTest(testMaterial(nhRed8));
 
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::linear, LinearElasticity>());
@@ -287,13 +284,17 @@ int main(int argc, char** argv) {
   t.subTest(testMaterial(bk));
 
   // Material parameters (example values)
-  // std::array<double, 2> mu_og    = {1.0, 2.0}; // Material constants
-  // std::array<double, 2> alpha_og = {2.0, 3.0}; // Exponents
-
   std::array<double, 1> mu_og    = {matPar.mu};
   std::array<double, 1> alpha_og = {2.0};
 
-  // auto ogden = makeOgden<1, Ikarus::RegularizedTag::modified>(mu_og, alpha_og, {Lambda}, VF3{});
+  std::array<double, 2> mu_og2    = {matPar.mu, matPar.mu / 2};
+  std::array<double, 2> alpha_og2 = {2.0, 3.0};
+
+  auto ogden  = makeOgden<1, StretchTag::principal>(mu_og, alpha_og, {matPar.lambda}, VF3{});
+  auto ogden2 = makeOgden<2, StretchTag::principal>(mu_og2, alpha_og2, {matPar.lambda}, VF2{});
+
+  t.subTest(testMaterial(ogden));
+  t.subTest(testMaterial(ogden2));
 
   return t.exit();
 }

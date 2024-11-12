@@ -9,14 +9,14 @@
 
 #pragma once
 
-#include "vanishinghelpers.hh"
+#include "materialhelpers.hh"
 
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
 #include <ikarus/finiteelements/mechanics/materials/strainconversions.hh>
 #include <ikarus/solver/nonlinearsolver/newtonraphson.hh>
 #include <ikarus/utils/nonlinearoperator.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 /**
  * \brief VanishingStrain material model that enforces strain components to be zero.
@@ -31,10 +31,10 @@ struct VanishingStrain : public Material<VanishingStrain<strainIndexPair, MI>>
   using ScalarType         = typename Underlying::ScalarType; ///< Scalar type.
   using MaterialParameters = typename Underlying::MaterialParameters;
 
-  static constexpr auto fixedPairs        = strainIndexPair;                     ///< Array of fixed stress components.
-  static constexpr auto freeVoigtIndices  = createfreeVoigtIndices(fixedPairs);  ///< Free Voigt indices.
-  static constexpr auto fixedVoigtIndices = createFixedVoigtIndices(fixedPairs); ///< Fixed Voigt indices.
-  static constexpr auto freeStrains       = freeVoigtIndices.size();             ///< Number of free strains.
+  static constexpr auto fixedPairs        = strainIndexPair; ///< Array of fixed stress components.
+  static constexpr auto freeVoigtIndices  = Impl::createfreeVoigtIndices(fixedPairs);  ///< Free Voigt indices.
+  static constexpr auto fixedVoigtIndices = Impl::createFixedVoigtIndices(fixedPairs); ///< Fixed Voigt indices.
+  static constexpr auto freeStrains       = freeVoigtIndices.size();                   ///< Number of free strains.
 
   static constexpr auto strainTag              = Underlying::strainTag;            ///< Strain tag.
   static constexpr auto stressTag              = Underlying::stressTag;            ///< Stress tag.
@@ -167,7 +167,7 @@ private:
  * \param p_tol Tolerance for stress reduction.
  * \return VanishingStress The created VanishingStress material.
  */
-template <Impl::MatrixIndexPair... stressIndexPair, typename MaterialImpl>
+template <MatrixIndexPair... stressIndexPair, typename MaterialImpl>
 auto makeVanishingStrain(MaterialImpl mat) {
   return VanishingStrain<std::to_array({stressIndexPair...}), MaterialImpl>(mat);
 }
@@ -186,7 +186,6 @@ auto makeVanishingStrain(MaterialImpl mat) {
  */
 template <typename MaterialImpl>
 auto planeStrain(const MaterialImpl& mat) {
-  return makeVanishingStrain<Impl::MatrixIndexPair{2, 1}, Impl::MatrixIndexPair{2, 0}, Impl::MatrixIndexPair{2, 2}>(
-      mat);
+  return makeVanishingStrain<MatrixIndexPair{2, 1}, MatrixIndexPair{2, 0}, MatrixIndexPair{2, 2}>(mat);
 }
-} // namespace Ikarus
+} // namespace Ikarus::Materials

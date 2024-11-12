@@ -12,7 +12,7 @@
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/regularized/regularizedhelpers.hh>
 #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 template <typename ST, int n>
 struct RegOgdenT
