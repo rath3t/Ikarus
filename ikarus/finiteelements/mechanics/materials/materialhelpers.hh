@@ -88,4 +88,17 @@ decltype(auto) maybeFromVoigt(const Eigen::MatrixBase<Derived>& E) {
     return E.derived();
 }
 
+template <typename PrincipalStretches>
+inline PrincipalStretches deviatoricStretches(const PrincipalStretches& lambda) {
+  using ScalarType = std::remove_cvref_t<decltype(lambda[0])>;
+
+  ScalarType J    = std::accumulate(lambda.begin(), lambda.end(), ScalarType{1.0}, std::multiplies());
+  ScalarType Jmod = pow(J, -1.0 / 3.0);
+
+  auto lambdaBar = PrincipalStretches::Zero().eval();
+  for (auto i : Dune::Hybrid::integralRange(3))
+    lambdaBar[i] = Jmod * lambda[i];
+
+  return lambdaBar;
+}
 } // namespace Ikarus::Materials::Impl

@@ -9,11 +9,10 @@
 
 #pragma once
 
+#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/blatzko.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/deviatoric.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelasticity/hyperelastic.hh>
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/modified/blatzko.hh>
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/modified/ogden.hh>
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/regularized/ogden.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/ogden.hh>
 #include <ikarus/finiteelements/mechanics/materials/tags.hh>
 
 namespace Ikarus::Materials {
@@ -24,14 +23,12 @@ auto makeBlatzKo(ShearModulus mu) {
   return Hyperelastic(dev);
 }
 
-
-template <int n, StretchTag tag, typename VolumetricFunction = VF0T<double>>
-auto makeOgden(const typename RegOgden<n>::MaterialParameters& mu, const typename RegOgden<n>::OgdenParameters og,
+template <int n, PrincipalStretchTag tag, typename VolumetricFunction = VF0T<double>>
+auto makeOgden(const typename Ogden<n, tag>::MaterialParameters& mu, const typename Ogden<n, tag>::OgdenParameters og,
                BulkModulus K = {0.0}, const VolumetricFunction& vf = VolumetricFunction{}) {
-  using OgdenType = std::conditional_t<tag == StretchTag::deviatoric, RegOgden<n>, ModOgden<n>>;
-  auto ogPre      = OgdenType(mu, og);
-  auto dev        = Deviatoric<decltype(ogPre)>(ogPre);
-  auto vol        = Volumetric(K, vf);
+  auto ogPre = Ogden<n, tag>(mu, og);
+  auto dev   = Deviatoric<decltype(ogPre)>(ogPre);
+  auto vol   = Volumetric(K, vf);
 
   return Hyperelastic(dev, vol);
 }

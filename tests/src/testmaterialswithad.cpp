@@ -95,7 +95,6 @@ auto testMaterial(const MAT& mat, const auto& c, double prec = 1e-8) {
   t.check(isApproxSame(matTangent, matTangent_ad_e, prec));
   t.check(isApproxSame(matTangent_ad_e, matTangent_ad, prec));
 
-
   return t;
 }
 
@@ -140,7 +139,7 @@ auto testMaterialByAD() {
   // auto matTangent_og1_ad   = mattangentByAD<decltype(ogden_1), CauchyGreen>(ogden_1, c);
   // auto matTangent_og1_ad_e = mattangentByADWithEnergy<decltype(ogden_1), CauchyGreen>(ogden_1, c);
 
-  auto ogden_2 = makeOgden<1, StretchTag::principal>(mu_og, alpha_og, {Lambda}, VF3{});
+  auto ogden_2 = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
 
   auto stress_og2    = ogden_2.stresses<CauchyGreen>(c);
   auto matTangent_og = ogden_2.tangentModuli<CauchyGreen>(c);

@@ -35,9 +35,9 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   static constexpr bool hasVolumetricPart = not std::same_as<VOL, NoVolumetricPart>;
 
   static constexpr int dim = 3;
-  using StrainMatrix                  = Eigen::Matrix<ScalarType, dim, dim>;
-  using StressMatrix                  = StrainMatrix;
-  using MaterialTensor                = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>;
+  using StrainMatrix       = Eigen::Matrix<ScalarType, dim, dim>;
+  using StressMatrix       = StrainMatrix;
+  using MaterialTensor     = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>>;
 
   using MaterialParametersDEV = typename DEV::MaterialParameters;
   using MaterialParametersVOL = typename VOL::MaterialParameter;
@@ -243,4 +243,4 @@ private:
   }
 };
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials

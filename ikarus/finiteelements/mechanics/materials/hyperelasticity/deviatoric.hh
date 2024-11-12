@@ -121,4 +121,4 @@ private:
 
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
 };
-} // namespace Ikarus
+} // namespace Ikarus::Materials

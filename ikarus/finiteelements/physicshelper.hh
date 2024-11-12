@@ -57,13 +57,15 @@ struct LamesFirstParameterAndShearModulus
 };
 
 ///< Structure representing shear modulus.
-struct ShearModulus {
-    double mu;
+struct ShearModulus
+{
+  double mu;
 };
 
 ///< Structure representing bulk modulus.
-struct BulkModulus {
-    double K;
+struct BulkModulus
+{
+  double K;
 };
 
 /**

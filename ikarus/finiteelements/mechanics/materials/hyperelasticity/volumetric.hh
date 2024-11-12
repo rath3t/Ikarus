@@ -45,7 +45,7 @@ struct Volumetric
 
   /**
    * \brief Computes stored energy of the volumetric function
-   * 
+   *
    * \param J determinant of the deformation gradient $J = \det\BF$
    * \return ScalarType energy
    */
@@ -53,7 +53,7 @@ struct Volumetric
 
   /**
    * \brief Computes the first derivatives of the energy of the volumetric function w.r.t $J$
-   * 
+   *
    * \param J determinant of the deformation gradient $J = \det\BF$
    * \return ScalarType energy
    */
@@ -61,7 +61,7 @@ struct Volumetric
 
   /**
    * \brief Computes the second derivatives of the energy of the volumetric function w.r.t $J$
-   * 
+   *
    * \param J determinant of the deformation gradient $J = \det\BF$
    * \return ScalarType energy
    */
@@ -253,4 +253,4 @@ struct VF0T
 
 using NoVolumetricPart = Volumetric<VF0T<double>>;
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials

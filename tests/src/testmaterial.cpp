@@ -290,8 +290,8 @@ int main(int argc, char** argv) {
   std::array<double, 2> mu_og2    = {matPar.mu, matPar.mu / 2};
   std::array<double, 2> alpha_og2 = {2.0, 3.0};
 
-  auto ogden  = makeOgden<1, StretchTag::principal>(mu_og, alpha_og, {matPar.lambda}, VF3{});
-  auto ogden2 = makeOgden<2, StretchTag::principal>(mu_og2, alpha_og2, {matPar.lambda}, VF2{});
+  auto ogden  = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, {matPar.lambda}, VF3{});
+  auto ogden2 = makeOgden<2, PrincipalStretchTag::total>(mu_og2, alpha_og2, {matPar.lambda}, VF2{});
 
   t.subTest(testMaterial(ogden));
   t.subTest(testMaterial(ogden2));

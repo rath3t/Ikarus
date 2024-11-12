@@ -17,4 +17,4 @@ template struct LinearElasticityT<double>;
 template struct NeoHookeT<double>;
 template struct StVenantKirchhoffT<double>;
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials
