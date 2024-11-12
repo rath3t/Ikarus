@@ -17,7 +17,6 @@
 
 #include <ikarus/utils/concepts.hh>
 
-
 namespace Ikarus::Materials {
 /**
  * \brief Represents a pair of stress matrix indices (row and column).

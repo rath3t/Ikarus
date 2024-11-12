@@ -5,8 +5,6 @@
 
 #include "testhelpers.hh"
 
-#include <array>
-
 #include <dune/common/test/testsuite.hh>
 #if HAVE_DUNE_LOCALFEFUNCTIONS
   #include <dune/localfefunctions/manifolds/realTuple.hh>

@@ -6,11 +6,12 @@
 #include <Eigen/Core>
 
 #include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/mechanics/materials/vanishingstress.hh>
 #include <ikarus/utils/functionhelper.hh>
 
 template <typename Material>
 constexpr bool isPlaneStress =
-    (Ikarus::traits::isSpecializationNonTypeAndTypes<Ikarus::VanishingStress, Material>::value);
+    (Ikarus::traits::isSpecializationNonTypeAndTypes<Ikarus::Materials::VanishingStress, Material>::value);
 
 inline auto linearStressResultsOfSquare = []<typename NOP, typename FE>(NOP& nonLinearOperator, FE& fe) {
   constexpr int vertices   = 4;
