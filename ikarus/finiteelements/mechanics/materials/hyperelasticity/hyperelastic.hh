@@ -213,7 +213,13 @@ private:
   template <typename Derived>
   auto principalStretches(const Eigen::MatrixBase<Derived>& Craw, int options = Eigen::ComputeEigenvectors) const {
     StrainMatrix C = Impl::maybeFromVoigt(Craw);
-    Eigen::SelfAdjointEigenSolver<StrainMatrix> eigensolver(C, options);
+    Eigen::SelfAdjointEigenSolver<StrainMatrix> eigensolver{};
+
+    // For AD we use the direct method which uses a closed form calculation, but has less accuracy
+    if constexpr (Concepts::AutodiffScalar<ScalarType>)
+      eigensolver.computeDirect(C, options);
+    else
+      eigensolver.compute(C, options);
 
     auto& eigenvalues  = eigensolver.eigenvalues();
     auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : StrainMatrix::Zero();
@@ -234,7 +240,6 @@ private:
     }
     return 0.0;
   }
-
 };
 
 } // namespace Ikarus::Materials

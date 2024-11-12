@@ -45,7 +45,7 @@ struct OgdenT
   }
 
   /**
-   * \brief Construct for OgdenT
+   * \brief Constructor for OgdenT
    *
    * \param mpt material parameters (array of mu values)
    * \param opt ogden parameters (array of alpha values)

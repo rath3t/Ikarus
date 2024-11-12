@@ -18,8 +18,8 @@ namespace Ikarus::Materials {
 /**
  * \brief Interface for the volumetric part opf a hyperelastic material. Has to be parametrized with a volumetric
  * function.
- *
  * \tparam VF volumetric function, has to adhere to the concept `VolumetricConcept`
+ * \ingroup materials
  */
 template <Concepts::VolumetricFunction VF>
 struct Volumetric
@@ -82,6 +82,7 @@ private:
  * \brief Volumetric function No. 1 found in \cite hartmann_polyconvexity_2003 Tab. 4
  * \details $U(J) = \frac{1}{2}(J - 1)^2$
  * \tparam ST ScalarType
+ * \ingroup materials
  */
 template <typename ST>
 struct VF1T
@@ -107,6 +108,7 @@ struct VF1T
  * \brief Volumetric function No. 2 found in \cite hartmann_polyconvexity_2003 Tab. 4
  * \details $U(J) = \frac{1}{4}\left((J - 1)^2 + (\ln J )^2 \right)$ according to Simo and Taylor 1982
  * \tparam ST ScalarType
+ * \ingroup materials
  */
 template <typename ST>
 struct VF2T

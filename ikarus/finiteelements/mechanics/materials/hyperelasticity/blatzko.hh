@@ -15,6 +15,11 @@
 
 namespace Ikarus::Materials {
 
+/**
+ * \brief Implementation of the Blatz-Ko material model.
+ * 
+ * \tparam ST The scalar type for the strains and stresses,....
+ */
 template <typename ST>
 struct BlatzKoT
 {
@@ -33,7 +38,7 @@ struct BlatzKoT
 
   /**
    * \brief Constructor for BlatzKoT.
-   * \param mpt The Lame's parameters (first parameter and shear modulus).
+   * \param mpt material parameters, here the shear modulus mu.
    */
   explicit BlatzKoT(const MaterialParameters& mpt)
       : materialParameter_{mpt} {}
