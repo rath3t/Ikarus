@@ -10,6 +10,7 @@
 #pragma once
 
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/tags.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::Materials {
@@ -20,7 +21,8 @@ struct BlatzKoT
   using ScalarType         = ST;
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
 
-  static constexpr int dim = 3;
+  static constexpr int dim         = 3;
+  static constexpr auto stretchTag = PrincipalStretchTag::total;
 
   using FirstDerivative  = Eigen::Vector<ScalarType, dim>;
   using SecondDerivative = Eigen::Matrix<ScalarType, dim, dim>;
@@ -41,12 +43,24 @@ struct BlatzKoT
    */
   MaterialParameters materialParametersImpl() const { return materialParameter_; }
 
+  /**
+   * \brief Computes the stored energy in the BlatzKo material model.
+   *
+   * \param lambda principal stretches
+   * \return ScalarType
+   */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambdas) const {
     return materialParameter_.mu / 2 *
            (1 / pow(lambdas[0], 2) + 1 / pow(lambdas[1], 2) + 1 / pow(lambdas[2], 2) +
             2 * lambdas[0] * lambdas[1] * lambdas[2] - 5);
   }
 
+  /**
+   * \brief Computes the first derivative of the stored energy function w.r.t. the total principal stretches
+   *
+   * \param lambda principal stretches
+   * \return ScalarType
+   */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
     auto dWdLambda = FirstDerivative::Zero().eval();
 
@@ -57,6 +71,12 @@ struct BlatzKoT
     return dWdLambda;
   }
 
+  /**
+   * \brief Computes the second derivatives of the stored energy function w.r.t. the total principal stretches
+   *
+   * \param lambda principal stretches
+   * \return ScalarType
+   */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
     auto ddWdLambda = SecondDerivative::Zero().eval();
     double mu       = materialParameter_.mu;
@@ -96,4 +116,4 @@ private:
  */
 using BlatzKo = BlatzKoT<double>;
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials

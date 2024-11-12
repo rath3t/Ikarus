@@ -10,6 +10,7 @@
 #pragma once
 
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/materialhelpers.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::Materials {
@@ -79,7 +80,7 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
     if constexpr (!Concepts::EigenVector<Derived>) {
       const auto traceC = C.trace();
       const auto detC   = C.determinant();
-      checkPositiveDetC(detC);
+      Impl::checkPositiveDet(detC);
       const auto logdetF = log(sqrt(detC));
       return materialParameter_.mu / 2.0 * (traceC - 3 - 2 * logdetF) +
              materialParameter_.lambda / 2.0 * logdetF * logdetF;
@@ -101,7 +102,7 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
     if constexpr (!voigt) {
       if constexpr (!Concepts::EigenVector<Derived>) {
         const auto detC = C.determinant();
-        checkPositiveDetC(detC);
+        Impl::checkPositiveDet(detC);
         const auto logdetF = log(sqrt(detC));
         const auto invC    = C.inverse().eval();
         return (materialParameter_.mu * (StrainMatrix::Identity() - invC) + materialParameter_.lambda * logdetF * invC)
@@ -126,7 +127,7 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
     if constexpr (!voigt) {
       const auto invC = C.inverse().eval();
       const auto detC = C.determinant();
-      checkPositiveDetC(detC);
+      Impl::checkPositiveDet(detC);
       const auto logdetF = log(sqrt(detC));
       const auto CTinv   = tensorView(invC, std::array<Eigen::Index, 2>({3, 3}));
 
@@ -151,13 +152,6 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
 
 private:
   MaterialParameters materialParameter_;
-
-  void checkPositiveDetC(ScalarType detC) const {
-    if (Dune::FloatCmp::le(static_cast<double>(detC), 0.0, 1e-10))
-      DUNE_THROW(Dune::InvalidStateException,
-                 "Determinant of right Cauchy Green tensor C must be greater than zero. detC = " +
-                     std::to_string(static_cast<double>(detC)));
-  }
 };
 
 /**

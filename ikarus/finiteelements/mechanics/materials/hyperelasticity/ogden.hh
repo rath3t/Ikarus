@@ -4,7 +4,7 @@
 /**
  * \file ogden.hh
  * \brief Implementation of the regularized Ogden material model.
- * \ingroup  materials
+ * \ingroup materials
  */
 
 #pragma once
@@ -15,6 +15,14 @@
 
 namespace Ikarus::Materials {
 
+/**
+ * \brief Implementation of the Ogden material model.
+ *
+ * \tparam ST The scalar type for the strains and stresses,....
+ * \tparam n number of ogden parameters
+ * \tparam tag type of principal stretch quantity, either total stretches or deviatoric stretches
+ * \ingroup materials
+ */
 template <typename ST, int n, PrincipalStretchTag tag>
 struct OgdenT
 {
@@ -33,12 +41,14 @@ struct OgdenT
   using OgdenParameters    = std::array<double, nOgdenParameters>;
 
   [[nodiscard]] constexpr static std::string name() noexcept {
-    return "Ogden (n=" + std::to_string(nOgdenParameters) + ")";
+    return "Ogden (n = " + std::to_string(nOgdenParameters) + ", stretch type = " + toString(tag) + ")";
   }
 
   /**
-   * \brief Constructor for OgdenT.
-   * \param mpt The Lame's parameters (first parameter and shear modulus).
+   * \brief Construct for OgdenT
+   *
+   * \param mpt material parameters (array of mu values)
+   * \param opt ogden parameters (array of alpha values)
    */
   explicit OgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
       : materialParameters_{mpt},
@@ -49,8 +59,17 @@ struct OgdenT
    */
   MaterialParameters materialParametersImpl() const { return materialParameters_; }
 
+  /**
+   * \brief Returns the ogden parameters stored in the material
+   */
   OgdenParameters ogdenParameters() const { return materialParameters_; }
 
+  /**
+   * \brief Computes the stored energy in the Ogden material model.
+   *
+   * \param lambda principal stretches
+   * \return ScalarType
+   */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
     auto& mu    = materialParameters_;
     auto& alpha = ogdenParameters_;
@@ -76,6 +95,12 @@ struct OgdenT
     return energy;
   }
 
+  /**
+   * \brief Computes the first derivative of the stored energy function w.r.t. the total principal stretches
+   *
+   * \param lambda principal stretches
+   * \return ScalarType
+   */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
     auto& mu       = materialParameters_;
     auto& alpha    = ogdenParameters_;
@@ -104,6 +129,12 @@ struct OgdenT
     return dWdLambda;
   }
 
+  /**
+   * \brief Computes the second derivatives of the stored energy function w.r.t. the total principal stretches
+   *
+   * \param lambda principal stretches
+   * \return ScalarType
+   */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
     auto& mu    = materialParameters_;
     auto& alpha = ogdenParameters_;

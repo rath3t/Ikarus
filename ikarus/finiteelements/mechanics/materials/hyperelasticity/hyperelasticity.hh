@@ -16,7 +16,8 @@
 #include <ikarus/finiteelements/mechanics/materials/tags.hh>
 
 namespace Ikarus::Materials {
-auto makeBlatzKo(ShearModulus mu) {
+
+inline auto makeBlatzKo(ShearModulus mu) {
   auto bk  = BlatzKo(mu);
   auto dev = Deviatoric<decltype(bk)>(bk);
 
@@ -24,10 +25,11 @@ auto makeBlatzKo(ShearModulus mu) {
 }
 
 template <int n, PrincipalStretchTag tag, typename VolumetricFunction = VF0T<double>>
-auto makeOgden(const typename Ogden<n, tag>::MaterialParameters& mu, const typename Ogden<n, tag>::OgdenParameters og,
-               BulkModulus K = {0.0}, const VolumetricFunction& vf = VolumetricFunction{}) {
+inline auto makeOgden(const typename Ogden<n, tag>::MaterialParameters& mu,
+                      const typename Ogden<n, tag>::OgdenParameters og, BulkModulus K = {0.0},
+                      const VolumetricFunction& vf = VolumetricFunction{}) {
   auto ogPre = Ogden<n, tag>(mu, og);
-  auto dev   = Deviatoric<decltype(ogPre)>(ogPre);
+  auto dev   = Deviatoric(ogPre);
   auto vol   = Volumetric(K, vf);
 
   return Hyperelastic(dev, vol);

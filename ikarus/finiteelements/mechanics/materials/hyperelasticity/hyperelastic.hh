@@ -228,19 +228,13 @@ private:
 
     if constexpr (hasVolumetricPart) {
       const auto detC = C.determinant();
-      checkPositiveDetC(detC);
+      Impl::checkPositiveDet(detC);
 
       return sqrt(detC);
     }
     return 0.0;
   }
 
-  void checkPositiveDetC(ScalarType detC) const {
-    if (Dune::FloatCmp::le(static_cast<double>(detC), 0.0, 1e-10))
-      DUNE_THROW(Dune::InvalidStateException,
-                 "Determinant of right Cauchy Green tensor C must be greater than zero. detC = " +
-                     std::to_string(static_cast<double>(detC)));
-  }
 };
 
 } // namespace Ikarus::Materials

@@ -11,9 +11,12 @@
 
 #include <ranges>
 
+#include <dune/common/float_cmp.hh>
+
 #include <Eigen/Dense>
 
 #include <ikarus/utils/concepts.hh>
+
 
 namespace Ikarus::Materials {
 /**
@@ -86,6 +89,14 @@ decltype(auto) maybeFromVoigt(const Eigen::MatrixBase<Derived>& E) {
     return fromVoigt(E.derived(), true);
   } else
     return E.derived();
+}
+
+template <typename ScalarType>
+void checkPositiveDet(ScalarType det) {
+  if (Dune::FloatCmp::le(static_cast<double>(det), 0.0, 1e-10))
+    DUNE_THROW(Dune::InvalidStateException,
+               "Determinant of right Cauchy Green tensor C must be greater than zero. detC = " +
+                   std::to_string(static_cast<double>(det)));
 }
 
 template <typename PrincipalStretches>
