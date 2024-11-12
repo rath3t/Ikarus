@@ -140,8 +140,7 @@ void easAutoDiffTest(TestSuitType& t, const MAT& mat) {
   else
     easParameters = {0, 9, 21};
 
-  auto grid = createUGGridFromCorners<gridDim>(CornerDistortionFlag::randomlyDistorted);
-  grid->globalRefine(2);
+  auto grid     = createUGGridFromCorners<gridDim>(CornerDistortionFlag::randomlyDistorted);
   auto gridView = grid->leafGridView();
 
   for (const int numberOfEASParameters : easParameters) {

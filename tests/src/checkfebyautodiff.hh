@@ -23,8 +23,10 @@ auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis,
   using FE      = decltype(fe);
 
   auto req = typename FE::Requirement();
+  VectorType dZero;
+  dZero.setZero(d.size());
 
-  req.insertGlobalSolution(d).insertParameter(lambda);
+  req.insertGlobalSolution(dZero).insertParameter(lambda);
   Dune::TestSuite t("Check calculateMatrixImpl() and calculateVectorImpl() by Automatic Differentiation" + testName);
   for (auto element : elements(gridView)) {
     auto localView = basis.flat().localView();
@@ -34,6 +36,7 @@ auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis,
     fe.bind(element);
 
     updateState(fe, req, d); // here d = correction vector (DeltaD)
+    req.insertGlobalSolution(d).insertParameter(lambda);
 
     const std::string feClassName = Dune::className(fe);
 
