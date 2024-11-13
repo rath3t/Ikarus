@@ -109,66 +109,6 @@ auto testMaterial(const MAT& mat, const auto& c, double prec = 1e-8) {
   return t;
 }
 
-// auto testMaterialByAD() {
-//   TestSuite t;
-
-// Eigen::Matrix3d c{
-//     { 0.600872, -0.179083, 0},
-//     {-0.179083,  0.859121, 0},
-//     {        0,         0, 1}
-// };
-
-// constexpr auto CauchyGreen = StrainTags::rightCauchyGreenTensor;
-
-// // instantiate material models
-// double Emod = 1000;
-// double nu   = 0.25; // Blatz Ko assumes nu = 0.25
-// auto matPar = YoungsModulusAndPoissonsRatio{.emodul = Emod, .nu = nu};
-// auto mu     = convertLameConstants(matPar).toShearModulus();
-// auto K      = convertLameConstants(matPar).toBulkModulus();
-// auto Lambda = convertLameConstants(matPar).toLamesFirstParameter();
-
-// auto nh = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
-
-// // auto stress_nh_ad       = stressByAD<decltype(nh), CauchyGreen>(nh, c);
-// // auto matTangent_nh_ad   = mattangentByAD<decltype(nh), CauchyGreen>(nh, c);
-// // auto matTangent_nh_ad_e = mattangentByADWithEnergy<decltype(nh), CauchyGreen>(nh, c);
-
-// // std::cout << "Stress (NH) AD:\n" << stress_nh_ad << std::endl;
-// // std::cout << "MatTangent (NH) AD:\n" << matTangent_nh_ad << std::endl;
-// // std::cout << "MatTangent (NH) AD Energy:\n" << matTangent_nh_ad_e << std::endl;
-
-// std::array<double, 1> mu_og    = {mu};
-// std::array<double, 1> alpha_og = {2.0};
-// // auto ogden_1                   = makeModifiedOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
-
-// // auto energy_og     = ogden_1.storedEnergy<CauchyGreen>(c);
-// // auto stress_og     = ogden_1.stresses<CauchyGreen>(c);
-// // auto matTangent_og = ogden_1.tangentModuli<CauchyGreen>(c);
-
-// // auto stress_og1_ad        = stressByAD<decltype(ogden_1), CauchyGreen>(ogden_1, c);
-// // auto matTangent_og1_ad   = mattangentByAD<decltype(ogden_1), CauchyGreen>(ogden_1, c);
-// // auto matTangent_og1_ad_e = mattangentByADWithEnergy<decltype(ogden_1), CauchyGreen>(ogden_1, c);
-
-// auto ogden_2 = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
-
-// auto stress_og2    = ogden_2.stresses<CauchyGreen>(c);
-// auto matTangent_og = ogden_2.tangentModuli<CauchyGreen>(c);
-
-// std::cout << "Stress (OG 2):\n" << stress_og2 << std::endl;
-// std::cout << "MatTangent (OG 2):\n" << matTangent_og << std::endl;
-
-// auto stress_og2_ad       = stressByAD<decltype(ogden_2), CauchyGreen>(ogden_2, c);
-// auto matTangent_og2_ad_e = mattangentByADWithEnergy<decltype(ogden_2), CauchyGreen>(ogden_2, c);
-// auto matTangent_og2_ad   = mattangentByAD<decltype(ogden_2), CauchyGreen>(ogden_2, c);
-
-// std::cout << "Stress (OG 2) AD:\n" << stress_og2_ad << std::endl;
-// std::cout << "MatTangent (OG 2) AD via energy:\n" << matTangent_og2_ad_e << std::endl;
-// // std::cout << "MatTangent (OG 2) AD via stresses:\n" << matTangent_og2_ad << std::endl;
-
-// return t;
-// }
-
 int main(int argc, char** argv) {
   Ikarus::init(argc, argv);
   TestSuite t;
@@ -194,10 +134,10 @@ int main(int argc, char** argv) {
   auto nh = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
   auto bk = makeBlatzKo(ShearModulus{mu});
 
-  std::array<double, 1> mu_og    = {mu};
-  std::array<double, 1> alpha_og = {2.0};
-  auto ogdenTotal                = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
-  auto ogdenDevi                 = makeOgden<1, PrincipalStretchTag::deviatoric>(mu_og, alpha_og, {K}, VF3{});
+  std::array<double, 3> mu_og    = {2.0 * mu / 3.0, mu / 6.0, mu / 6.0};
+  std::array<double, 3> alpha_og = {1.23, 0.59, 0.18};
+  auto ogdenTotal                = makeOgden<3, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
+  auto ogdenDevi                 = makeOgden<3, PrincipalStretchTag::deviatoric>(mu_og, alpha_og, {K}, VF3{});
 
   t.subTest(testMaterial<CauchyGreen>(nh, c0));
   t.subTest(testMaterial<CauchyGreen>(nh, c));
