@@ -18,7 +18,7 @@ namespace Ikarus::Materials {
 /**
  * \brief Interface for the volumetric part opf a hyperelastic material. Has to be parametrized with a volumetric
  * function.
- * \tparam VF volumetric function, has to adhere to the concept `VolumetricConcept`
+ * \tparam VF volumetric function, has to adhere to the concept `VolumetricFunction`
  * \ingroup materials
  */
 template <Concepts::VolumetricFunction VF>

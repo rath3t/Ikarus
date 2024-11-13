@@ -9,9 +9,8 @@
 
 #pragma once
 
-#include "svk.hh"
-
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/svk.hh>
 
 namespace Ikarus::Materials {
 

@@ -3,6 +3,6 @@
 
 # install headers
 install(
-  FILES hyperelasticity.hh deviatoric.hh concepts.hh volumetric.hh ogden.hh blatzko.hh
+  FILES hyperelasticity.hh deviatoric.hh concepts.hh volumetric.hh ogden.hh blatzko.hh hyperelastic.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/materials/hyperelasticity
 )

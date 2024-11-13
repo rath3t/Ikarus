@@ -9,7 +9,6 @@
 #include <ikarus/finiteelements/mechanics/materials/linearelasticity.hh>
 #include <ikarus/finiteelements/mechanics/materials/neohooke.hh>
 #include <ikarus/finiteelements/mechanics/materials/svk.hh>
-// #include <ikarus/finiteelements/mechanics/materials/blatzko.hh>
 
 namespace Ikarus::Materials {
 
