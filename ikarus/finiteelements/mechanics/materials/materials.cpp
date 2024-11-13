@@ -6,8 +6,8 @@
  * \brief Explicit instantiations for material templates.
  */
 
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/factory.hh>
 #include <ikarus/finiteelements/mechanics/materials/linearelasticity.hh>
-#include <ikarus/finiteelements/mechanics/materials/neohooke.hh>
 #include <ikarus/finiteelements/mechanics/materials/svk.hh>
 
 namespace Ikarus::Materials {

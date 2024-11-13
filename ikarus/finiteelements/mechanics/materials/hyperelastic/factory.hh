@@ -2,17 +2,19 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file hyperelasticity.hh
- * \brief Header file for material models in Ikarus finite element mechanics.
+ * \file factory.hh
+ * \brief Header file for hyperelastic material models in Ikarus finite element mechanics.
  * \ingroup materials
  */
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/blatzko.hh>
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/deviatoric.hh>
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/hyperelastic.hh>
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/ogden.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/blatzko.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/ogden.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/neohooke.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/volumetric/volumetricfunctions.hh>
 #include <ikarus/finiteelements/mechanics/materials/tags.hh>
 
 namespace Ikarus::Materials {

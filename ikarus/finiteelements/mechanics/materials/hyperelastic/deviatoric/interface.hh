@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file deviatoric.hh
+ * \file interface.hh
  * \brief Implementation of the deviatoric part of a hyperelastic material.
  * \ingroup  materials
  */
@@ -11,7 +11,7 @@
 
 #include <dune/common/float_cmp.hh>
 
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/concepts.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/concepts.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::Materials {

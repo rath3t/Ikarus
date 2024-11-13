@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file hyperelastic.hh
+ * \file interface.hh
  * \brief Implementation of the Hyperelastic material model.
  * \ingroup  materials
  */
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/concepts.hh>
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/volumetric.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/concepts.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/volumetric/volumetricfunctions.hh>
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
 #include <ikarus/finiteelements/mechanics/materials/materialhelpers.hh>
 #include <ikarus/utils/tensorutils.hh>
@@ -152,7 +152,8 @@ private:
   DEV dev_;
   VOL vol_;
 
-  StressMatrix transformDeviatoricStresses(const typename DEV::StressMatrix& principalStress, const auto& N) const {
+  StressMatrix transformDeviatoricStresses(const typename DEV::StressMatrix& principalStress,
+                                           const Eigen::Matrix<ScalarType, 3, 3>& N) const {
     auto S = StressMatrix::Zero().eval();
     for (auto i : Dune::range(3))
       S += principalStress[i] * dyadic<ScalarType, 3, false>(N.col(i).eval(), N.col(i).eval());
@@ -164,7 +165,8 @@ private:
     return J * Uprime * C.inverse();
   }
 
-  MaterialTensor transformDeviatoricTangentModuli(const typename DEV::MaterialTensor& L, const auto& N) const {
+  MaterialTensor transformDeviatoricTangentModuli(const typename DEV::MaterialTensor& L,
+                                                  const Eigen::Matrix<ScalarType, 3, 3>& N) const {
     MaterialTensor moduli{};
     moduli.setZero();
 
@@ -219,6 +221,9 @@ private:
       eigensolver.computeDirect(C, options);
     else
       eigensolver.compute(C, options);
+
+    if (eigensolver.info() != Eigen::Success)
+      DUNE_THROW(Dune::MathError, "Failed to compute eigenvalues and eigenvectors of C.");
 
     auto& eigenvalues  = eigensolver.eigenvalues();
     auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : StrainMatrix::Zero();

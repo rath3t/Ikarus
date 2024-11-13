@@ -2,82 +2,40 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file volumetric.hh
+ * \file volumetricfunctions.hh
  * \brief Implementation of the volumetric part of a hyperelastic material.
  * \ingroup  materials
  */
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/hyperelasticity/concepts.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/concepts.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/volumetric/interface.hh>
 #include <ikarus/finiteelements/physicshelper.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::Materials {
 
-/**
- * \brief Interface for the volumetric part opf a hyperelastic material. Has to be parametrized with a volumetric
- * function.
- * \tparam VF volumetric function, has to adhere to the concept `VolumetricFunction`
- * \ingroup materials
- */
-template <Concepts::VolumetricFunction VF>
-struct Volumetric
+// Default implementation (no volumetric part)
+template <typename ST>
+struct VF0T
 {
-  using ScalarType = typename VF::ScalarType;
-  using JType      = typename VF::JType;
+  using ScalarType = ST;
+  using JType      = ScalarType;
 
-  using VolumetricFunction = VF;
-  using MaterialParameter  = BulkModulus;
+  ScalarType storedEnergyImpl(const JType& /* J */) const { return 0; };
 
-  [[nodiscard]] constexpr static std::string name() noexcept { return "Volumetric function: " + VF::name(); }
+  ScalarType firstDerivativeImpl(const JType& /* J */) const { return 0; }
 
-  /**
-   * \brief Construct a new volumetric part
-   *
-   * \param K Materialparameter is most often the bulk modulus, but it is also common for modified material laws to use
-   * lamés first parameter
-   * \param vf the volumetric function
-   */
-  Volumetric(MaterialParameter K, const VF vf)
-      : K_{K},
-        volumetricFunction_{vf} {}
-
-  /**
-   * \brief Computes stored energy of the volumetric function
-   *
-   * \param J determinant of the deformation gradient $J = \det\BF$
-   * \return ScalarType energy
-   */
-  ScalarType storedEnergy(const JType& J) const { return K_.K * volumetricFunction_.storedEnergyImpl(J); };
-
-  /**
-   * \brief Computes the first derivatives of the energy of the volumetric function w.r.t $J$
-   *
-   * \param J determinant of the deformation gradient $J = \det\BF$
-   * \return ScalarType energy
-   */
-  ScalarType firstDerivative(const JType& J) const { return K_.K * volumetricFunction_.firstDerivativeImpl(J); }
-
-  /**
-   * \brief Computes the second derivatives of the energy of the volumetric function w.r.t $J$
-   *
-   * \param J determinant of the deformation gradient $J = \det\BF$
-   * \return ScalarType energy
-   */
-  ScalarType secondDerivative(const JType& J) const { return K_.K * volumetricFunction_.secondDerivativeImpl(J); };
+  ScalarType secondDerivativeImpl(const JType& /* J */) const { return 0; };
 
   template <typename STO>
   auto rebind() const {
-    auto reboundVF = volumetricFunction_.template rebind<STO>();
-    return Volumetric<decltype(reboundVF)>(K_, reboundVF);
+    return VF0T<STO>();
   }
 
-private:
-  MaterialParameter K_;
-  VF volumetricFunction_;
+  [[nodiscard]] constexpr static std::string name() noexcept { return "None"; }
 };
-
 /**
  * \brief Volumetric function No. 1 found in \cite hartmann_polyconvexity_2003 Tab. 4
  * \details $U(J) = \frac{1}{2}(J - 1)^2$
@@ -225,34 +183,12 @@ struct VF6T
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 6"; }
 };
 
-using VF1 = VF1T<double>;
-using VF2 = VF2T<double>;
-using VF3 = VF3T<double>;
-using VF4 = VF4T<double>;
-using VF5 = VF5T<double>;
-using VF6 = VF6T<double>;
-
-// Default implementation (no volumetric part)
-template <typename ST>
-struct VF0T
-{
-  using ScalarType = ST;
-  using JType      = ScalarType;
-
-  ScalarType storedEnergyImpl(const JType& /* J */) const { return 0; };
-
-  ScalarType firstDerivativeImpl(const JType& /* J */) const { return 0; }
-
-  ScalarType secondDerivativeImpl(const JType& /* J */) const { return 0; };
-
-  template <typename STO>
-  auto rebind() const {
-    return VF0T<STO>();
-  }
-
-  [[nodiscard]] constexpr static std::string name() noexcept { return "None"; }
-};
-
 using NoVolumetricPart = Volumetric<VF0T<double>>;
+using VF1              = VF1T<double>;
+using VF2              = VF2T<double>;
+using VF3              = VF3T<double>;
+using VF4              = VF4T<double>;
+using VF5              = VF5T<double>;
+using VF6              = VF6T<double>;
 
 } // namespace Ikarus::Materials

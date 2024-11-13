@@ -84,7 +84,7 @@ struct BlatzKoT
    */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
     auto ddWdLambda = SecondDerivative::Zero().eval();
-    double mu       = materialParameter_.mu;
+    auto mu         = materialParameter_.mu;
 
     ddWdLambda(0, 0) = -mu * (-2.0 / pow(lambda(0), 3) + 2.0 * lambda(1) * lambda(2)) / (2.0 * pow(lambda(0), 2)) +
                        3.0 * mu / pow(lambda(0), 5);

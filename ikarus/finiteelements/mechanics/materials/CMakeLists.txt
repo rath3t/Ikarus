@@ -5,7 +5,6 @@
 install(
   FILES interface.hh
         linearelasticity.hh
-        neohooke.hh
         strainconversions.hh
         svk.hh
         tags.hh
@@ -14,4 +13,4 @@ install(
         materialhelpers.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/materials
 )
-add_subdirectory(hyperelasticity)
+add_subdirectory(hyperelastic)
