@@ -90,11 +90,20 @@ auto testMaterial(const MAT& mat, const auto& c, double prec = 1e-8) {
   auto matTangent_ad   = mattangentByAD<MAT, straintag>(mat, c);
   auto matTangent_ad_e = mattangentByADWithEnergy<MAT, straintag>(mat, c);
 
-  t.check(isApproxSame(stress, stress_ad, prec)) << "stress wrong";
-  t.check(isApproxSame(matTangent, matTangent_ad, prec)) << "matTangent wrong";
-  t.check(isApproxSame(matTangent, matTangent_ad_e, prec)) << "matTangent from stress wrong";
+  t.check(isApproxSame(stress, stress_ad, prec))
+      << "Incorrect stresses." << " stress is\t" << stress.transpose() << "\n stress_ad is\t" << stress_ad.transpose();
+  t.check(isApproxSame(matTangent, matTangent_ad, prec))
+      << "Incorrect tangentModuli derived from stresses." << " matTangent is\n"
+      << matTangent << "\n matTangent_ad is\n"
+      << matTangent_ad;
+  t.check(isApproxSame(matTangent, matTangent_ad_e, prec))
+      << "Incorrect tangentModuli derived from energy." << " matTangent is\n"
+      << matTangent << "\n matTangent_ad_e is\n"
+      << matTangent_ad_e;
   t.check(isApproxSame(matTangent_ad_e, matTangent_ad, prec))
-      << "matTangent from stress not equal to mattangent from energy";
+      << "tangentModuli derived from energy and stresses are not equal." << " matTangent_ad is\n"
+      << matTangent_ad << "\n matTangent_ad_e is\n"
+      << matTangent_ad_e;
   ;
 
   return t;

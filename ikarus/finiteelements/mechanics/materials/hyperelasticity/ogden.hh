@@ -141,49 +141,38 @@ struct OgdenT
     auto dS     = SecondDerivative::Zero().eval();
 
     if constexpr (usesDeviatoricStretches) {
-      auto lambdaBar = Impl::deviatoricStretches(lambda);
-      auto S         = firstDerivativeImpl(lambda);
+      const auto lambdaBar = Impl::deviatoricStretches(lambda);
+      const auto S         = firstDerivativeImpl(lambda);
+      ScalarType sumC{0.0};
+      for (auto p : parameterRange())
+        for (auto c : dimensionRange())
+          sumC += pow(lambdaBar[c], alpha[p]);
 
-      for (auto a : dimensionRange())
+      for (auto a : dimensionRange()) {
+        const auto Siso = S[a] / lambda[a];
         for (auto b : dimensionRange()) {
           if (a == b) {
-            for (auto p : parameterRange()) {
-              ScalarType sumC{0.0};
-              for (auto c : dimensionRange())
-                sumC += pow(lambdaBar[c], alpha[p]);
-
-              dS(a, b) = mu[p] * alpha[p] * ((1.0 / 3.0) * pow(lambdaBar[a], alpha[p]) + (1.0 / 9.0) * sumC);
-            }
+            for (auto p : parameterRange())
+              dS(a, b) += mu[p] * alpha[p] * ((1.0 / 3.0) * pow(lambdaBar[a], alpha[p]) + (1.0 / 9.0) * sumC);
           } else {
-            for (auto p : parameterRange()) {
-              ScalarType sumC{0.0};
-              for (auto c : dimensionRange())
-                sumC += pow(lambdaBar[c], alpha[p]);
-
-              dS(a, b) = mu[p] * alpha[p] *
-                         (-(1.0 / 3.0) * pow(lambdaBar[a], alpha[p]) - (1.0 / 3.0) * pow(lambdaBar[b], alpha[p]) +
-                          (1.0 / 9.0) * sumC);
-            }
+            for (auto p : parameterRange())
+              dS(a, b) +=
+                  mu[p] * alpha[p] *
+                  (-(1.0 / 3.0) * (pow(lambdaBar[a], alpha[p]) + pow(lambdaBar[b], alpha[p])) + (1.0 / 9.0) * sumC);
           }
 
-          auto factor = pow(lambda[a], -2) / lambda[b];
-          dS(a, b) *= factor;
+          dS(a, b) *= pow(lambda[a], -2) / lambda[b];
 
-          if (a == b) {
-            ScalarType sumSiso{0.0};
-            for (auto i : dimensionRange())
-              sumSiso += 2 / pow(lambda[i], 2) * (S[i] / lambda[i]);
-
-            dS(a, b) -= sumSiso;
-          }
+          if (a == b)
+            dS(a, b) -= (2.0 / lambda[a]) * Siso;
         }
+      }
     } else {
       for (auto j : parameterRange())
         for (auto k : dimensionRange())
           dS(k, k) += -2 * (mu[j] * (pow(lambda[k], alpha[j]) - 1)) / pow(lambda[k], 3) +
                       (mu[j] * pow(lambda[k], alpha[j]) * alpha[j] / lambda[k]) / pow(lambda[k], 2);
     }
-
     return dS;
   }
 
