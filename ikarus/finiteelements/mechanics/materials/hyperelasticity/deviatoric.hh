@@ -22,7 +22,7 @@ namespace Ikarus::Materials {
  * \details
  * The deviatoric part is parametrized with a certain deviatoric function (DF) implemented in terms of principal
  * stretches. The three interface functions (energy, streses and tangentModulus) are called with the principal stretches
- * lambda. After calling the deviaoric funtion certain transformation happen to yield the principal stresses and the
+ * lambda. After calling the deviatoric function certain transformation happen to yield the principal stresses and the
  * material tangent in principal coordinates
  *
  * \tparam DF deviatoric material function

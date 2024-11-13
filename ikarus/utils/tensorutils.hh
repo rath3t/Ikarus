@@ -168,7 +168,7 @@ auto symTwoSlots(const Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim,
 
 // TODO can potentially be removed or rewritten for pure tensors
 /**
- * \brief Computes the double contraction of a 4th order tensor and a seond order input tensor (here Eigen::Matrix)
+ * \brief Computes the double contraction of a 4th order tensor and a second order input tensor (here Eigen::Matrix)
  *  \ingroup tensor
  * \details The components of the result read  \f[ \BC_{ij} = A_{ijkl}B_{kl}  \f]
  * \tparam ScalarType
