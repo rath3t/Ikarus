@@ -190,13 +190,12 @@ private:
 
   MaterialTensor transformVolumetricTangentModuli(const ScalarType& Uprime, const ScalarType& Uprimeprime,
                                                   const auto& C, ScalarType J) const {
-    const auto invC    = C.inverse().eval();
-    const auto CTinv   = tensorView(invC, std::array<Eigen::Index, 2>({3, 3}));
-    const auto CinvDya = dyadic(CTinv, CTinv);
-    const auto CinvT23 = symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3});
+    const auto invC  = C.inverse().eval();
+    const auto CTinv = tensorView(invC, std::array<Eigen::Index, 2>({3, 3}));
 
-    Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli =
-        (J * ((Uprime + J * Uprimeprime) * CinvDya - 2 * Uprime * CinvT23)).eval();
+    MaterialTensor moduli = (J * ((Uprime + J * Uprimeprime) * dyadic(CTinv, CTinv) -
+                                  (2 * Uprime * symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3}))))
+                                .eval();
 
     return moduli;
   }
@@ -204,7 +203,7 @@ private:
   /**
    * \brief Calculates the principal stretches of the input strain matrix C
    *
-   * \tparam Derived The derived type of the input matrix
+   * \tparam Derived The derived type of the input matri
    * \param Craw the input strain matrix
    * \param options should be either `Eigen::ComputeEigenvectors` or `Eigen::EigenvaluesOnly`
    * \return auto pair of principalstretches and corresponding eigenvectors (if `Eigen::EigenvaluesOnly` the

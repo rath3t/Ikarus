@@ -127,112 +127,22 @@ auto recoverNeoHookeThroughOgden() {
   auto stress_nh = nh.stresses<rightCauchyGreenTensor>(c);
   auto moduli_nh = nh.tangentModuli<rightCauchyGreenTensor>(c);
 
-  t.check(Dune::FloatCmp::eq(energy_og, energy_nh, 1e-14)) << testLocation() << "Energy not the same";
-  t.check(isApproxSame(stress_og, stress_nh, 1e-14)) << testLocation() << "Stress not the same";
-  t.check(isApproxSame(moduli_og, moduli_nh, 1e-14)) << testLocation() << "Tangent not the same";
+  constexpr double tol = 1e-14;
+
+  checkScalars(t, energy_og, energy_nh, testLocation() + "Incorrect Energy.", tol);
+  t.check(isApproxSame(stress_og, stress_nh, tol))
+      << testLocation() << "Incorrect stresses." << " stress_og is\t" << stress_og.transpose() << "\n stress_nh is\t"
+      << stress_nh.transpose();
+  t.check(isApproxSame(moduli_og, moduli_nh, tol)) << testLocation() << "Incorrect tangentModuli." << " moduli_og is\n"
+                                                   << moduli_og << "\n moduli_nh is\n"
+                                                   << moduli_nh;
 
   return t;
 }
 
-// auto playground() {
-//   TestSuite t;
-
-// // Eigen::Matrix3d e;
-// // e.setRandom();
-// // transformStrainAccordingToStrain<StrainTags::rightCauchyGreenTensor>(e);
-
-// constexpr auto CauchyGreen = StrainTags::rightCauchyGreenTensor;
-
-// // auto c = Eigen::Matrix3d::Identity().eval();
-// auto c = testMatrix();
-
-// // instantiate material models
-// double Emod = 1000;
-// double nu   = 0.25; // Blatz Ko assumes nu = 0.25
-// auto matPar = YoungsModulusAndPoissonsRatio{.emodul = Emod, .nu = nu};
-// auto mu     = convertLameConstants(matPar).toShearModulus();
-// auto K      = convertLameConstants(matPar).toBulkModulus();
-// auto Lambda = convertLameConstants(matPar).toLamesFirstParameter();
-
-// // auto nh = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
-
-// // auto energy_nh     = nh.storedEnergy<CauchyGreen>(c);
-// // auto stress_nh     = nh.stresses<CauchyGreen>(c);
-// // auto matTangent_nh = nh.tangentModuli<CauchyGreen>(c);
-
-// // std::cout << "Energy (NH):\n" << energy_nh << std::endl;
-// // std::cout << "Stress (NH):\n" << stress_nh << std::endl;
-// // std::cout << "MatTangent (NH):\n" << matTangent_nh << std::endl;
-
-// auto bk = makeBlatzKo(ShearModulus{mu});
-
-// // auto energy_bk     = bk.storedEnergy<CauchyGreen>(c);
-// // auto stress_bk     = bk.stresses<CauchyGreen>(c);
-// // auto matTangent_bk = bk.tangentModuli<CauchyGreen>(c);
-
-// // std::cout << "Energy (BK):\n" << energy_bk << std::endl;
-// // std::cout << "Stress (BK):\n" << stress_bk << std::endl;
-// // std::cout << "MatTangent (BK):\n" << matTangent_bk << std::endl;
-
-// std::array<double, 1> mu_og    = {mu};
-// std::array<double, 1> alpha_og = {2.0};
-
-// auto ogden_1    = makeModifiedOgden<1>(mu_og, alpha_og, {Lambda}, VF3{});
-// auto energy_og1 = ogden_1.storedEnergy<CauchyGreen>(c);
-// auto stress_og1 = ogden_1.stresses<CauchyGreen>(c);
-// auto moduli_og1 = ogden_1.tangentModuli<CauchyGreen>(c);
-
-// std::cout << "Energy (OG 1):\n" << energy_og1 << std::endl;
-// std::cout << "Stress (OG 1):\n" << stress_og1 << std::endl;
-// std::cout << "MatTangent (OG 1):\n" << moduli_og1 << std::endl;
-
-// // test with voigt notation
-// auto cvoigt      = toVoigt(c, true);
-// auto stress_og1v = ogden_1.stresses<CauchyGreen>(cvoigt);
-
-// assert(isApproxSame(stress_og1, stress_og1v, 1e-10));
-
-// auto ogden_2 = makeRegularizedOgden<1>(mu_og, alpha_og, {K}, VF3{});
-
-// auto energy_og2 = ogden_2.storedEnergy<CauchyGreen>(c);
-// auto stress_og2 = ogden_2.stresses<CauchyGreen>(c);
-// auto moduli_og2 = ogden_2.tangentModuli<CauchyGreen>(c);
-
-// std::cout << "Energy (OG 2):\n" << energy_og2 << std::endl;
-// std::cout << "Stress (OG 2):\n" << stress_og2 << std::endl;
-// std::cout << "MatTangent (OG 2):\n" << moduli_og2 << std::endl;
-
-// auto ogden_3 = makeRegularizedOgden<1>(mu_og, alpha_og);
-
-// std::cout << bk.name() << std::endl;
-// std::cout << ogden_1.name() << std::endl;
-// std::cout << ogden_2.name() << std::endl;
-// std::cout << ogden_3.name() << std::endl;
-
-// using Ikarus::RegularizedTag;
-// auto ogden_4 = makeOgden<1, RegularizedTag::regularized>(mu_og, alpha_og);
-// static_assert(std::same_as<decltype(ogden_4), decltype(ogden_3)>, "Should be same");
-
-// auto ogden_5 = makeOgden<1, RegularizedTag::modified>(mu_og, alpha_og, {Lambda}, VF3{});
-// static_assert(std::same_as<decltype(ogden_5), decltype(ogden_1)>, "Should be same");
-
-// auto psOgden  = planeStrain(ogden_5);
-// auto pstOgden = planeStress(ogden_5);
-
-// auto stress_og5ps  = psOgden.stresses<CauchyGreen>(c);
-// auto stress_og5pst = pstOgden.stresses<CauchyGreen>(c);
-
-// std::cout << "Stress (OG PS):\n" << stress_og5ps << std::endl;
-// std::cout << "Stress (OG PST):\n" << stress_og5pst << std::endl;
-
-// return t;
-// }
-
 int main(int argc, char** argv) {
   Ikarus::init(argc, argv);
   TestSuite t;
-
-  // t.subTest(playground());
 
   t.subTest(testVolumetricFunctions());
   t.subTest(recoverNeoHookeThroughOgden());
