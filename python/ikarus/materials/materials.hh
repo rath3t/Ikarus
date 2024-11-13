@@ -25,13 +25,13 @@ void addMaterialsSubModule(pybind11::module& m) {
   ENUM_BINDINGS_WITH_MODULE(StressTags, materials);
   ENUM_BINDINGS_WITH_MODULE(TangentModuliTags, materials);
 
-  pybind11::class_<LinearElasticity> linElastic(materials, "LinearElasticity");
+  pybind11::class_<Materials::LinearElasticity> linElastic(materials, "LinearElasticity");
   Ikarus::Python::registerLinearElasticity(materials, linElastic);
 
-  pybind11::class_<StVenantKirchhoff> svk(materials, "StVenantKirchhoff");
+  pybind11::class_<Materials::StVenantKirchhoff> svk(materials, "StVenantKirchhoff");
   Ikarus::Python::registerStVenantKirchhoff(materials, svk);
 
-  pybind11::class_<NeoHooke> nh(materials, "NeoHooke");
+  pybind11::class_<Materials::NeoHooke> nh(materials, "NeoHooke");
   Ikarus::Python::registerNeoHooke(materials, nh);
 
   /**

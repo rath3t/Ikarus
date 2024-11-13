@@ -60,8 +60,9 @@ auto SimpleAssemblersTest(const PreBasis& preBasis) {
       return fext;
     };
 
-    auto linMat = Ikarus::Materials::LinearElasticity(Ikarus::toLamesFirstParameterAndShearModulus({.emodul = 100, .nu = 0.2}));
-    auto sk     = skills(linearElastic(Ikarus::Materials::planeStress(linMat)), volumeLoad<2>(vL));
+    auto linMat =
+        Ikarus::Materials::LinearElasticity(Ikarus::toLamesFirstParameterAndShearModulus({.emodul = 100, .nu = 0.2}));
+    auto sk = skills(linearElastic(Ikarus::Materials::planeStress(linMat)), volumeLoad<2>(vL));
 
     using FEType = decltype(makeFE(basis, sk));
     std::cout << Dune::className<FEType>() << std::endl;
