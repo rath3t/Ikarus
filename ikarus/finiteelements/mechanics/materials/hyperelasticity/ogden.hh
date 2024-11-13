@@ -143,22 +143,26 @@ struct OgdenT
     if constexpr (usesDeviatoricStretches) {
       const auto lambdaBar = Impl::deviatoricStretches(lambda);
       const auto S         = firstDerivativeImpl(lambda);
-      ScalarType sumC{0.0};
-      for (auto p : parameterRange())
-        for (auto c : dimensionRange())
-          sumC += pow(lambdaBar[c], alpha[p]);
 
       for (auto a : dimensionRange()) {
         const auto Siso = S[a] / lambda[a];
         for (auto b : dimensionRange()) {
           if (a == b) {
-            for (auto p : parameterRange())
+            for (auto p : parameterRange()) {
+              ScalarType sumC{0.0};
+              for (auto c : dimensionRange())
+                sumC += pow(lambdaBar[c], alpha[p]);
               dS(a, b) += mu[p] * alpha[p] * ((1.0 / 3.0) * pow(lambdaBar[a], alpha[p]) + (1.0 / 9.0) * sumC);
+            }
           } else {
-            for (auto p : parameterRange())
+            for (auto p : parameterRange()) {
+              ScalarType sumC{0.0};
+              for (auto c : dimensionRange())
+                sumC += pow(lambdaBar[c], alpha[p]);
               dS(a, b) +=
                   mu[p] * alpha[p] *
                   (-(1.0 / 3.0) * (pow(lambdaBar[a], alpha[p]) + pow(lambdaBar[b], alpha[p])) + (1.0 / 9.0) * sumC);
+            }
           }
 
           dS(a, b) *= pow(lambda[a], -2) / lambda[b];
