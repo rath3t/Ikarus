@@ -111,4 +111,18 @@ inline PrincipalStretches deviatoricStretches(const PrincipalStretches& lambda) 
 
   return lambdaBar;
 }
+
+template <typename PrincipalStretches>
+inline PrincipalStretches invariants(const PrincipalStretches& lambda) {
+  using ScalarType   = std::remove_cvref_t<decltype(lambda[0])>;
+  auto lambdaSquared = lambda.array().square();
+  auto invariants    = PrincipalStretches::Zero().eval();
+
+  invariants[0] = std::accumulate(lambdaSquared.begin(), lambdaSquared.end(), ScalarType{0.0});
+  invariants[1] =
+      lambdaSquared[0] * lambdaSquared[1] + lambdaSquared[1] * lambdaSquared[2] + lambdaSquared[0] * lambdaSquared[2];
+  invariants[2] = std::accumulate(lambdaSquared.begin(), lambdaSquared.end(), ScalarType{1.0}, std::multiplies());
+
+  return invariants;
+}
 } // namespace Ikarus::Materials::Impl

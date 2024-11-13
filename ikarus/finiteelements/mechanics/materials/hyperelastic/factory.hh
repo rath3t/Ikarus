@@ -11,6 +11,7 @@
 
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/blatzko.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/invariantbased.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/ogden.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/interface.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/neohooke.hh>
