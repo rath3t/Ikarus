@@ -63,6 +63,9 @@ public:
 
   static constexpr auto enhancedStrain = ES;
 
+  template <typename ST>
+  using VectorXOptRef = std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>;
+
   /**
    * \brief Constructor for Enhanced Assumed Strains elements.
    * \param pre The pre finite element
@@ -196,9 +199,9 @@ protected:
   }
 
   template <typename ScalarType>
-  void calculateMatrixImpl(
-      const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  void calculateMatrixImpl(const Requirement& par, const MatrixAffordance& affordance,
+                           typename Traits::template MatrixType<> K,
+                           const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     if (affordance != MatrixAffordance::stiffness)
       DUNE_THROW(Dune::NotImplemented, "MatrixAffordance not implemented: " + toString(affordance));
     easApplicabilityCheck();
@@ -225,9 +228,8 @@ protected:
   }
 
   template <typename ScalarType>
-  inline ScalarType calculateScalarImpl(
-      const Requirement& par, ScalarAffordance affordance,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  inline ScalarType calculateScalarImpl(const Requirement& par, ScalarAffordance affordance,
+                                        const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     easApplicabilityCheck();
     if (isDisplacementBased())
       return 0.0;
@@ -236,9 +238,9 @@ protected:
   }
 
   template <typename ScalarType>
-  void calculateVectorImpl(
-      const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  void calculateVectorImpl(const Requirement& par, VectorAffordance affordance,
+                           typename Traits::template VectorType<ScalarType> force,
+                           const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     if (affordance != VectorAffordance::forces)
       DUNE_THROW(Dune::NotImplemented, "VectorAffordance not implemented: " + toString(affordance));
     easApplicabilityCheck();
@@ -310,10 +312,10 @@ private:
   }
 
   template <typename ScalarType, int enhancedStrainSize>
-  void calculateDAndLMatrix(
-      const auto& easFunction, const auto& par, Eigen::Matrix<double, enhancedStrainSize, enhancedStrainSize>& DMat,
-      Eigen::MatrixX<ScalarType>& LMat,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  void calculateDAndLMatrix(const auto& easFunction, const auto& par,
+                            Eigen::Matrix<double, enhancedStrainSize, enhancedStrainSize>& DMat,
+                            Eigen::MatrixX<ScalarType>& LMat,
+                            const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     using namespace Dune;
     using namespace Dune::DerivativeDirections;
 
@@ -337,9 +339,8 @@ private:
   }
 
   template <typename ScalarType>
-  Eigen::VectorX<ScalarType> calculateRtilde(
-      const Requirement& par,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  Eigen::VectorX<ScalarType> calculateRtilde(const Requirement& par,
+                                             const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     const auto geo      = underlying().localView().element().geometry();
     auto strainFunction = underlying().strainFunction(par, dx);
     Eigen::VectorX<ScalarType> Rtilde;

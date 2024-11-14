@@ -70,6 +70,9 @@ public:
 
   using LocalBasisType = decltype(std::declval<LocalView>().tree().child(0).finiteElement().localBasis());
 
+  template <typename ST>
+  using VectorXOptRef = std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>;
+
   static constexpr int myDim       = Traits::mydim;
   static constexpr auto strainType = StrainTags::linear;
   static constexpr auto stressType = StressTags::linear;
@@ -115,9 +118,7 @@ public:
    * \return The displacement function.
    */
   template <typename ScalarType = double>
-  auto displacementFunction(
-      const Requirement& par,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  auto displacementFunction(const Requirement& par, const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     const auto& d = par.globalSolution();
     auto disp     = Ikarus::FEHelper::localSolutionBlockVector<Traits>(d, underlying().localView(), dx);
     Dune::StandardLocalFunction uFunction(localBasis_, disp, geo_);
@@ -133,9 +134,7 @@ public:
    * \return The strain function.
    */
   template <class ScalarType = double>
-  auto strainFunction(
-      const Requirement& par,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  auto strainFunction(const Requirement& par, const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     return Dune::linearStrains(displacementFunction(par, dx));
   }
 
@@ -212,7 +211,7 @@ public:
   auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<1>) const {
     using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
-    if (hasEASSkill())
+    if (usesEASSkill())
       return RTWrapper{};
 
     if constexpr (isSameResultType<RT, ResultTypes::linearStress> or
@@ -248,7 +247,7 @@ private:
       return mat_;
   }
 
-  bool hasEASSkill() const {
+  bool usesEASSkill() const {
     if constexpr (hasEAS)
       return underlying().numberOfEASParameters() != 0;
     else
@@ -257,18 +256,18 @@ private:
 
 public:
   /**
-   * \brief Get a lambda function that evaluates the stiffness matrix for a given strain, Gauss point and its index.
+   * \brief Get a lambda function that evaluates the stiffness matrix for a given strain, integration point and its
+   * index.
    *
    * \tparam ScalarType The scalar type for the material and strain.
    * \param par The Requirement object.
    * \param dx Optional displacement vector.
    * \param K The matrix to store the calculated result.
-   * \return A lambda function that evaluates the stiffness matrix for a given strain, Gauss point and its index.
+   * \return A lambda function that evaluates the stiffness matrix for a given strain, integration point and its index.
    */
   template <typename ScalarType>
-  auto stiffnessMatrixFunction(
-      const Requirement& par, typename Traits::template MatrixType<>& K,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  auto stiffnessMatrixFunction(const Requirement& par, typename Traits::template MatrixType<>& K,
+                               const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     return [&]<int strainDim>(const Eigen::Vector<ScalarType, strainDim>& strain, auto gpIndex, auto gp) {
       using namespace Dune::DerivativeDirections;
       using namespace Dune;
@@ -286,19 +285,19 @@ public:
   }
 
   /**
-   * \brief Get a lambda function that evaluates the internal force vector for a given strain, Gauss point and its
+   * \brief Get a lambda function that evaluates the internal force vector for a given strain, integration point and its
    * index.
    *
    * \tparam ScalarType The scalar type for the material and strain.
    * \param par The Requirement object.
    * \param dx Optional displacement vector.
    * \param force The vector to store the calculated result.
-   * \return A lambda function that evaluates the intenral force vector for a given strain, Gauss point and its index.
+   * \return A lambda function that evaluates the intenral force vector for a given strain, integration point and its
+   * index.
    */
   template <typename ScalarType>
-  auto internalForcesFunction(
-      const Requirement& par, typename Traits::template VectorType<ScalarType>& force,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  auto internalForcesFunction(const Requirement& par, typename Traits::template VectorType<ScalarType>& force,
+                              const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     return [&]<int strainDim>(const Eigen::Vector<ScalarType, strainDim>& strain, auto gpIndex, auto gp) {
       using namespace Dune::DerivativeDirections;
       using namespace Dune;
@@ -317,10 +316,10 @@ protected:
                        typename Traits::template VectorTypeConst<> /* correction */) const {}
 
   template <typename ScalarType>
-  void calculateMatrixImpl(
-      const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
-    if (hasEASSkill())
+  void calculateMatrixImpl(const Requirement& par, const MatrixAffordance& affordance,
+                           typename Traits::template MatrixType<> K,
+                           const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
+    if (usesEASSkill())
       return;
     const auto eps       = strainFunction(par, dx);
     const auto kFunction = stiffnessMatrixFunction<ScalarType>(par, K, dx);
@@ -335,10 +334,9 @@ protected:
 
   template <typename ScalarType>
   auto calculateScalarImpl(const Requirement& par, ScalarAffordance affordance,
-                           const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx =
-                               std::nullopt) const -> ScalarType {
+                           const VectorXOptRef<ScalarType>& dx = std::nullopt) const -> ScalarType {
     ScalarType energy = 0.0;
-    if (hasEASSkill())
+    if (usesEASSkill())
       return energy;
     const auto uFunction = displacementFunction(par, dx);
     const auto eps       = strainFunction(par, dx);
@@ -354,10 +352,10 @@ protected:
   }
 
   template <typename ScalarType>
-  void calculateVectorImpl(
-      const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
-    if (hasEASSkill())
+  void calculateVectorImpl(const Requirement& par, VectorAffordance affordance,
+                           typename Traits::template VectorType<ScalarType> force,
+                           const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
+    if (usesEASSkill())
       return;
     const auto eps          = strainFunction(par, dx);
     const auto fIntFunction = internalForcesFunction<ScalarType>(par, force, dx);
