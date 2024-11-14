@@ -140,16 +140,21 @@ int main(int argc, char** argv) {
   auto ogdenTotal                = makeOgden<3, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
   auto ogdenDevi                 = makeOgden<3, PrincipalStretchTag::deviatoric>(mu_og, alpha_og, {K}, VF3{});
 
-  // t.subTest(testMaterial<CauchyGreen>(nh, c0));
+  const std::string autodiffErrorMsg = "AutoDiff with duplicate principal stretches should have failed here.";
+
+  t.subTest(testMaterial<CauchyGreen>(nh, c0));
   t.subTest(testMaterial<CauchyGreen>(nh, c));
 
-  // t.subTest(testMaterial<CauchyGreen>(bk, c0));
+  t.checkThrow<Dune::InvalidStateException>([&]() { testMaterial<CauchyGreen>(bk, c0); },
+                                            testLocation() + autodiffErrorMsg);
   t.subTest(testMaterial<CauchyGreen>(bk, c));
 
-  // t.subTest(testMaterial<CauchyGreen>(ogdenTotal, c0));
+  t.checkThrow<Dune::InvalidStateException>([&]() { testMaterial<CauchyGreen>(ogdenTotal, c0); },
+                                            testLocation() + autodiffErrorMsg);
   t.subTest(testMaterial<CauchyGreen>(ogdenTotal, c));
 
-  // t.subTest(testMaterial<CauchyGreen>(ogdenDevi, c0));
+  t.checkThrow<Dune::InvalidStateException>([&]() { testMaterial<CauchyGreen>(ogdenDevi, c0); },
+                                            testLocation() + autodiffErrorMsg);
   t.subTest(testMaterial<CauchyGreen>(ogdenDevi, c));
 
   return t.exit();

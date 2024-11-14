@@ -55,8 +55,9 @@ struct Deviatoric
    * \param lambdas the principal stretches
    * \return ScalarType the energy
    */
-  ScalarType storedEnergy(const PrincipalStretches& lambdas) const {
-    return deviatoricFunction_.storedEnergyImpl(lambdas);
+  ScalarType storedEnergy(const PrincipalStretches& lambda) const {
+    checkDuplicates(lambda);
+    return deviatoricFunction_.storedEnergyImpl(lambda);
   };
 
   /**
@@ -66,6 +67,7 @@ struct Deviatoric
    * \return StressMatrix
    */
   StressMatrix stresses(const PrincipalStretches& lambda) const {
+    checkDuplicates(lambda);
     auto dWdLambda = deviatoricFunction_.firstDerivativeImpl(lambda);
 
     // Compute the principal PK2 stresses by dividing by the stretches
@@ -83,6 +85,7 @@ struct Deviatoric
    * \return MaterialTensor
    */
   MaterialTensor tangentModuli(const PrincipalStretches& lambda) const {
+    checkDuplicates(lambda);
     auto S  = stresses(lambda);
     auto dS = deviatoricFunction_.secondDerivativeImpl(lambda);
 
@@ -120,5 +123,29 @@ private:
   DF deviatoricFunction_;
 
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+
+  /**
+   * \brief A function to check if duplicate principal stretches exists.
+   *
+   * \details The computation of tangentModuli includes an additional term in the denominator (\lambda_b - \lambda_a).
+   * This results in nan if \lambda_b = \lambda_a. In the explicit implementation, this is circumvented using the
+   * L'Hôpital's rule. However, AutoDiff doesn't see such numerical issues and hence results in nan. The tolerance
+   * can be greater than 1e-4, but that leads to inaccurate results.
+   *
+   * \param lambda Principal stretches.
+   * \param tol Tolerance used during the comparison of the principal stretches.
+   */
+  void checkDuplicates(const PrincipalStretches& lambda, double tol = 1e-4) const {
+    if constexpr (not Concepts::AutodiffScalar<ScalarType>)
+      return;
+    PrincipalStretches sortedLambda = lambda;
+    std::ranges::sort(sortedLambda);
+    const bool hasDuplicates =
+        std::adjacent_find(sortedLambda.begin(), sortedLambda.end(), [&](ScalarType a, ScalarType b) {
+          return Dune::FloatCmp::eq(a, b, tol);
+        }) != sortedLambda.end();
+    if (hasDuplicates)
+      DUNE_THROW(Dune::InvalidStateException, "AutoDiff doesn't work if there are duplicate principal stretches.");
+  }
 };
 } // namespace Ikarus::Materials

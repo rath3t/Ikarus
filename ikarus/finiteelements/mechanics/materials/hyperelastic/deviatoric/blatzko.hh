@@ -54,10 +54,10 @@ struct BlatzKoT
    * \param lambda principal stretches
    * \return ScalarType
    */
-  ScalarType storedEnergyImpl(const PrincipalStretches& lambdas) const {
+  ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
     return materialParameter_.mu / 2 *
-           (1 / pow(lambdas[0], 2) + 1 / pow(lambdas[1], 2) + 1 / pow(lambdas[2], 2) +
-            2 * lambdas[0] * lambdas[1] * lambdas[2] - 5);
+           (1 / pow(lambda[0], 2) + 1 / pow(lambda[1], 2) + 1 / pow(lambda[2], 2) +
+            2 * lambda[0] * lambda[1] * lambda[2] - 5);
   }
 
   /**
