@@ -33,14 +33,21 @@ struct InvariantBasedT
   using InvariantReduced                = Eigen::Vector<ScalarType, dim - 1>;
   static constexpr int numMatParameters = n;
 
-  using ExponentsP         = std::array<std::size_t, numMatParameters>;
-  using ExponentsQ         = std::array<std::size_t, numMatParameters>;
+  using Exponents          = std::array<std::size_t, numMatParameters>;
   using MaterialParameters = std::array<double, numMatParameters>;
 
   using FirstDerivative  = Eigen::Vector<ScalarType, dim>;
   using SecondDerivative = Eigen::Matrix<ScalarType, dim, dim>;
 
-  [[nodiscard]] constexpr static std::string name() noexcept { return "InvariantBased"; }
+  [[nodiscard]] constexpr static std::string name() noexcept {
+    return "InvariantBased (n = " + std::to_string(numMatParameters);
+  }
+
+  MaterialParameters materialParametersImpl() const { return matParameters_; }
+
+  Exponents pExponents() const { return pex_; }
+
+  Exponents qExponents() const { return qex_; }
 
   /**
    * \brief Constructor for InvariantBasedT
@@ -48,10 +55,10 @@ struct InvariantBasedT
    * \param mpt material parameters (array of mu values)
    * \param opt ogden parameters (array of alpha values)
    */
-  explicit InvariantBasedT(const ExponentsP& pex, const ExponentsQ& qex, const MaterialParameters& mat)
+  explicit InvariantBasedT(const Exponents& pex, const Exponents& qex, const MaterialParameters& matParameters)
       : pex_{pex},
         qex_{qex},
-        mat_{mat} {}
+        matParameters_{matParameters} {}
 
   /**
    * \brief Computes the stored energy in the InvariantBased material model.
@@ -60,11 +67,12 @@ struct InvariantBasedT
    * \return ScalarType
    */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
-    InvariantReduced I = DeviatoricInvariants(lambda);
+    Invariants invariants = Impl::invariants(lambda);
+    InvariantReduced I    = DeviatoricInvariants(invariants);
     ScalarType energy{};
 
     for (auto i : parameterRange())
-      energy += mat_[i] * pow(I[0], pex_[i]) * pow(I[1], qex_[i]);
+      energy += matParameters_[i] * pow(I[0], pex_[i]) * pow(I[1], qex_[i]);
 
     return energy;
   }
@@ -76,8 +84,29 @@ struct InvariantBasedT
    * \return ScalarType
    */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
-    InvariantReduced I = DeviatoricInvariants(lambda);
-    auto dWdLambda     = FirstDerivative::Zero().eval();
+    Invariants invariants = Impl::invariants(lambda);
+    auto dWdLambda        = FirstDerivative::Zero().eval();
+
+    auto& mu = matParameters_;
+
+    ScalarType I1        = invariants[0];
+    ScalarType I2        = invariants[1];
+    ScalarType I3        = invariants[2];
+    ScalarType I3Pow1by3 = pow(I3, 1.0 / 3.0);
+    ScalarType I3Pow2by3 = pow(I3, 2.0 / 3.0);
+    ScalarType I3Pow4by3 = pow(I3, 4.0 / 3.0);
+    ScalarType I4        = -I1 + 3.0 * I3Pow1by3;
+    ScalarType I5        = -I2 + 3.0 * I3Pow2by3;
+
+    for (auto j : parameterRange())
+      for (auto k : dimensionRange()) {
+        auto factor1 = -2.0 * mu[j] * pow(-I4 / I3Pow1by3, pex_[j]) * pow(-I5 / I3Pow2by3, qex_[j]);
+        auto factor2 = 1.0 / (pow(lambda[k], 3.0) * I4 * I5);
+        auto factor3 = (-1.0 / 3.0) * pow(lambda[k], 2.0) * I5 * (I1 - 3.0 * pow(lambda[k], 2.0));
+        auto factor4 = I1 * I3 - 3.0 * I3Pow4by3 + I2 * I3Pow1by3 * pow(lambda[k], 2.0) -
+                       (1.0 / 3.0) * I1 * I2 * pow(lambda[k], 2.0);
+        dWdLambda[k] += factor1 * factor2 * (factor3 * pex_[j] + factor4 * qex_[j]);
+      }
 
     return dWdLambda;
   }
@@ -89,8 +118,9 @@ struct InvariantBasedT
    * \return ScalarType
    */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
-    InvariantReduced I = DeviatoricInvariants(lambda);
-    auto dS            = SecondDerivative::Zero().eval();
+    Invariants invariants = Impl::invariants(lambda);
+    InvariantReduced I    = DeviatoricInvariants(invariants);
+    auto dS               = SecondDerivative::Zero().eval();
 
     return dS;
   }
@@ -102,23 +132,22 @@ struct InvariantBasedT
    */
   template <typename STO>
   auto rebind() const {
-    return InvariantBasedT<STO, numMatParameters>(pex_, qex_, mat_);
+    return InvariantBasedT<STO, numMatParameters>(pex_, qex_, matParameters_);
   }
 
 private:
-  ExponentsP pex_;
-  ExponentsQ qex_;
-  MaterialParameters mat_;
+  Exponents pex_, qex_;
+  MaterialParameters matParameters_;
 
-  InvariantReduced DeviatoricInvariants(const PrincipalStretches& lambda) {
-    Invariants invariants = Impl::invariants(lambda);
-    auto I                = InvariantReduced::Zero().eval();
-    I[0]                  = invariants[0] * pow(invariants[2], -1.0 / 3.0) - 3.0;
-    I[1]                  = invariants[1] * pow(invariants[2], -2.0 / 3.0) - 3.0;
+  InvariantReduced DeviatoricInvariants(const Invariants& invariants) const {
+    auto I = InvariantReduced::Zero().eval();
+    I[0]   = invariants[0] * pow(invariants[2], -1.0 / 3.0) - 3.0;
+    I[1]   = invariants[1] * pow(invariants[2], -2.0 / 3.0) - 3.0;
     return I;
   }
 
   inline auto parameterRange() const { return Dune::Hybrid::integralRange(numMatParameters); }
+  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
 };
 
 /**
