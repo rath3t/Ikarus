@@ -23,6 +23,11 @@ using namespace Ikarus::Materials;
 using Dune::TestSuite;
 
 template <typename MAT, StrainTags strainTag>
+auto energyByAD(const MAT& mat, const auto& c) {
+  auto mat_ad = mat.template rebind<autodiff::dual>();
+  return mat_ad.template storedEnergy<strainTag>(c);
+}
+template <typename MAT, StrainTags strainTag>
 auto stressByAD(const MAT& mat, const auto& c) {
   auto mat_ad = mat.template rebind<autodiff::dual>();
 
@@ -85,11 +90,14 @@ auto testMaterial(const MAT& mat, const auto& c, double prec = 1e-8) {
 
   auto stress     = mat.template stresses<straintag>(c);
   auto matTangent = mat.template tangentModuli<straintag>(c);
+  double energy   = mat.template storedEnergy<straintag>(c);
 
+  auto energy_ad       = energyByAD<MAT, straintag>(mat, c);
   auto stress_ad       = stressByAD<MAT, straintag>(mat, c);
   auto matTangent_ad   = mattangentByAD<MAT, straintag>(mat, c);
   auto matTangent_ad_e = mattangentByADWithEnergy<MAT, straintag>(mat, c);
 
+  checkScalars(t, energy, static_cast<double>(energy_ad), "Incorrect Energy", prec);
   t.check(isApproxSame(stress, stress_ad, prec)) << std::setprecision(16) << "Incorrect stresses." << " stress is\t"
                                                  << stress.transpose() << "\n stress_ad is\t" << stress_ad.transpose();
   t.check(isApproxSame(matTangent, matTangent_ad, prec))
@@ -141,6 +149,8 @@ int main(int argc, char** argv) {
   auto ogdenDevi                 = makeOgden<3, PrincipalStretchTag::deviatoric>(mu_og, alpha_og, {K}, VF3{});
   auto mr                        = makeMooneyRivlin({mu / 2.0, mu / 2.0}, {K}, VF3{});
   auto yeoh                      = makeYeoh({2.0 * mu / 3.0, mu / 6.0, mu / 6.0}, {K}, VF3{});
+  auto polynomial = makeInvariantBased<5>({mu / 6.0, mu / 8.0, mu / 8.0, mu / 12.0, mu / 2.0}, {0, 1, 3, 6, 8},
+                                          {2, 4, 10, 1, 7}, {K}, VF3{});
 
   const std::string autodiffErrorMsg = "AutoDiff with duplicate principal stretches should have failed here.";
 
@@ -159,8 +169,17 @@ int main(int argc, char** argv) {
                                             testLocation() + autodiffErrorMsg);
   t.subTest(testMaterial<CauchyGreen>(ogdenDevi, c));
 
+  t.checkThrow<Dune::InvalidStateException>([&]() { testMaterial<CauchyGreen>(mr, c0); },
+                                            testLocation() + autodiffErrorMsg);
   t.subTest(testMaterial<CauchyGreen>(mr, c));
+
+  t.checkThrow<Dune::InvalidStateException>([&]() { testMaterial<CauchyGreen>(yeoh, c0); },
+                                            testLocation() + autodiffErrorMsg);
   t.subTest(testMaterial<CauchyGreen>(yeoh, c));
+
+  t.checkThrow<Dune::InvalidStateException>([&]() { testMaterial<CauchyGreen>(polynomial, c0); },
+                                            testLocation() + autodiffErrorMsg);
+  t.subTest(testMaterial<CauchyGreen>(polynomial, c));
 
   return t.exit();
 }

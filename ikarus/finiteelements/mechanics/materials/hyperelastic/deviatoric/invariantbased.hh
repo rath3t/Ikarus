@@ -30,7 +30,6 @@ struct InvariantBasedT
   using ScalarType                      = ST;
   using PrincipalStretches              = Eigen::Vector<ScalarType, dim>;
   using Invariants                      = PrincipalStretches;
-  using InvariantReduced                = Eigen::Vector<ScalarType, dim - 1>;
   static constexpr int numMatParameters = n;
 
   using Exponents          = std::array<std::size_t, numMatParameters>;
@@ -43,11 +42,11 @@ struct InvariantBasedT
     return "InvariantBased (n = " + std::to_string(numMatParameters);
   }
 
-  MaterialParameters materialParametersImpl() const { return matParameters_; }
+  const MaterialParameters& materialParametersImpl() const { return matParameters_; }
 
-  Exponents pExponents() const { return pex_; }
+  const Exponents& pExponents() const { return pex_; }
 
-  Exponents qExponents() const { return qex_; }
+  const Exponents& qExponents() const { return qex_; }
 
   /**
    * \brief Constructor for InvariantBasedT
@@ -67,12 +66,14 @@ struct InvariantBasedT
    * \return ScalarType
    */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
-    Invariants invariants = Impl::invariants(lambda);
-    InvariantReduced I    = DeviatoricInvariants(invariants);
-    ScalarType energy{};
+    const Invariants& invariants = Impl::invariants(lambda);
+    ScalarType energy{0.0};
+    const auto& pex = exponents(pex_);
+    const auto& qex = exponents(qex_);
 
     for (auto i : parameterRange())
-      energy += matParameters_[i] * pow(I[0], pex_[i]) * pow(I[1], qex_[i]);
+      energy += matParameters_[i] * pow((invariants[0] * pow(invariants[2], -1.0 / 3.0) - 3.0), pex[i]) *
+                pow((invariants[1] * pow(invariants[2], -2.0 / 3.0) - 3.0), qex[i]);
 
     return energy;
   }
@@ -84,10 +85,12 @@ struct InvariantBasedT
    * \return ScalarType
    */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
-    Invariants invariants = Impl::invariants(lambda);
-    auto dWdLambda        = FirstDerivative::Zero().eval();
+    const Invariants& invariants = Impl::invariants(lambda);
+    auto dWdLambda               = FirstDerivative::Zero().eval();
 
-    auto& mu = matParameters_;
+    const auto& mu  = matParameters_;
+    const auto& pex = exponents(pex_);
+    const auto& qex = exponents(qex_);
 
     ScalarType I1        = invariants[0];
     ScalarType I2        = invariants[1];
@@ -100,12 +103,12 @@ struct InvariantBasedT
 
     for (auto j : parameterRange())
       for (auto k : dimensionRange()) {
-        auto factor1 = -2.0 * mu[j] * pow(-I4 / I3Pow1by3, pex_[j]) * pow(-I5 / I3Pow2by3, qex_[j]);
+        auto factor1 = -2.0 * mu[j] * pow(-I4 / I3Pow1by3, pex[j]) * pow(-I5 / I3Pow2by3, qex[j]);
         auto factor2 = 1.0 / (pow(lambda[k], 3.0) * I4 * I5);
         auto factor3 = (-1.0 / 3.0) * pow(lambda[k], 2.0) * I5 * (I1 - 3.0 * pow(lambda[k], 2.0));
         auto factor4 = I1 * I3 - 3.0 * I3Pow4by3 + I2 * I3Pow1by3 * pow(lambda[k], 2.0) -
                        (1.0 / 3.0) * I1 * I2 * pow(lambda[k], 2.0);
-        dWdLambda[k] += factor1 * factor2 * (factor3 * pex_[j] + factor4 * qex_[j]);
+        dWdLambda[k] += factor1 * factor2 * (factor3 * pex[j] + factor4 * qex[j]);
       }
 
     return dWdLambda;
@@ -118,9 +121,8 @@ struct InvariantBasedT
    * \return ScalarType
    */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
-    Invariants invariants = Impl::invariants(lambda);
-    InvariantReduced I    = DeviatoricInvariants(invariants);
-    auto dS               = SecondDerivative::Zero().eval();
+    const Invariants& invariants = Impl::invariants(lambda);
+    auto dS                      = SecondDerivative::Zero().eval();
 
     return dS;
   }
@@ -139,15 +141,25 @@ private:
   Exponents pex_, qex_;
   MaterialParameters matParameters_;
 
-  InvariantReduced DeviatoricInvariants(const Invariants& invariants) const {
-    auto I = InvariantReduced::Zero().eval();
-    I[0]   = invariants[0] * pow(invariants[2], -1.0 / 3.0) - 3.0;
-    I[1]   = invariants[1] * pow(invariants[2], -2.0 / 3.0) - 3.0;
-    return I;
-  }
-
   inline auto parameterRange() const { return Dune::Hybrid::integralRange(numMatParameters); }
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+
+  /** \brief A function to transform the underlying type of the exponents to ScalarType.
+   *
+   * \details If Concepts::AutodiffScalar<ScalarType> is true, then the pow function returns zero instead of one, if
+   * a certain base is raised to an exponent of zero. Hence this transformation is necessary.
+   * \param exp_ An array of exponents of type std::size_t.
+   * \return An array of exponents of type \tparam ScalarType if Concepts::AutodiffScalar<ScalarType> is true, else the
+   * given \param exp_ is returned..
+   */
+  decltype(auto) exponents(const Exponents& exp_) const {
+    if constexpr (Concepts::AutodiffScalar<ScalarType>) {
+      std::array<ScalarType, numMatParameters> transformedExp_{};
+      std::ranges::transform(exp_, transformedExp_.begin(), [](std::size_t x) { return static_cast<ScalarType>(x); });
+      return transformedExp_;
+    } else
+      return exp_;
+  }
 };
 
 /**

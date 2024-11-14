@@ -50,22 +50,22 @@ inline auto makeInvariantBased(const typename InvariantBased<n>::MaterialParamet
   return Hyperelastic(dev, vol);
 }
 
-template <int n = 2, typename VolumetricFunction = VF0T<double>>
-inline auto makeMooneyRivlin(const typename InvariantBased<n>::MaterialParameters& mu, BulkModulus K = {0.0},
+template <typename VolumetricFunction = VF0T<double>>
+inline auto makeMooneyRivlin(const typename InvariantBased<2>::MaterialParameters& mu, BulkModulus K = {0.0},
                              const VolumetricFunction& vf = VolumetricFunction{}) {
-  typename InvariantBased<n>::Exponents pex = {1, 0};
-  typename InvariantBased<n>::Exponents qex = {0, 1};
+  typename InvariantBased<2>::Exponents pex = {1, 0};
+  typename InvariantBased<2>::Exponents qex = {0, 1};
 
-  return makeInvariantBased<n, VolumetricFunction>(mu, pex, qex, K, vf);
+  return makeInvariantBased<2, VolumetricFunction>(mu, pex, qex, K, vf);
 }
 
-template <int n = 3, typename VolumetricFunction = VF0T<double>>
-inline auto makeYeoh(const typename InvariantBased<n>::MaterialParameters& mu, BulkModulus K = {0.0},
+template <typename VolumetricFunction = VF0T<double>>
+inline auto makeYeoh(const typename InvariantBased<3>::MaterialParameters& mu, BulkModulus K = {0.0},
                      const VolumetricFunction& vf = VolumetricFunction{}) {
-  typename InvariantBased<n>::Exponents pex = {1, 2, 3};
-  typename InvariantBased<n>::Exponents qex = {0, 0, 0};
+  typename InvariantBased<3>::Exponents pex = {1, 2, 3};
+  typename InvariantBased<3>::Exponents qex = {0, 0, 0};
 
-  return makeInvariantBased<n, VolumetricFunction>(mu, pex, qex, K, vf);
+  return makeInvariantBased<3, VolumetricFunction>(mu, pex, qex, K, vf);
 }
 
 } // namespace Ikarus::Materials
