@@ -183,6 +183,126 @@ struct VF6T
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 6"; }
 };
 
+template <typename ST>
+struct VF7T
+{
+  using ScalarType = ST;
+  using JType      = ScalarType;
+
+  ScalarType storedEnergyImpl(const JType& J) const { return pow(J, beta_) * (beta_ * log(J) - 1) + 1; };
+
+  ScalarType firstDerivativeImpl(const JType& J) const { return pow(beta_, 2) * (1.0 / pow(J, 1.0 - beta_)) * log(J); }
+
+  ScalarType secondDerivativeImpl(const JType& J) const {
+    return pow(beta_, 2) * pow(J, beta_ - 2.0) * (1 + (beta_ - 1) * log(J));
+  }
+
+  explicit VF7T(double beta)
+      : beta_(beta) {}
+
+  template <typename STO>
+  auto rebind() const {
+    return VF7T<STO>(beta_);
+  }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 7"; }
+
+  double beta() const { return beta_; }
+
+private:
+  double beta_;
+};
+
+template <typename ST>
+struct VF8T
+{
+  using ScalarType = ST;
+  using JType      = ScalarType;
+
+  ScalarType storedEnergyImpl(const JType& J) const { return J * log(J) - J + 1; };
+
+  ScalarType firstDerivativeImpl(const JType& J) const { return log(J); }
+
+  ScalarType secondDerivativeImpl(const JType& J) const { return 1 / J; }
+
+  template <typename STO>
+  auto rebind() const {
+    return VF8T<STO>();
+  }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 8"; }
+};
+
+template <typename ST>
+struct VF9T
+{
+  using ScalarType = ST;
+  using JType      = ScalarType;
+
+  ScalarType storedEnergyImpl(const JType& J) const { return (1.0 / 32.0) * pow(pow(J, 2) - pow(J, -2), 2); };
+
+  ScalarType firstDerivativeImpl(const JType& J) const { return (1.0 / 8.0) * (pow(J, 3) - (1.0 / pow(J, 5))); }
+
+  ScalarType secondDerivativeImpl(const JType& J) const { return (1.0 / 8.0) * (5.0 * pow(J, -6) + (3.0 * pow(J, 2))); }
+
+  template <typename STO>
+  auto rebind() const {
+    return VF9T<STO>();
+  }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 9"; }
+};
+
+template <typename ST>
+struct VF10T
+{
+  using ScalarType = ST;
+  using JType      = ScalarType;
+
+  ScalarType storedEnergyImpl(const JType& J) const {
+    return (J / beta_) * (1 - (pow(J, -beta_) / (1 - beta_))) + (1.0 / (beta_ - 1));
+  };
+
+  ScalarType firstDerivativeImpl(const JType& J) const { return (1 / beta_) * (1 - pow(J, -beta_)); }
+
+  ScalarType secondDerivativeImpl(const JType& J) const { return pow(J, -1 - beta_); }
+
+  explicit VF10T(double beta)
+      : beta_(beta) {}
+
+  template <typename STO>
+  auto rebind() const {
+    return VF10T<STO>(beta_);
+  }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 10"; }
+
+  double beta() const { return beta_; }
+
+private:
+  double beta_;
+};
+
+template <typename ST>
+struct VF11T
+{
+  using ScalarType = ST;
+  using JType      = ScalarType;
+
+  ScalarType storedEnergyImpl(const JType& J) const { return (1.0 / 50.0) * (pow(J, 5.0) + pow(J, -5.0) - 2.0); };
+
+  ScalarType firstDerivativeImpl(const JType& J) const { return (1.0 / 10.0) * (pow(J, 4.0) - pow(J, -6.0)); }
+
+  ScalarType secondDerivativeImpl(const JType& J) const { return (1.0 / 10.0) * (4 * pow(J, 3.0) + 6 * pow(J, -7.0)); }
+
+  template <typename STO>
+  auto rebind() const {
+    return VF11T<STO>();
+  }
+
+  [[nodiscard]] constexpr static std::string name() noexcept { return "Function 11"; }
+};
+
 using NoVolumetricPart = Volumetric<VF0T<double>>;
 using VF1              = VF1T<double>;
 using VF2              = VF2T<double>;
@@ -190,5 +310,10 @@ using VF3              = VF3T<double>;
 using VF4              = VF4T<double>;
 using VF5              = VF5T<double>;
 using VF6              = VF6T<double>;
+using VF7              = VF7T<double>;
+using VF8              = VF8T<double>;
+using VF9              = VF9T<double>;
+using VF10             = VF10T<double>;
+using VF11             = VF11T<double>;
 
 } // namespace Ikarus::Materials

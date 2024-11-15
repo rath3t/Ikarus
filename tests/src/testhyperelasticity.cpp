@@ -100,6 +100,26 @@ auto testVolumetricFunctions() {
   checkFirstAndSecondDerivativeOfEnergy(vf6);
   checkFirstDerivativeOfFirstDerivative(vf6);
 
+  auto vf7 = VF7{0.5};
+  checkFirstAndSecondDerivativeOfEnergy(vf7);
+  checkFirstDerivativeOfFirstDerivative(vf7);
+
+  auto vf8 = VF8{};
+  checkFirstAndSecondDerivativeOfEnergy(vf8);
+  checkFirstDerivativeOfFirstDerivative(vf8);
+
+  auto vf9 = VF9{};
+  checkFirstAndSecondDerivativeOfEnergy(vf9);
+  checkFirstDerivativeOfFirstDerivative(vf9);
+
+  auto vf10 = VF10{0.4};
+  checkFirstAndSecondDerivativeOfEnergy(vf10);
+  checkFirstDerivativeOfFirstDerivative(vf10);
+
+  auto vf11 = VF11{};
+  checkFirstAndSecondDerivativeOfEnergy(vf11);
+  checkFirstDerivativeOfFirstDerivative(vf11);
+
   return t;
 }
 
