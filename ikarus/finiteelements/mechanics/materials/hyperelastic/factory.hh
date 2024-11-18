@@ -11,6 +11,7 @@
 
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/arrudaboyce.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/blatzko.hh>
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/gent.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/interface.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/invariantbased.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/ogden.hh>
@@ -75,6 +76,16 @@ inline auto makeArrudaBoyce(const ArrudaBoyceMatParameters& matPar, BulkModulus 
   auto abPre = ArrudaBoyce(matPar);
   auto dev   = Deviatoric(abPre);
   auto vol   = Volumetric(K, vf);
+
+  return Hyperelastic(dev, vol);
+}
+
+template <typename VolumetricFunction = VF0T<double>>
+inline auto makeGent(const GentMatParameters& matPar, BulkModulus K = {0.0},
+                     const VolumetricFunction& vf = VolumetricFunction{}) {
+  auto gentPre = Gent(matPar);
+  auto dev     = Deviatoric(gentPre);
+  auto vol     = Volumetric(K, vf);
 
   return Hyperelastic(dev, vol);
 }
