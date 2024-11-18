@@ -39,7 +39,8 @@ struct Deviatoric
 
   using DeviatoricFunction = DF;
 
-  using FirstDerivative = typename DF::FirstDerivative;
+  using FirstDerivative  = typename DF::FirstDerivative;
+  using SecondDerivative = typename DF::SecondDerivative;
 
   static constexpr int dim = 3;
 

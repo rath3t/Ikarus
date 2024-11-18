@@ -33,6 +33,7 @@ concept DeviatoricFunction = requires(DF dm, const typename DF::PrincipalStretch
   { dm.firstDerivativeImpl(lambda) } -> std::same_as<typename DF::FirstDerivative>;
   { dm.secondDerivativeImpl(lambda) } -> std::same_as<typename DF::SecondDerivative>;
   { dm.materialParametersImpl() } -> std::same_as<const typename DF::MaterialParameters&>;
+  { dm.name() } -> std::convertible_to<std::string>;
 };
 
 /**
@@ -49,6 +50,7 @@ concept VolumetricFunction = requires(VF vf, const typename VF::JType& j) {
   { vf.storedEnergyImpl(j) } -> std::same_as<typename VF::ScalarType>;
   { vf.firstDerivativeImpl(j) } -> std::same_as<typename VF::ScalarType>;
   { vf.secondDerivativeImpl(j) } -> std::same_as<typename VF::ScalarType>;
+  { vf.name() } -> std::convertible_to<std::string>;
 };
 
 /**

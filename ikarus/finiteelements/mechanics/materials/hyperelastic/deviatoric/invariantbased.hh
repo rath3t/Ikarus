@@ -83,7 +83,7 @@ struct InvariantBasedT
   }
 
   /**
-   * \brief Computes the first derivative of the stored energy function w.r.t. the total principal stretches
+   * \brief Computes the first derivative of the stored energy function w.r.t. the total principal stretches.
    *
    * \param lambda principal stretches
    * \return ScalarType
@@ -110,7 +110,7 @@ struct InvariantBasedT
   }
 
   /**
-   * \brief Computes the second derivatives of the stored energy function w.r.t. the total principal stretches
+   * \brief Computes the second derivatives of the stored energy function w.r.t. the total principal stretches.
    *
    * \param lambda principal stretches
    * \return ScalarType

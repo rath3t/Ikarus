@@ -16,22 +16,38 @@
 
 namespace Ikarus {
 
+///< Structure representing material parameters for the Arrudy-Boyce material model.
 struct ArrudaBoyceMatParameters
 {
-  double C_;
-  double lambdaM_;
+  double mu_;      ///< Denotes the shear modulus.
+  double lambdaM_; ///< Denotes the maximum (fully extended) stretch that a molecule is exposed to.
 };
 } // namespace Ikarus
 
 namespace Ikarus::Materials {
 
 /**
- * \brief Implementation of the ArrudaBoyce material model.
+ * \brief Implementation of the ArrudaBoyce material model (also referred as Eight-Chain model).
+ * \ingroup materials
+ *
+ * \details The energy is computed as
+ * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \mu  \sum_{p=0}^4{\alpha_p  \beta^p}  (W1^{p+1} - 3^{p+1}) \f],
+ * with \f$ \beta = \frac{1}{\lambda_m^2} \f$.
+ *
+ * The first derivatives w.r.t the total principal stretches are
+ * \f[ \fracpt{\Psi}{\lambda_i} = \mu * \sum_{p=0}^4{\sum_{k=1}^3{\alpha_p  \beta^p  W1^p  \fracpt{W1}{\lambda_i}
+ * (p+1)}} \f].
+ *
+ * The second derivatives w.r.t the total principal stretches are
+ * \f[ \fracpt{^2 \Psi}{\lambda_i\partial\lambda_j} = \mu * \sum_{p=0}^4{\sum_{i=1}^3{\sum_{j=1}^3{ \alpha_p \beta^p
+ * (W1^p (p+1) \fracpt{^2 W1}{\lambda_i\partial\lambda_j} + W1^{p-1} p (p+1)
+ * \fracpt{W1}{\lambda_i}\fracpt{W1}{\lambda_j} - \delta_{ij} \frac{1}{\lambda_i} W1^p (p+1) \fracpt{W1}{\lambda_i}) }}}
+ * \f]
+ *
+ * \remark See \cite hiermaierStructuresCrashImpact2010 and \cite bergstromMechanicsSolidPolymers2015 for details on
+ * this material.
  *
  * \tparam ST The scalar type for the strains and stresses,....
- * \tparam n number of ogden parameters
- * \tparam tag type of principal stretch quantity, either total stretches or deviatoric stretches
- * \ingroup materials
  */
 template <typename ST>
 struct ArrudaBoyceT
@@ -50,8 +66,7 @@ struct ArrudaBoyceT
   /**
    * \brief Constructor for ArrudaBoyceT
    *
-   * \param C material constant
-   * \param lambdaM maximum stretch at which the polymer chain locks
+   * \param matPar The material parameters for the Arruda-Boyce material model.
    */
   explicit ArrudaBoyceT(const MaterialParameters& matPar)
       : matPar_{matPar} {}
@@ -73,22 +88,22 @@ struct ArrudaBoyceT
     ScalarType energy{0.0};
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
     auto W1                   = devInvariants.value().first;
-    const auto C_             = matPar_.C_;
+    const auto mu_            = matPar_.mu_;
     const auto lambdaM_       = matPar_.lambdaM_;
     const auto beta           = 1 / pow(lambdaM_, 2.0);
 
     for (auto i : parameterRange())
       energy += alphas_[i] * pow(beta, i) * (pow(W1, i + 1) - pow(3, i + 1));
-    energy *= C_;
+    energy *= mu_;
 
     return energy;
   }
 
   /**
-   * \brief Computes the first derivative of the stored energy function w.r.t. the total principal stretches
+   * \brief Computes the first derivative of the stored energy function w.r.t. the total principal stretches.
    *
    * \param lambda principal stretches
-   * \return ScalarType
+   * \return FirstDerivative The first derivatives of the stored energy function w.r.t. the total principal stretches.
    */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
     const Invariants& invariants = Impl::invariants(lambda);
@@ -97,22 +112,22 @@ struct ArrudaBoyceT
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
     auto W1                   = devInvariants.value().first;
     const auto& dW1dLambda    = devInvariants.firstDerivative().first;
-    const auto C_             = matPar_.C_;
+    const auto mu_            = matPar_.mu_;
     const auto lambdaM_       = matPar_.lambdaM_;
     const auto beta           = 1 / pow(lambdaM_, 2.0);
 
     for (auto j : parameterRange())
       for (auto k : dimensionRange())
-        dWdLambda[k] += C_ * alphas_[j] * pow(beta, j) * pow(W1, j) * dW1dLambda[k] * (j + 1);
+        dWdLambda[k] += mu_ * alphas_[j] * pow(beta, j) * pow(W1, j) * dW1dLambda[k] * (j + 1);
 
     return dWdLambda;
   }
 
   /**
-   * \brief Computes the second derivatives of the stored energy function w.r.t. the total principal stretches
+   * \brief Computes the second derivatives of the stored energy function w.r.t. the total principal stretches.
    *
    * \param lambda principal stretches
-   * \return ScalarType
+   * \return SecondDerivative The second derivatives of the stored energy function w.r.t. the total principal stretches.
    */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
     const Invariants& invariants = Impl::invariants(lambda);
@@ -122,14 +137,14 @@ struct ArrudaBoyceT
     auto W1                   = devInvariants.value().first;
     const auto& dW1dLambda    = devInvariants.firstDerivative().first;
     const auto& ddW1dLambda   = devInvariants.secondDerivative().first;
-    const auto C_             = matPar_.C_;
+    const auto mu_            = matPar_.mu_;
     const auto lambdaM_       = matPar_.lambdaM_;
     const auto beta           = 1 / pow(lambdaM_, 2.0);
 
     for (auto p : parameterRange())
       for (auto i : dimensionRange())
         for (auto j : dimensionRange()) {
-          auto factor1 = C_ * alphas_[p] * pow(beta, p);
+          auto factor1 = mu_ * alphas_[p] * pow(beta, p);
           auto factor2 = pow(W1, p) * ddW1dLambda(i, j) * (p + 1);
           auto factor3 = pow(W1, p - 1) * dW1dLambda[i] * dW1dLambda[j] * p * (p + 1);
           dS(i, j) += factor1 * (factor2 + factor3);
