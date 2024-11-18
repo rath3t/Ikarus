@@ -10,7 +10,7 @@
 #pragma once
 
 #include <ikarus/finiteelements/mechanics/materials/muesli/muesliefinite.hh>
-#include <ikarus/finiteelements/mechanics/materials/muesli/mueslielastic.hh>
+#include <ikarus/finiteelements/mechanics/materials/muesli/muesliesmall.hh>
 #include <ikarus/finiteelements/mechanics/materials/muesli/mueslihelpers.hh>
 
 namespace Ikarus::Materials::Muesli {
@@ -47,8 +47,7 @@ auto makeSVK(const MPT& mpt) {
   return FiniteStrain<Muesli::StVenantKirchhoff>(muesliParameters);
 }
 
-
-auto makeArrudaBoyce(double C1, double lambda_m, double K, bool compressible = true) {
+inline auto makeArrudaBoyce(double C1, double lambda_m, double K, bool compressible = true) {
   auto muesliParameters = muesli::materialProperties{};
   muesliParameters.insert({"c1", C1});
   muesliParameters.insert({"lambdam", lambda_m});
@@ -58,8 +57,7 @@ auto makeArrudaBoyce(double C1, double lambda_m, double K, bool compressible = t
   return FiniteStrain<Muesli::ArrudaBoyce>(muesliParameters);
 }
 
-
-auto makeYeoh(std::array<double, 3> C, double K, bool compressible = true) {
+inline auto makeYeoh(std::array<double, 3> C, double K, bool compressible = true) {
   auto muesliParameters = muesli::materialProperties{};
   muesliParameters.insert({"c1", C[0]});
   muesliParameters.insert({"c2", C[1]});
@@ -70,8 +68,7 @@ auto makeYeoh(std::array<double, 3> C, double K, bool compressible = true) {
   return FiniteStrain<Muesli::Yeoh>(muesliParameters);
 }
 
-
-auto makeMooneyRivlin(std::array<double, 3> alpha, bool incompressible = false) {
+inline auto makeMooneyRivlin(std::array<double, 3> alpha, bool incompressible = false) {
   auto muesliParameters = muesli::materialProperties{};
   muesliParameters.insert({"alpha0", alpha[0]});
   muesliParameters.insert({"alpha1", alpha[1]});
