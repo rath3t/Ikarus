@@ -94,7 +94,7 @@ struct Deviatoric
 
     for (auto i : dimensionRange())
       for (auto k : dimensionRange())
-        L(i, i, k, k) = 1.0 / lambda(k) * dS(i, k);
+        L(i, i, k, k) = 1.0 / (lambda(i) * lambda(k)) * dS(i, k);
 
     for (auto i : dimensionRange())
       for (auto k : dimensionRange())

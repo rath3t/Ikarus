@@ -111,10 +111,9 @@ struct GentT
     for (auto i : dimensionRange())
       for (auto j : dimensionRange()) {
         auto factor1 = 1.0 - ((W1 - 3.0) / Jm);
-        dS(i, j) += (mu / (2.0 * (lambda[i] * factor1))) *
-                    (ddW1dLambda(i, j) + (dW1dLambda[i] * dW1dLambda[j] / (factor1 * Jm)));
+        dS(i, j) += (mu / (2.0 * factor1)) * (ddW1dLambda(i, j) + (dW1dLambda[i] * dW1dLambda[j] / (factor1 * Jm)));
         if (i == j)
-          dS(i, j) -= (mu / (2.0 * pow(lambda[i], 2) * factor1)) * dW1dLambda[i];
+          dS(i, j) -= (mu / (2.0 * lambda[i] * factor1)) * dW1dLambda[i];
       }
 
     return dS;

@@ -127,9 +127,9 @@ struct ArrudaBoyceT
           auto factor1 = C_ * alphas_[p] * pow(beta, p);
           auto factor2 = pow(W1, p) * ddW1dLambda(i, j) * (p + 1);
           auto factor3 = pow(W1, p - 1) * dW1dLambda[i] * dW1dLambda[j] * p * (p + 1);
-          dS(i, j) += (1.0 / lambda[i]) * factor1 * (factor2 + factor3);
+          dS(i, j) += factor1 * (factor2 + factor3);
           if (i == j)
-            dS(i, j) -= (1.0 / pow(lambda[i], 2.0)) * factor1 * pow(W1, p) * dW1dLambda[i] * (p + 1);
+            dS(i, j) -= (1.0 / lambda[i]) * factor1 * pow(W1, p) * dW1dLambda[i] * (p + 1);
         }
 
     return dS;

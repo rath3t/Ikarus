@@ -142,10 +142,9 @@ struct OgdenT
 
     if constexpr (usesDeviatoricStretches) {
       const auto lambdaBar = Impl::deviatoricStretches(lambda);
-      const auto S         = firstDerivativeImpl(lambda);
+      const auto dWdLambda = firstDerivativeImpl(lambda);
 
       for (auto a : dimensionRange()) {
-        const auto Siso = S[a] / lambda[a];
         for (auto b : dimensionRange()) {
           if (a == b) {
             for (auto p : parameterRange()) {
@@ -165,17 +164,17 @@ struct OgdenT
             }
           }
 
-          dS(a, b) *= pow(lambda[a], -2) / lambda[b];
+          dS(a, b) *= 1.0 / (lambda[a] * lambda[b]);
 
           if (a == b)
-            dS(a, b) -= (2.0 / lambda[a]) * Siso;
+            dS(a, b) -= (2.0 / lambda[a]) * dWdLambda[a];
         }
       }
     } else {
       for (auto j : parameterRange())
         for (auto k : dimensionRange())
-          dS(k, k) += -2 * (mu[j] * (pow(lambda[k], alpha[j]) - 1)) / pow(lambda[k], 3) +
-                      (mu[j] * pow(lambda[k], alpha[j]) * alpha[j] / lambda[k]) / pow(lambda[k], 2);
+          dS(k, k) += -2 * (mu[j] * (pow(lambda[k], alpha[j]) - 1)) / pow(lambda[k], 2) +
+                      (mu[j] * pow(lambda[k], alpha[j]) * alpha[j] / lambda[k]) / pow(lambda[k], 1);
     }
     return dS;
   }

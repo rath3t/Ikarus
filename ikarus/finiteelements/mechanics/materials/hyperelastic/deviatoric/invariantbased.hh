@@ -137,10 +137,10 @@ struct InvariantBasedT
           auto factor3 =
               ((pex[p] * qex[p]) / (W1 * W2)) * (dW1dLambda[i] * dW2dLambda[j] + dW1dLambda[j] * dW2dLambda[i]);
           auto factor4 = mu[p] * pow(W1, pex[p]) * pow(W2, qex[p]);
-          dS(i, j) += (1.0 / lambda[i]) * (factor4 * (factor1 + factor2 + factor3));
+          dS(i, j) += (factor4 * (factor1 + factor2 + factor3));
           if (i == j) {
             auto factor5 = (pex[p] / W1 * dW1dLambda[i]) + (qex[p] / W2 * dW2dLambda[i]);
-            dS(i, j) -= (1.0 / pow(lambda[i], 2.0)) * factor4 * factor5;
+            dS(i, j) -= (1.0 / lambda[i]) * factor4 * factor5;
           }
         }
     return dS;

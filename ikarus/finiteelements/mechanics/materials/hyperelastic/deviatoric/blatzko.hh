@@ -67,11 +67,11 @@ struct BlatzKoT
    * \return ScalarType
    */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
-    auto dWdLambda = FirstDerivative::Zero().eval();
+    auto dWdLambda     = FirstDerivative::Zero().eval();
+    const ScalarType J = lambda[0] * lambda[1] * lambda[2];
 
-    dWdLambda[0] = materialParameter_.mu * (-2 / pow(lambda[0], 3) + 2 * lambda[1] * lambda[2]) / 2;
-    dWdLambda[1] = materialParameter_.mu * (-2 / pow(lambda[1], 3) + 2 * lambda[0] * lambda[2]) / 2;
-    dWdLambda[2] = materialParameter_.mu * (-2 / pow(lambda[2], 3) + 2 * lambda[0] * lambda[1]) / 2;
+    for (auto k : dimensionRange())
+      dWdLambda[k] = materialParameter_.mu * (-2 / pow(lambda[k], 3) + 2 * (J / lambda[k])) / 2;
 
     return dWdLambda;
   }
@@ -84,20 +84,20 @@ struct BlatzKoT
    */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
     auto ddWdLambda = SecondDerivative::Zero().eval();
-    auto mu         = materialParameter_.mu;
+    const auto mu   = materialParameter_.mu;
 
-    ddWdLambda(0, 0) = -mu * (-2.0 / pow(lambda(0), 3) + 2.0 * lambda(1) * lambda(2)) / (2.0 * pow(lambda(0), 2)) +
-                       3.0 * mu / pow(lambda(0), 5);
-    ddWdLambda(0, 1) = mu * lambda(2) / lambda(0);
-    ddWdLambda(0, 2) = mu * lambda(1) / lambda(0);
-    ddWdLambda(1, 0) = mu * lambda(2) / lambda(1);
-    ddWdLambda(1, 1) = -mu * (-2.0 / pow(lambda(1), 3) + 2.0 * lambda(0) * lambda(2)) / (2.0 * pow(lambda(1), 2)) +
-                       3.0 * mu / pow(lambda(1), 5);
-    ddWdLambda(1, 2) = mu * lambda(0) / lambda(1);
-    ddWdLambda(2, 0) = mu * lambda(1) / lambda(2);
-    ddWdLambda(2, 1) = mu * lambda(0) / lambda(2);
-    ddWdLambda(2, 2) = -mu * (-2.0 / pow(lambda(2), 3) + 2.0 * lambda(0) * lambda(1)) / (2.0 * pow(lambda(2), 2)) +
-                       3.0 * mu / pow(lambda(2), 5);
+    ddWdLambda(0, 0) =
+        -mu * (-1.0 / pow(lambda(0), 3) + lambda(1) * lambda(2)) / lambda(0) + 3.0 * mu / pow(lambda(0), 4);
+    ddWdLambda(0, 1) = mu * lambda(2);
+    ddWdLambda(0, 2) = mu * lambda(1);
+    ddWdLambda(1, 0) = mu * lambda(2);
+    ddWdLambda(1, 1) =
+        -mu * (-1.0 / pow(lambda(1), 3) + lambda(0) * lambda(2)) / lambda(1) + 3.0 * mu / pow(lambda(1), 4);
+    ddWdLambda(1, 2) = mu * lambda(0);
+    ddWdLambda(2, 0) = mu * lambda(1);
+    ddWdLambda(2, 1) = mu * lambda(0);
+    ddWdLambda(2, 2) =
+        -mu * (-1.0 / pow(lambda(2), 3) + lambda(0) * lambda(1)) / lambda(2) + 3.0 * mu / pow(lambda(2), 4);
 
     return ddWdLambda;
   }
@@ -114,6 +114,8 @@ struct BlatzKoT
 
 private:
   MaterialParameters materialParameter_;
+
+  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
 };
 
 /**
