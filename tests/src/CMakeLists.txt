@@ -86,8 +86,6 @@ set(TEST_DEPENDING_ON_IGA testklshell testadaptivestepsizing)
 
 set(TEST_NEED_MORE_TIME testadaptivestepsizing)
 
-
-
 foreach(programSourceFile ${programSourceFiles})
   get_filename_component(programName ${programSourceFile} NAME_WLE)
   if(${programName} IN_LIST TEST_DEPENDING_ON_LOCALFEFUNCTIONS AND NOT HAVE_DUNE_LOCALFEFUNCTIONS)

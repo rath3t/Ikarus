@@ -130,5 +130,7 @@ int main(int argc, char** argv) {
   Muesli::makeNeoHooke(YoungsModulusAndPoissonsRatio{1000, 0.2});
   Muesli::makeSVK(YoungsModulusAndLamesFirstParameter{1000, 500});
 
+  std::cout << svkm.name() << std::endl;
+  std::cout << nhm.name() << std::endl;
   return t.exit();
 }

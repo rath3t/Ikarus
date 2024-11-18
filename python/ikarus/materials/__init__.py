@@ -26,10 +26,16 @@ MuesliFiniteStrain = Enum(
 
 
 def muesliMaterial(materialTag: Union[MuesliSmallStrain, MuesliFiniteStrain], **kwargs):
-    assert  isinstance(materialTag, MuesliSmallStrain) or isinstance(materialTag, MuesliFiniteStrain)
+    assert isinstance(materialTag, MuesliSmallStrain) or isinstance(
+        materialTag, MuesliFiniteStrain
+    )
 
     materialTagSplitted = str(materialTag).split(".")
-    wrappertype = "Muesli::SmallStrain" if isinstance(materialTag, MuesliSmallStrain) else "Muesli::FiniteStrain"
+    wrappertype = (
+        "Muesli::SmallStrain"
+        if isinstance(materialTag, MuesliSmallStrain)
+        else "Muesli::FiniteStrain"
+    )
     materialtype = f"Ikarus::Materials::Muesli::{materialTagSplitted[1]}"
 
     includes = []

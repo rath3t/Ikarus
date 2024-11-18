@@ -9,9 +9,9 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/muesli/muesliefinite.hh>
-#include <ikarus/finiteelements/mechanics/materials/muesli/muesliesmall.hh>
+#include <ikarus/finiteelements/mechanics/materials/muesli/mueslifinite.hh>
 #include <ikarus/finiteelements/mechanics/materials/muesli/mueslihelpers.hh>
+#include <ikarus/finiteelements/mechanics/materials/muesli/mueslismall.hh>
 
 namespace Ikarus::Materials::Muesli {
 

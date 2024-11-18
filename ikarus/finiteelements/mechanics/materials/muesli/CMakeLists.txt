@@ -2,10 +2,6 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 # install headers
-install(
-  FILES muesliefinite.hh
-  muesliesmall.hh
-        mueslimaterials.hh
-        mueslihelpers.hh
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/materials/muesli
+install(FILES mueslifinite.hh mueslismall.hh mueslimaterials.hh mueslihelpers.hh
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/materials/muesli
 )

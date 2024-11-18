@@ -290,7 +290,6 @@ int main(int argc, char** argv) {
   auto muesliNeoHookeReg = Materials::Muesli::makeNeoHooke(matPar, true);
   t.subTest(testMaterial(muesliNeoHookeReg));
 
-
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::linear, LinearElasticity>());
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::greenLagrangian, StVenantKirchhoff>());
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::rightCauchyGreenTensor, NeoHooke>());

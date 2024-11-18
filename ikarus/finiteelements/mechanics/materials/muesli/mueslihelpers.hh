@@ -9,8 +9,12 @@
 
 #include <ikarus/finiteelements/physicshelper.hh>
 #include <ikarus/utils/tensorutils.hh>
-
 namespace Ikarus::Materials::Muesli {
+
+template <typename MAT>
+concept MuesliMaterial = requires {
+  std::is_base_of_v<muesli::smallStrainMaterial, MAT> || std::is_base_of_v<muesli::finiteStrainMaterial, MAT>;
+};
 
 // Alias for Muesli material properties
 using MaterialProperties = muesli::materialProperties;
@@ -55,6 +59,21 @@ inline auto toTensor(const itensor4& it) -> Eigen::TensorFixedSize<ScalarType, E
           moduli(i, j, k, l) = it(i, j, k, l);
 
   return moduli;
+}
+
+template <MuesliMaterial MAT>
+constexpr std::string materialName() {
+  std::string matName = Dune::className<MAT>();
+
+  // Find and remove the "muesli::" namespace
+  std::string prefix = "muesli::";
+  matName            = matName.substr(prefix.size());
+
+  // Capitalize the first letter
+  if (!matName.empty() && std::islower(matName[0])) {
+    matName[0] = std::toupper(matName[0]);
+  }
+  return matName;
 }
 
 } // namespace Ikarus::Materials::Muesli
