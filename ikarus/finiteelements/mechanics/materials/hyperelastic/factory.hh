@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/arrudaboyce.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/blatzko.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/interface.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric/invariantbased.hh>
@@ -66,6 +67,16 @@ inline auto makeYeoh(const typename InvariantBased<3>::MaterialParameters& mu, B
   typename InvariantBased<3>::Exponents qex = {0, 0, 0};
 
   return makeInvariantBased<3, VolumetricFunction>(mu, pex, qex, K, vf);
+}
+
+template <typename VolumetricFunction = VF0T<double>>
+inline auto makeArrudaBoyce(const ArrudaBoyceMatParameters& matPar, BulkModulus K = {0.0},
+                            const VolumetricFunction& vf = VolumetricFunction{}) {
+  auto abPre = ArrudaBoyce(matPar);
+  auto dev   = Deviatoric(abPre);
+  auto vol   = Volumetric(K, vf);
+
+  return Hyperelastic(dev, vol);
 }
 
 } // namespace Ikarus::Materials

@@ -16,6 +16,7 @@
 #include <Eigen/Dense>
 
 #include <ikarus/utils/concepts.hh>
+#include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::Materials {
 /**

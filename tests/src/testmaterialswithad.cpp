@@ -151,6 +151,7 @@ int main(int argc, char** argv) {
   auto yeoh                      = makeYeoh({2.0 * mu / 3.0, mu / 6.0, mu / 6.0}, {K}, VF3{});
   auto polynomial = makeInvariantBased<5>({mu / 6.0, mu / 8.0, mu / 8.0, mu / 12.0, mu / 2.0}, {0, 1, 3, 6, 8},
                                           {2, 4, 10, 1, 7}, {K}, VF3{});
+  auto ab         = makeArrudaBoyce({mu, 0.85}, {K}, VF3{});
 
   const std::string autodiffErrorMsg = "AutoDiff with duplicate principal stretches should have failed here.";
 
@@ -180,6 +181,10 @@ int main(int argc, char** argv) {
   t.checkThrow<Dune::InvalidStateException>([&]() { testMaterial<CauchyGreen>(polynomial, c0); },
                                             testLocation() + autodiffErrorMsg);
   t.subTest(testMaterial<CauchyGreen>(polynomial, c));
+
+  t.checkThrow<Dune::InvalidStateException>([&]() { testMaterial<CauchyGreen>(ab, c0); },
+                                            testLocation() + autodiffErrorMsg);
+  t.subTest(testMaterial<CauchyGreen>(ab, c));
 
   return t.exit();
 }
