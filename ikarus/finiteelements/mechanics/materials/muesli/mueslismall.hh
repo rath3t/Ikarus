@@ -98,7 +98,7 @@ struct SmallStrain : public Material<SmallStrain<SM>>
       if constexpr (!Concepts::EigenVector<Derived>) {
         updateState(C);
         mp_->stress(stress_);
-        return Muesli::toMatrix<ScalarType>(stress_);
+        return Muesli::toMatrix(stress_);
       } else
         static_assert(!Concepts::EigenVector<Derived>,
                       "MuesliSmallStrain can only be called with a matrix and not a vector in Voigt notation");
@@ -120,7 +120,7 @@ struct SmallStrain : public Material<SmallStrain<SM>>
       if constexpr (!Concepts::EigenVector<Derived>) {
         updateState(E);
         mp_->tangentTensor(tangentModuli_);
-        return Muesli::toTensor<ScalarType>(tangentModuli_);
+        return Muesli::toTensor(tangentModuli_);
       } else
         static_assert(!Concepts::EigenVector<Derived>,
                       "MuesliSmallStrain can only be called with a matrix and not a vector in Voigt notation");

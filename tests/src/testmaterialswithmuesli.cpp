@@ -22,8 +22,6 @@ using namespace Ikarus::Materials;
 using Dune::TestSuite;
 
 template <StrainTags strainTag, typename MuesliMAT, typename IkarusMAT>
-// requires(std::is_base_of_v<muesli::smallStrainMaterial, typename MuesliMAT::MaterialModel> or
-//          std::is_base_of_v<muesli::finiteStrainMaterial, typename MuesliMAT::MaterialModel>)
 auto testMaterials(const MuesliMAT& muesliMat, const IkarusMAT& ikarusMat) {
   TestSuite t(MuesliMAT::name() + " vs " + IkarusMAT::name() + " InputStrainMeasure: " + toString(strainTag));
 

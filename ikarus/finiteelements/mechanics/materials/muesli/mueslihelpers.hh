@@ -9,12 +9,13 @@
 
 #include <ikarus/finiteelements/physicshelper.hh>
 #include <ikarus/utils/tensorutils.hh>
-namespace Ikarus::Materials::Muesli {
 
+namespace Ikarus::Concepts {
 template <typename MAT>
-concept MuesliMaterial = requires {
-  std::is_base_of_v<muesli::smallStrainMaterial, MAT> || std::is_base_of_v<muesli::finiteStrainMaterial, MAT>;
-};
+concept MuesliMaterialImplementation = requires { std::is_base_of_v<muesli::material, MAT>; };
+} // namespace Ikarus::Concepts
+
+namespace Ikarus::Materials::Muesli {
 
 // Alias for Muesli material properties
 using MaterialProperties = muesli::materialProperties;
@@ -39,7 +40,7 @@ inline void toistensor(istensor& it, const Eigen::MatrixBase<Derived>& C) {
   it = istensor(C(0, 0), C(1, 1), C(2, 2), C(1, 2), C(2, 0), C(0, 1));
 }
 
-template <typename ScalarType, int dim = 3>
+template <typename ScalarType = double, int dim = 3>
 inline Eigen::Matrix<ScalarType, dim, dim> toMatrix(const istensor& it) {
   auto S = Eigen::Matrix<double, dim, dim>{};
   for (auto i : Dune::Hybrid::integralRange(dim))
@@ -48,7 +49,7 @@ inline Eigen::Matrix<ScalarType, dim, dim> toMatrix(const istensor& it) {
   return S;
 }
 
-template <typename ScalarType, std::size_t dim = 3>
+template <typename ScalarType = double, std::size_t dim = 3>
 inline auto toTensor(const itensor4& it) -> Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>> {
   Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>> moduli{};
   moduli.setZero();
@@ -61,7 +62,7 @@ inline auto toTensor(const itensor4& it) -> Eigen::TensorFixedSize<ScalarType, E
   return moduli;
 }
 
-template <MuesliMaterial MAT>
+template <Concepts::MuesliMaterialImplementation MAT>
 constexpr std::string materialName() {
   std::string matName = Dune::className<MAT>();
 
