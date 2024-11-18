@@ -57,12 +57,12 @@ struct OgdenT
   /**
    * \brief Returns the material parameters stored in the material
    */
-  MaterialParameters materialParametersImpl() const { return materialParameters_; }
+  const MaterialParameters& materialParametersImpl() const { return materialParameters_; }
 
   /**
    * \brief Returns the ogden parameters stored in the material
    */
-  OgdenParameters ogdenParameters() const { return ogdenParameters_; }
+  const OgdenParameters& ogdenParameters() const { return ogdenParameters_; }
 
   /**
    * \brief Computes the stored energy in the Ogden material model.

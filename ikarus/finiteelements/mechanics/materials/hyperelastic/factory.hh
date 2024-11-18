@@ -3,7 +3,7 @@
 
 /**
  * \file factory.hh
- * \brief Header file for hyperelastic material models in Ikarus finite element mechanics.
+ * \brief Header file for containing helper functions to construct various hyperelastic material models.
  * \ingroup materials
  */
 
@@ -22,6 +22,14 @@
 
 namespace Ikarus::Materials {
 
+/**
+ * \brief A helper function to create a hyperelastic material model, where the deviatoric part is according to the
+ * Blatz-Ko model.
+ *
+ *\param mu The shear modulus.
+ *
+ *\return A hyperelastic material model.
+ */
 inline auto makeBlatzKo(ShearModulus mu) {
   auto bk  = BlatzKo(mu);
   auto dev = Deviatoric<decltype(bk)>(bk);
@@ -29,6 +37,22 @@ inline auto makeBlatzKo(ShearModulus mu) {
   return Hyperelastic(dev);
 }
 
+/**
+ * \brief A helper function to create a hyperelastic material model, where the deviatoric part is according to the Ogden
+ * model.
+ *
+ * \tparam n Number of Ogden material parameters.
+ * \tparam PrincipalStretchTag Type of the principal stretches, either total or deviatoric.
+ * \tparam VolumetricFunction Type of the volumetric function.
+ *
+ * \param mu The shear parameters (mu_i).
+ * \param og The (exponential) parameters (alpha_i).
+ * \param K The bulk modulus.
+ * \param vf The
+ * volumetric function.
+ *
+ * \return A hyperelastic material model.
+ */
 template <int n, PrincipalStretchTag tag, typename VolumetricFunction = VF0T<double>>
 inline auto makeOgden(const typename Ogden<n, tag>::MaterialParameters& mu,
                       const typename Ogden<n, tag>::OgdenParameters og, BulkModulus K = {0.0},
@@ -40,6 +64,21 @@ inline auto makeOgden(const typename Ogden<n, tag>::MaterialParameters& mu,
   return Hyperelastic(dev, vol);
 }
 
+/**
+ * \brief A helper function to create a hyperelastic material model, where the deviatoric part is according to the
+ * general invariant-based model.
+ *
+ * \tparam n Number of material parameters.
+ * \tparam VolumetricFunction Type of the volumetric function.
+ *
+ * \param mu The shear parameters (mu_i).
+ * \param pex The exponents related to the first invariant.
+ * \param qex The exponents related to the second invariant.
+ * \param K The bulk modulus.
+ * \param vf The volumetric function.
+ *
+ * \return A hyperelastic material model.
+ */
 template <int n, typename VolumetricFunction = VF0T<double>>
 inline auto makeInvariantBased(const typename InvariantBased<n>::MaterialParameters& mu,
                                const typename InvariantBased<n>::Exponents pex,
@@ -52,6 +91,18 @@ inline auto makeInvariantBased(const typename InvariantBased<n>::MaterialParamet
   return Hyperelastic(dev, vol);
 }
 
+/**
+ * \brief A helper function to create a hyperelastic material model, where the deviatoric part is according to the
+ * Mooney-Rivlin model (InvariantBased model with n = 2).
+ *
+ * \tparam VolumetricFunction Type of the volumetric function.
+ *
+ * \param mu The shear parameters (mu_i).
+ * \param K The bulk modulus.
+ * \param vf The volumetric function.
+ *
+ * \return A hyperelastic material model.
+ */
 template <typename VolumetricFunction = VF0T<double>>
 inline auto makeMooneyRivlin(const typename InvariantBased<2>::MaterialParameters& mu, BulkModulus K = {0.0},
                              const VolumetricFunction& vf = VolumetricFunction{}) {
@@ -61,6 +112,18 @@ inline auto makeMooneyRivlin(const typename InvariantBased<2>::MaterialParameter
   return makeInvariantBased<2, VolumetricFunction>(mu, pex, qex, K, vf);
 }
 
+/**
+ * \brief A helper function to create a hyperelastic material model, where the deviatoric part is according to the
+ * Yeoh model (InvariantBased model with n = 3).
+ *
+ * \tparam VolumetricFunction Type of the volumetric function.
+ *
+ * \param mu The shear parameters (mu_i).
+ * \param K The bulk modulus.
+ * \param vf The volumetric function.
+ *
+ * \return A hyperelastic material model.
+ */
 template <typename VolumetricFunction = VF0T<double>>
 inline auto makeYeoh(const typename InvariantBased<3>::MaterialParameters& mu, BulkModulus K = {0.0},
                      const VolumetricFunction& vf = VolumetricFunction{}) {
@@ -70,6 +133,18 @@ inline auto makeYeoh(const typename InvariantBased<3>::MaterialParameters& mu, B
   return makeInvariantBased<3, VolumetricFunction>(mu, pex, qex, K, vf);
 }
 
+/**
+ * \brief A helper function to create a hyperelastic material model, where the deviatoric part is according to the
+ * Arruda-Boyce model.
+ *
+ * \tparam VolumetricFunction Type of the volumetric function.
+ *
+ * \param matPar The Arruda-Boyce material parameters (C and lambdaM).
+ * \param K The bulk modulus.
+ * \param vf The volumetric function.
+ *
+ * \return A hyperelastic material model.
+ */
 template <typename VolumetricFunction = VF0T<double>>
 inline auto makeArrudaBoyce(const ArrudaBoyceMatParameters& matPar, BulkModulus K = {0.0},
                             const VolumetricFunction& vf = VolumetricFunction{}) {
@@ -80,6 +155,18 @@ inline auto makeArrudaBoyce(const ArrudaBoyceMatParameters& matPar, BulkModulus 
   return Hyperelastic(dev, vol);
 }
 
+/**
+ * \brief A helper function to create a hyperelastic material model, where the deviatoric part is according to the
+ * Gent model.
+ *
+ * \tparam VolumetricFunction Type of the volumetric function.
+ *
+ * \param matPar The Gent material parameters (mu and Jm).
+ * \param K The bulk modulus.
+ * \param vf The volumetric function.
+ *
+ * \return A hyperelastic material model.
+ */
 template <typename VolumetricFunction = VF0T<double>>
 inline auto makeGent(const GentMatParameters& matPar, BulkModulus K = {0.0},
                      const VolumetricFunction& vf = VolumetricFunction{}) {

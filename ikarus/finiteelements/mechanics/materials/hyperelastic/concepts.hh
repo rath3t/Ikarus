@@ -3,8 +3,8 @@
 
 /**
  * \file concepts.hh
- * \brief Header file for material models in Ikarus finite element mechanics.
- * \ingroup  mechanics
+ * \brief Header file including concepts for hyperelastic material models.
+ * \ingroup  materials
  */
 
 #pragma once
@@ -14,6 +14,12 @@
 
 namespace Ikarus::Concepts {
 
+/**
+ * \concept DeviatoricFunction
+ * \brief Concept to check if the underlying function is a deviatoric function.
+ * \tparam Type of the deviatoric function.
+ *
+ */
 template <typename DF>
 concept DeviatoricFunction = requires(DF dm, const typename DF::PrincipalStretches& lambda) {
   typename DF::ScalarType;
@@ -26,8 +32,15 @@ concept DeviatoricFunction = requires(DF dm, const typename DF::PrincipalStretch
   { dm.storedEnergyImpl(lambda) } -> std::same_as<typename DF::ScalarType>;
   { dm.firstDerivativeImpl(lambda) } -> std::same_as<typename DF::FirstDerivative>;
   { dm.secondDerivativeImpl(lambda) } -> std::same_as<typename DF::SecondDerivative>;
+  { dm.materialParametersImpl() } -> std::same_as<const typename DF::MaterialParameters&>;
 };
 
+/**
+ * \concept VolumetricFunction
+ * \brief Concept to check if the underlying function is a volumetric function.
+ * \tparam Type of the volumetric function.
+ *
+ */
 template <typename VF>
 concept VolumetricFunction = requires(VF vf, const typename VF::JType& j) {
   typename VF::ScalarType;
@@ -38,6 +51,12 @@ concept VolumetricFunction = requires(VF vf, const typename VF::JType& j) {
   { vf.secondDerivativeImpl(j) } -> std::same_as<typename VF::ScalarType>;
 };
 
+/**
+ * \concept DeviatoricPart
+ * \brief Concept to check if the underlying type corresponds to the deviatoric part of a hyperelastic material model.
+ * \tparam Type of the deviatoric part of a hyperelastic material model.
+ *
+ */
 template <typename DP>
 concept DeviatoricPart = requires(DP dp, const typename DP::PrincipalStretches& lambda) {
   typename DP::DeviatoricFunction;
@@ -55,6 +74,12 @@ concept DeviatoricPart = requires(DP dp, const typename DP::PrincipalStretches& 
   { dp.tangentModuli(lambda) } -> std::same_as<typename DP::MaterialTensor>;
 };
 
+/**
+ * \concept VolumetricPart
+ * \brief Concept to check if the underlying type corresponds to the volumetric part of a hyperelastic material model.
+ * \tparam Type of the volumetric part of a hyperelastic material model.
+ *
+ */
 template <typename VP>
 concept VolumetricPart = requires(VP vp, const typename VP::JType& j) {
   typename VP::VolumetricFunction;

@@ -19,9 +19,11 @@ namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of a general Hyperelastic Material material model.
- * \details $\Psi(\BC) = \hat{\Psi}(\lambda_1 + \lambda_2 + \lambda_3) + U(J)$ with $\hat{\Psi}$ being the deviatoric
- * part of the strain energy function and U(J) the volumetric part.
- * \ingroup materials
+ * \details $\Psi(\BC) = \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) + U(J)$ with $\hat{\Psi}$ being the deviatoric
+ * part of the strain energy function and U(J) being the volumetric part. After calling the underlying deviatoric and
+ * volumetric function, the transformation to cartesian coordinate system is implemented in this interface.
+ *
+ *\ingroup  materials
  */
 template <typename DEV, typename VOL = NoVolumetricPart>
 requires(std::same_as<typename DEV::ScalarType, typename VOL::ScalarType>)
@@ -72,12 +74,12 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
         vol_(vol) {}
 
   /**
-   * \brief Returns the material parameters stored in the material
+   * \brief Returns the material parameters stored in the deviatoric part of the material.
    */
-  MaterialParameters materialParametersImpl() const { return dev_.materialParameter_; }
+  const MaterialParameters& materialParametersImpl() const { return dev_.materialParameter_; }
 
   /**
-   * \brief Computes the stored energy in the Neo-Hookean material model.
+   * \brief Computes the total stored energy in the Hyperelastic material model.
    * \tparam Derived The derived type of the input matrix.
    * \param C The right Cauchy-Green tensor.
    * \return ScalarType The stored energy.
@@ -93,7 +95,7 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   }
 
   /**
-   * \brief Computes the stresses in the Neo-Hookean material model.
+   * \brief Computes the stresses in the Hyperelastic material model.
    * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
    * \param C The right Cauchy-Green tensor.
@@ -115,7 +117,7 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   }
 
   /**
-   * \brief Computes the tangent moduli in the Neo-Hookean material model.
+   * \brief Computes the tangent moduli in the Hyperelastic material model.
    * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
    * \param C The right Cauchy-Green tensor.

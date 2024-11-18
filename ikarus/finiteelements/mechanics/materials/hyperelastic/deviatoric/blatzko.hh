@@ -46,7 +46,7 @@ struct BlatzKoT
   /**
    * \brief Returns the material parameters stored in the material
    */
-  MaterialParameters materialParametersImpl() const { return materialParameter_; }
+  const MaterialParameters& materialParametersImpl() const { return materialParameter_; }
 
   /**
    * \brief Computes the stored energy in the BlatzKo material model.

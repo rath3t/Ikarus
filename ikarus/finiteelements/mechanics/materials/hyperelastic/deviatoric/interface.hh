@@ -3,7 +3,7 @@
 
 /**
  * \file interface.hh
- * \brief Implementation of the deviatoric part of a hyperelastic material.
+ * \brief Implementation of the interface for the deviatoric part of a hyperelastic material.
  * \ingroup  materials
  */
 
@@ -18,14 +18,16 @@ namespace Ikarus::Materials {
 
 /**
  * \brief This is the interface implementation for the deviatoric part of a hyperelastic material.
- *    It is intended to use with the hyperelastic material model.
- * \details
- * The deviatoric part is parametrized with a certain deviatoric function (DF) implemented in terms of principal
- * stretches. The three interface functions (energy, streses and tangentModulus) are called with the principal stretches
- * lambda. After calling the deviatoric function certain transformation happen to yield the principal stresses and the
- * material tangent in principal coordinates
+ *    It is intended to be used with the hyperelastic material model.
  *
- * \tparam DF deviatoric material function
+ * \details The deviatoric part of the hyperelastic model (i.e., related to $\hat{\Psi}(\lambda_1, \lambda_2,
+ * \lambda_3)$) is parametrized with a certain deviatoric function (DF) implemented in terms of principal stretches. The
+ * three interface functions (energy, streses and tangentModulus) are called with the argument being the principal
+ * stretches
+ * ($\lambda_i$). The underlying deviatoric function must only implement the energy $\hat{\Psi}(\lambda_1, \lambda_2,
+ * \lambda_3)$ and its first and second derivatives w.r.t the total principal stretches.
+ *
+ * \tparam DF deviatoric material function, has to adhere to the \concept `DeviatoricFunction`.
  * \ingroup materials
  */
 template <Concepts::DeviatoricFunction DF>
@@ -50,7 +52,12 @@ struct Deviatoric
       : deviatoricFunction_{df} {}
 
   /**
-   * \brief Returns the stored energy obtained from the deviatoric function
+   * \brief Returns the material parameters stored in the deviatoric part of the material.
+   */
+  const MaterialParameters& materialParametersImpl() const { return deviatoricFunction_.materialParametersImpl(); }
+
+  /**
+   * \brief Returns the stored energy obtained from the deviatoric function.
    *
    * \param lambdas the principal stretches
    * \return ScalarType the energy
@@ -61,10 +68,10 @@ struct Deviatoric
   };
 
   /**
-   * \brief Returns the principal PK2 stresses obtained from the first derivative of the deviatoric function
+   * \brief Returns the principal PK2 stresses obtained from the first derivative of the deviatoric function.
    *
    * \param lambda the principal stretches
-   * \return StressMatrix
+   * \return StressMatrix the stresses in Cartesian coordinate system.
    */
   StressMatrix stresses(const PrincipalStretches& lambda) const {
     checkDuplicates(lambda);
@@ -79,10 +86,10 @@ struct Deviatoric
   }
 
   /**
-   * \brief Returns the material tangent modulus obtained from the second derivative of the deviatoric function
+   * \brief Returns the material tangent modulus obtained from the second derivative of the deviatoric function.
    *
    * \param lambda the principal stretches
-   * \return MaterialTensor
+   * \return MaterialTensor the tangentModuli in Cartesian coordinate system.
    */
   MaterialTensor tangentModuli(const PrincipalStretches& lambda) const {
     checkDuplicates(lambda);

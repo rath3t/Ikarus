@@ -16,9 +16,15 @@
 namespace Ikarus::Materials {
 
 /**
- * \brief Interface for the volumetric part opf a hyperelastic material. Has to be parametrized with a volumetric
+ * \brief Interface for the volumetric part of a hyperelastic material. Has to be parametrized with a volumetric
  * function.
- * \tparam VF volumetric function, has to adhere to the concept `VolumetricFunction`
+ *
+ * \details The volumetric part of the hyperelastic model (i.e., related to $U(J)$) is
+ * parametrized with a certain volumetric function (VF) implemented in terms of the determinant of the deformation
+ * gradient (J). The underlying volumetric function must only implement the energy $U(J)$ and its first and second
+ * derivatives w.r.t $J$.
+ *
+ * \tparam VF volumetric function, has to adhere to the \concept `VolumetricFunction`.
  * \ingroup materials
  */
 template <Concepts::VolumetricFunction VF>
@@ -67,6 +73,11 @@ struct Volumetric
    */
   ScalarType secondDerivative(const JType& J) const { return K_.K * volumetricFunction_.secondDerivativeImpl(J); };
 
+  /**
+   * \brief Rebinds the material to a different scalar type.
+   * \tparam STO The target scalar type.
+   * \return The rebound volumetric part.
+   */
   template <typename STO>
   auto rebind() const {
     auto reboundVF = volumetricFunction_.template rebind<STO>();

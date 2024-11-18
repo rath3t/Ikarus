@@ -57,6 +57,11 @@ struct ArrudaBoyceT
       : matPar_{matPar} {}
 
   /**
+   * \brief Returns the material parameters stored in the material
+   */
+  const MaterialParameters& materialParametersImpl() const { return matPar_; }
+
+  /**
    * \brief Computes the stored energy in the ArrudaBoyce material model.
    * \details Using only the first five terms of the inverse Langevin function.
    *
