@@ -18,11 +18,5 @@ include(AddAutoDiffFlags)
 find_package(Spectra REQUIRED)
 include(AddSpectraFlags)
 
-set(MUESLI_ROOT "/muesli")
-add_library(muesli STATIC IMPORTED)
-set_target_properties(
-  muesli PROPERTIES IMPORTED_LOCATION "${MUESLI_ROOT}/lib/libmuesli_linux_ia64.a"
-                    INTERFACE_INCLUDE_DIRECTORIES "${MUESLI_ROOT}"
-)
-
+find_package(Muesli)
 include(AddMuesliFlags)

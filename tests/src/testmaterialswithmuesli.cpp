@@ -22,7 +22,7 @@ using namespace Ikarus::Materials;
 using Dune::TestSuite;
 
 template <StrainTags strainTag, typename MuesliMAT, typename IkarusMAT>
-auto testMaterials(const MuesliMAT& muesliMat, const IkarusMAT& ikarusMat) {
+auto compareIkarusAndMuesli(const MuesliMAT& muesliMat, const IkarusMAT& ikarusMat) {
   TestSuite t(MuesliMAT::name() + " vs " + IkarusMAT::name() + " InputStrainMeasure: " + toString(strainTag));
 
   Eigen::Matrix3d cc{
@@ -48,15 +48,14 @@ auto testMaterials(const MuesliMAT& muesliMat, const IkarusMAT& ikarusMat) {
   auto stress_ikarus = ikarusMat.template stresses<strainTag>(c);
   auto moduli_ikarus = ikarusMat.template tangentModuli<strainTag>(c);
 
-  t.check(Dune::FloatCmp::eq(energy_muesli, energy_ikarus, tol)) << testLocation();
+  checkScalars(t, energy_muesli, energy_ikarus, "<energy<", tol);
   t.check(isApproxSame(stress_muesli, stress_ikarus, tol))
-      << testLocation() << "Incorrect stresses." << " stress_muesli is\t" << stress_muesli.transpose()
-      << "\n stress_ikarus is\t" << stress_ikarus.transpose();
+      << "Incorrect stresses." << " stress_muesli is\t" << stress_muesli.transpose() << "\n stress_ikarus is\t"
+      << stress_ikarus.transpose();
 
-  t.check(isApproxSame(moduli_muesli, moduli_ikarus, tol))
-      << testLocation() << "Incorrect tangentModuli." << " moduli_muesli is\n"
-      << moduli_muesli << "\n moduli_ikarus is\n"
-      << moduli_ikarus;
+  t.check(isApproxSame(moduli_muesli, moduli_ikarus, tol)) << "Incorrect tangentModuli." << " moduli_muesli is\n"
+                                                           << moduli_muesli << "\n moduli_ikarus is\n"
+                                                           << moduli_ikarus;
 
   return t;
 }
@@ -79,7 +78,6 @@ auto checkConstructors(Muesli::MaterialProperties matPar) {
   t.check(mm2.assertMP()) << testLocation();
   t.check(mm3.assertMP()) << testLocation();
 
-  // std::cout << Dune::className<MAT>();
   return t;
 }
 
@@ -96,29 +94,29 @@ int main(int argc, char** argv) {
   auto lin  = LinearElasticity(matPar);
   auto linm = Muesli::SmallStrain(matPar);
 
-  t.subTest(testMaterials<StrainTags::linear>(linm, lin));
+  t.subTest(compareIkarusAndMuesli<StrainTags::linear>(linm, lin));
 
   auto nhm = Muesli::makeNeoHooke(matPar, false);
   auto nh  = NeoHooke(matPar);
 
-  t.subTest(testMaterials<StrainTags::rightCauchyGreenTensor>(nhm, nh));
-  t.subTest(testMaterials<StrainTags::deformationGradient>(nhm, nh));
-  t.subTest(testMaterials<StrainTags::greenLagrangian>(nhm, nh));
+  t.subTest(compareIkarusAndMuesli<StrainTags::rightCauchyGreenTensor>(nhm, nh));
+  t.subTest(compareIkarusAndMuesli<StrainTags::deformationGradient>(nhm, nh));
+  t.subTest(compareIkarusAndMuesli<StrainTags::greenLagrangian>(nhm, nh));
 
   auto svk  = StVenantKirchhoff(matPar);
   auto svkm = Muesli::makeSVK(matPar);
 
-  t.subTest(testMaterials<StrainTags::rightCauchyGreenTensor>(svkm, svk));
-  t.subTest(testMaterials<StrainTags::deformationGradient>(svkm, svk));
-  t.subTest(testMaterials<StrainTags::greenLagrangian>(svkm, svk));
+  t.subTest(compareIkarusAndMuesli<StrainTags::rightCauchyGreenTensor>(svkm, svk));
+  t.subTest(compareIkarusAndMuesli<StrainTags::deformationGradient>(svkm, svk));
+  t.subTest(compareIkarusAndMuesli<StrainTags::greenLagrangian>(svkm, svk));
 
   auto nhplaneStrain   = planeStrain(nh);
   auto nhplanseStrainm = planeStrain(nhm);
-  t.subTest(testMaterials<StrainTags::rightCauchyGreenTensor>(nhplanseStrainm, nhplaneStrain));
+  t.subTest(compareIkarusAndMuesli<StrainTags::rightCauchyGreenTensor>(nhplanseStrainm, nhplaneStrain));
 
   auto nhplaneStress  = planeStress(nh);
   auto nhplaneStressm = planeStress(nhm);
-  t.subTest(testMaterials<StrainTags::rightCauchyGreenTensor>(nhplaneStressm, nhplaneStress));
+  t.subTest(compareIkarusAndMuesli<StrainTags::rightCauchyGreenTensor>(nhplaneStressm, nhplaneStress));
 
   t.subTest(checkConstructors<Muesli::FiniteStrain<Muesli::NeoHooke>>(matProp));
   t.subTest(checkConstructors<Muesli::FiniteStrain<Muesli::StVenantKirchhoff>>(matProp));

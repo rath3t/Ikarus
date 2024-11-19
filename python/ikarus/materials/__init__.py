@@ -4,10 +4,7 @@
 from dune.common.hashit import hashIt
 
 from ikarus.generator import MySimpleGenerator
-from dune.vtk import FormatTypes, DataTypes
-import dune.vtk
 
-import types
 from enum import Enum
 from typing import Union
 

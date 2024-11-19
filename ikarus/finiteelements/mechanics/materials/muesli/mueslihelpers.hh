@@ -3,12 +3,14 @@
 
 #pragma once
 
-#include <muesli/muesli.h>
+#if ENABLE_MUESLI
 
-#include <dune/common/hybridutilities.hh>
+  #include <muesli/muesli.h>
 
-#include <ikarus/finiteelements/physicshelper.hh>
-#include <ikarus/utils/tensorutils.hh>
+  #include <dune/common/hybridutilities.hh>
+
+  #include <ikarus/finiteelements/physicshelper.hh>
+  #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::Concepts {
 template <typename MAT>
@@ -39,22 +41,12 @@ inline MaterialProperties propertiesFromIkarusMaterialParameters(const MPT& mpt)
 }
 
 /**
- * \brief adds a tag to the muesli materialproperties that the material model should use regularized stretches (i.e.
- * deviatoric principal stretchs), applicable to NeoHooke material model
+ * \brief adds a specific tag to the muesli materialproperties, thic can be used for example to add the `regularized`
+ * tag for Neo-Hooke or the `compressible` tag for Yeoh and Arruda-Boyce
  */
-inline void addRegularizedTag(MaterialProperties& mpm) { mpm.insert({"subtype regularized", 0}); }
-
-/**
- * \brief adds a tag to the muesli materialproperties that the material model should be compressible, applicable to
- * ArrudaBoyce and Yeoh material model
- */
-inline void addCompressibleTag(MaterialProperties& mpm) { mpm.insert({"compressible", 0}); }
-
-/**
- * \brief adds a tag to the muesli materialproperties that the material model should be incompressible, applicable to
- * MooneyRivlin material model
- */
-inline void addIncompressibleTag(MaterialProperties& mpm) { mpm.insert({"incompressible", 0}); }
+inline void addTag(MaterialProperties& mpm, const std::string& tagName, double tagValue = 0) {
+  mpm.insert({tagName, tagValue});
+}
 
 /**
  * \brief Converts the entries of a Eigen::Matrix to a provided muesli::tensor (symmetric 2nd order tensor)
@@ -122,3 +114,7 @@ constexpr std::string materialName() {
 }
 
 } // namespace Ikarus::Materials::Muesli
+
+#else
+  #error Muesli materials depends on the Muesli library, which is not included
+#endif

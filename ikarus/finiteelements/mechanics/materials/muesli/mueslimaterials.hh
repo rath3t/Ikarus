@@ -9,9 +9,11 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/muesli/mueslifinite.hh>
-#include <ikarus/finiteelements/mechanics/materials/muesli/mueslihelpers.hh>
-#include <ikarus/finiteelements/mechanics/materials/muesli/mueslismall.hh>
+#if ENABLE_MUESLI
+
+  #include <ikarus/finiteelements/mechanics/materials/muesli/mueslifinite.hh>
+  #include <ikarus/finiteelements/mechanics/materials/muesli/mueslihelpers.hh>
+  #include <ikarus/finiteelements/mechanics/materials/muesli/mueslismall.hh>
 
 namespace Ikarus::Materials::Muesli {
 
@@ -44,14 +46,14 @@ auto makeLinearElasticity(const MPT& mpt) {
  *
  * \tparam MPT the type of the Ikarus material parameters
  * \param mpt the Ikarus material parameters
- * \param useDeviatoricStretches tells the material to use deviatopric principal stretches
+ * \param useDeviatoricStretches tells the material to use deviatoric principal stretches
  * \return auto the constructed material
  */
 template <typename MPT>
 auto makeNeoHooke(const MPT& mpt, bool useDeviatoricStretches = false) {
   auto muesliParameters = propertiesFromIkarusMaterialParameters(mpt);
   if (useDeviatoricStretches)
-    addRegularizedTag(muesliParameters);
+    addTag(muesliParameters, "subtype regularized");
   return FiniteStrain<Muesli::NeoHooke>(muesliParameters);
 }
 
@@ -83,7 +85,7 @@ inline auto makeArrudaBoyce(double C1, double lambda_m, double K, bool compressi
   muesliParameters.insert({"lambdam", lambda_m});
   muesliParameters.insert({"bulk", K});
   if (compressible)
-    addCompressibleTag(muesliParameters);
+    addTag(muesliParameters, "compressible");
   return FiniteStrain<Muesli::ArrudaBoyce>(muesliParameters);
 }
 
@@ -102,14 +104,14 @@ inline auto makeYeoh(std::array<double, 3> C, double K, bool compressible = true
   muesliParameters.insert({"c3", C[2]});
   muesliParameters.insert({"bulk", K});
   if (compressible)
-    addCompressibleTag(muesliParameters);
+    addTag(muesliParameters, "compressible");
   return FiniteStrain<Muesli::Yeoh>(muesliParameters);
 }
 
 /**
  * \brief Constructs a muesli MooneyRivlin material model based on muesli::mooneyMaterial
  *
- * \param alpha alpha0, alpha1, alpha2 parameters in a std::array
+ * \param alpha alpha0, alpha1, alpha2 parameters in a std::array, where alpha0 is the bulk modulus
  * \param incompressible tells the material to use the incompressible version of MooneyRivlin
  * \return auto the constructed material
  */
@@ -119,8 +121,12 @@ inline auto makeMooneyRivlin(std::array<double, 3> alpha, bool incompressible = 
   muesliParameters.insert({"alpha1", alpha[1]});
   muesliParameters.insert({"alpha2", alpha[2]});
   if (incompressible)
-    addIncompressibleTag(muesliParameters);
+    addTag(muesliParameters, "incompressible");
   return FiniteStrain<Muesli::MooneyRivlin>(muesliParameters);
 }
 
 } // namespace Ikarus::Materials::Muesli
+
+#else
+  #error Muesli materials depends on the Muesli library, which is not included
+#endif

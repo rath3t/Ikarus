@@ -3,22 +3,32 @@
 
 /**
  * \file Muesli.hh
- * \brief Implementation of the Muesli material model.
+ * \brief Implementation of the Muesli material model for finite strains.
  * \ingroup materials
  */
 
 #pragma once
 
-#include <muesli/muesli.h>
+#if ENABLE_MUESLI
 
-#include <Eigen/Eigen>
+  #include <muesli/muesli.h>
 
-#include <ikarus/finiteelements/mechanics/materials/interface.hh>
-#include <ikarus/finiteelements/mechanics/materials/muesli/mueslihelpers.hh>
-#include <ikarus/utils/tensorutils.hh>
+  #include <Eigen/Eigen>
+
+  #include <ikarus/finiteelements/mechanics/materials/interface.hh>
+  #include <ikarus/finiteelements/mechanics/materials/muesli/mueslihelpers.hh>
+  #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::Materials::Muesli {
 
+/**
+ * \brief Wrapper class for finite strain materials from the muesli library. It can be templated with all materials
+ * derived from muesli::finiteStrainMaterial. It adheres to the Ikarus material interface. See
+ * \file ikarus/finiteelements/mechanics/materials/interface.hh.
+ *
+ * \tparam FM muesli material model implementation
+ * \remark Please cite \cite portillo_muesli_2017 if you use any materials from the muesli library
+ */
 template <typename FM>
 requires(std::is_base_of_v<muesli::finiteStrainMaterial, FM>)
 struct FiniteStrain : public Material<FiniteStrain<FM>>
@@ -43,8 +53,8 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "FiniteStrain: " + materialName<FM>(); }
 
   /**
-   * \briefCConstructor for FiniteStrain muesli materials
-   * \param mpt Muesli materialproperties
+   * \brief Constructor for finite strain muesli materials.
+   * \param mpt Muesli materialproperties.
    */
   explicit FiniteStrain(const MaterialParameters& mpt)
       : materialParameter_{mpt},
@@ -57,7 +67,7 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   MaterialParameters materialParametersImpl() const { return materialParameter_; }
 
   /**
-   * \brief Computes the stored energy in the Neo-Hookean material model.
+   * \brief Computes the stored energy in the Muesli finite strain material model.
    * \tparam Derived The derived type of the input matrix.
    * \param C The right Cauchy-Green tensor.
    * \return ScalarType The stored energy.
@@ -75,7 +85,7 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   }
 
   /**
-   * \brief Computes the stresses in the Neo-Hookean material model.
+   * \brief Computes the stresses in the Muesli finite strain material model.
    * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
    * \param C The right Cauchy-Green tensor.
@@ -97,7 +107,7 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   }
 
   /**
-   * \brief Computes the tangent moduli in the Neo-Hookean material model.
+   * \brief Computes the tangent moduli in the Muesli finite strain material model.
    * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
    * \param C The right Cauchy-Green tensor.
@@ -120,13 +130,13 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   }
 
   /**
-   * \brief Returns the underlying muesli material implementation
-   * \return auto& reference to the musli material
+   * \brief Returns the underlying muesli material implementation.
+   * \return auto& reference to the muesli material.
    */
   auto& material() const { return material_; }
 
   /**
-   * \brief asserts that the materialpoint pointer is not null
+   * \brief asserts that the materialpoint pointer is not null.
    */
   bool assertMP() const { return mp_.get() != NULL; }
 
@@ -152,3 +162,6 @@ private:
 };
 
 } // namespace Ikarus::Materials::Muesli
+#else
+  #error Muesli materials depends on the Muesli library, which is not included
+#endif
