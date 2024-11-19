@@ -145,7 +145,6 @@ auto recoverNeoHookeTest() {
   auto matPar = testMatPar();
   auto mu     = convertLameConstants(matPar).toShearModulus();
   auto Lambda = convertLameConstants(matPar).toLamesFirstParameter();
-  auto c      = testMatrix();
   auto K      = convertLameConstants(matPar).toBulkModulus();
 
   std::array<double, 1> mu_og    = {mu};
@@ -156,9 +155,12 @@ auto recoverNeoHookeTest() {
   auto nhFromInvariantBased = makeInvariantBased<1>({mu / 2.0}, {1}, {0});
   auto nh                   = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
 
+  auto deformation     = Deformations{};
   constexpr double tol = 1e-14;
 
-  auto checkNHRecovery = [&]<typename MAT1, typename MAT2>(const MAT1& mat1, const MAT2& mat2) {
+  auto checkNHRecoveryImpl = [&]<DeformationType def, typename MAT1, typename MAT2>(const MAT1& mat1,
+                                                                                    const MAT2& mat2) {
+    auto c           = deformation.rightCauchyGreen<def>(1.37);
     auto energy_mat1 = mat1.template storedEnergy<rightCauchyGreenTensor>(c);
     auto stress_mat1 = mat1.template stresses<rightCauchyGreenTensor>(c);
     auto moduli_mat1 = mat1.template tangentModuli<rightCauchyGreenTensor>(c);
@@ -174,8 +176,18 @@ auto recoverNeoHookeTest() {
     checkApproxMatrices(t, moduli_mat2, moduli_mat1, testLocation() + matName + "Incorrect tangentModuli.", tol);
   };
 
-  checkNHRecovery(nh, nhFromogdenTotal);
-  checkNHRecovery(nhFromInvariantBased, nhFromogdenDevi);
+  auto checkNHRecovery = [&]<DeformationType def>() {
+    checkNHRecoveryImpl.operator()<def>(nh, nhFromogdenTotal);
+    checkNHRecoveryImpl.operator()<def>(nhFromInvariantBased, nhFromogdenDevi);
+  };
+
+  // Checking for these deformation states, will indirectly ensure correct transformation of quantities from principal
+  // coordinate system to Cartesian coordinate system.
+  checkNHRecovery.operator()<DeformationType::Undeformed>();
+  checkNHRecovery.operator()<DeformationType::UniaxialTensile>();
+  checkNHRecovery.operator()<DeformationType::BiaxialTensile>();
+  checkNHRecovery.operator()<DeformationType::PureShear>();
+  checkNHRecovery.operator()<DeformationType::Random>();
 
   return t;
 }
