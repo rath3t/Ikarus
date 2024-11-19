@@ -103,19 +103,19 @@ auto recoverNeoHookeTest() {
 
   auto nhFromogdenTotal     = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
   auto nhFromogdenDevi      = makeOgden<1, PrincipalStretchTag::deviatoric>(mu_og, alpha_og, {K}, VF3{});
-  auto nhFromInvariantBased = makeInvariantBased<1>(mu_og, {1}, {0}, {K}, VF3{});
+  auto nhFromInvariantBased = makeInvariantBased<1>({mu / 2.0}, {1}, {0}, {K}, VF3{});
   auto nh                   = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
 
   constexpr double tol = 1e-14;
 
   auto checkNHRecovery = [&]<typename MAT1, typename MAT2>(const MAT1& mat1, const MAT2& mat2) {
-    auto energy_mat2 = nhFromogdenTotal.storedEnergy<rightCauchyGreenTensor>(c);
-    auto stress_mat2 = nhFromogdenTotal.stresses<rightCauchyGreenTensor>(c);
-    auto moduli_mat2 = nhFromogdenTotal.tangentModuli<rightCauchyGreenTensor>(c);
+    auto energy_mat1 = mat1.template storedEnergy<rightCauchyGreenTensor>(c);
+    auto stress_mat1 = mat1.template stresses<rightCauchyGreenTensor>(c);
+    auto moduli_mat1 = mat1.template tangentModuli<rightCauchyGreenTensor>(c);
 
-    auto energy_mat1 = nh.storedEnergy<rightCauchyGreenTensor>(c);
-    auto stress_mat1 = nh.stresses<rightCauchyGreenTensor>(c);
-    auto moduli_mat1 = nh.tangentModuli<rightCauchyGreenTensor>(c);
+    auto energy_mat2 = mat2.template storedEnergy<rightCauchyGreenTensor>(c);
+    auto stress_mat2 = mat2.template stresses<rightCauchyGreenTensor>(c);
+    auto moduli_mat2 = mat2.template tangentModuli<rightCauchyGreenTensor>(c);
 
     const std::string matName = mat1.name() + " and " + mat2.name();
 
