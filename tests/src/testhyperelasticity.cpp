@@ -87,39 +87,45 @@ auto testVolumetricFunctions() {
   return t;
 }
 
-auto recoverNeoHookeThroughOgden() {
+auto recoverNeoHookeTest() {
   using StrainTags::rightCauchyGreenTensor;
 
-  TestSuite t("Recover NeoHooke material through Ogden test");
+  TestSuite t("Recover NeoHooke material");
 
   auto matPar = testMatPar();
   auto mu     = convertLameConstants(matPar).toShearModulus();
   auto Lambda = convertLameConstants(matPar).toLamesFirstParameter();
   auto c      = testMatrix();
+  auto K      = convertLameConstants(matPar).toBulkModulus();
 
   std::array<double, 1> mu_og    = {mu};
   std::array<double, 1> alpha_og = {2.0};
 
-  auto ogden = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
-  auto nh    = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
-
-  auto energy_og = ogden.storedEnergy<rightCauchyGreenTensor>(c);
-  auto stress_og = ogden.stresses<rightCauchyGreenTensor>(c);
-  auto moduli_og = ogden.tangentModuli<rightCauchyGreenTensor>(c);
-
-  auto energy_nh = nh.storedEnergy<rightCauchyGreenTensor>(c);
-  auto stress_nh = nh.stresses<rightCauchyGreenTensor>(c);
-  auto moduli_nh = nh.tangentModuli<rightCauchyGreenTensor>(c);
+  auto nhFromogdenTotal     = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
+  auto nhFromogdenDevi      = makeOgden<1, PrincipalStretchTag::deviatoric>(mu_og, alpha_og, {K}, VF3{});
+  auto nhFromInvariantBased = makeInvariantBased<1>(mu_og, {1}, {0}, {K}, VF3{});
+  auto nh                   = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
 
   constexpr double tol = 1e-14;
 
-  checkScalars(t, energy_og, energy_nh, testLocation() + "Incorrect Energy.", tol);
-  t.check(isApproxSame(stress_og, stress_nh, tol))
-      << testLocation() << "Incorrect stresses." << " stress_og is\t" << stress_og.transpose() << "\n stress_nh is\t"
-      << stress_nh.transpose();
-  t.check(isApproxSame(moduli_og, moduli_nh, tol)) << testLocation() << "Incorrect tangentModuli." << " moduli_og is\n"
-                                                   << moduli_og << "\n moduli_nh is\n"
-                                                   << moduli_nh;
+  auto checkNHRecovery = [&]<typename MAT1, typename MAT2>(const MAT1& mat1, const MAT2& mat2) {
+    auto energy_mat2 = nhFromogdenTotal.storedEnergy<rightCauchyGreenTensor>(c);
+    auto stress_mat2 = nhFromogdenTotal.stresses<rightCauchyGreenTensor>(c);
+    auto moduli_mat2 = nhFromogdenTotal.tangentModuli<rightCauchyGreenTensor>(c);
+
+    auto energy_mat1 = nh.storedEnergy<rightCauchyGreenTensor>(c);
+    auto stress_mat1 = nh.stresses<rightCauchyGreenTensor>(c);
+    auto moduli_mat1 = nh.tangentModuli<rightCauchyGreenTensor>(c);
+
+    const std::string matName = mat1.name() + " and " + mat2.name();
+
+    checkScalars(t, energy_mat2, energy_mat1, testLocation() + matName + "Incorrect Energy.", tol);
+    checkApproxVectors(t, stress_mat2, stress_mat1, testLocation() + matName + "Incorrect Stresses.", tol);
+    checkApproxMatrices(t, moduli_mat2, moduli_mat1, testLocation() + matName + "Incorrect tangentModuli.", tol);
+  };
+
+  checkNHRecovery(nh, nhFromogdenTotal);
+  checkNHRecovery(nhFromInvariantBased, nhFromogdenDevi);
 
   return t;
 }
@@ -129,7 +135,7 @@ int main(int argc, char** argv) {
   TestSuite t;
 
   t.subTest(testVolumetricFunctions());
-  t.subTest(recoverNeoHookeThroughOgden());
+  t.subTest(recoverNeoHookeTest());
 
   return t.exit();
 }
