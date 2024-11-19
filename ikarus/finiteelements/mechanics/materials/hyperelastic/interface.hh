@@ -73,6 +73,12 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
       : dev_(dev),
         vol_(vol) {}
 
+  /** \brief Returns the deviatoric function. */
+  const DEV& deviatoricFunction() const { return dev_; }
+
+  /** \brief Returns the volumetric function. */
+  const VOL& volumetricFunction() const { return vol_; }
+
   /**
    * \brief Returns the material parameters stored in the deviatoric part of the material.
    */

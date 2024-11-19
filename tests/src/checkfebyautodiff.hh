@@ -52,27 +52,11 @@ auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis,
     calculateVector(fe, req, affordance.vectorAffordance(), R);
     calculateVector(feAutoDiff, req, affordance.vectorAffordance(), RAutoDiff);
 
-    t.check(isApproxSame(K, KAutoDiff, tol),
-            "Mismatch between the stiffness matrices obtained from explicit implementation and the one based on "
-            "automatic differentiation for " +
-                feClassName)
-        << "K is \n"
-        << K << "\nKAutoDiff is \n"
-        << KAutoDiff << "\nThe difference is\n"
-        << (K - KAutoDiff);
-
-    t.check(isApproxSame(R, RAutoDiff, tol),
-            "Mismatch between the residual vectors obtained from explicit implementation and the one based on "
-            "automatic differentiation for " +
-                feClassName)
-        << "R is " << R.transpose() << "\nRAutoDiff is " << RAutoDiff.transpose() << "\nThe difference is "
-        << (R - RAutoDiff).transpose();
-
-    t.check(Dune::FloatCmp::eq(calculateScalar(fe, req, affordance.scalarAffordance()),
-                               calculateScalar(feAutoDiff, req, affordance.scalarAffordance()), tol),
-            "Mismatch between the energies obtained from explicit implementation and the one based on "
-            "automatic differentiation for " +
-                feClassName);
+    checkScalars(t, calculateScalar(fe, req, affordance.scalarAffordance()),
+                 calculateScalar(feAutoDiff, req, affordance.scalarAffordance()),
+                 testLocation() + "Incorrect Energies." + feClassName, tol);
+    checkApproxVectors(t, R, RAutoDiff, testLocation() + "Incorrect residual vectors." + feClassName, tol);
+    checkApproxMatrices(t, K, KAutoDiff, testLocation() + "Incorrect stiffness matrices." + feClassName, tol);
   }
 
   return t;

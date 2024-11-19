@@ -31,7 +31,7 @@ namespace Ikarus::Materials {
  * \ingroup materials
  *
  * \details The energy is computed as
- * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \mu  \sum_{p=0}^4{\alpha_p  \beta^p}  (W1^{p+1} - 3^{p+1}) \f],
+ * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \mu  \sum_{p=0}^4{\alpha_p  \beta^p}  (W1^{p+1} - 3^{p+1}), \f]
  * with \f$ \beta = \frac{1}{\lambda_m^2} \f$.
  *
  * The first derivatives w.r.t the total principal stretches are

@@ -34,6 +34,19 @@ bool isApproxSame(const Derived& val, const OtherDerived& other, double prec) {
     return val.diagonal().isApprox(other.diagonal(), prec) or (val.diagonal() - other.diagonal()).isZero(prec);
 }
 
+template <typename TestSuiteType, typename MatrixType>
+void checkApproxMatrices(TestSuiteType& t, const MatrixType& mat1, const MatrixType& mat2,
+                         const std::string& messageIfFailed = "", double tol = 1e-10) {
+  t.check(isApproxSame(mat1, mat2, tol)) << messageIfFailed << " mat1 is\n" << mat1 << "\n mat2 is\n" << mat2;
+}
+
+template <typename TestSuiteType, typename VectorType>
+void checkApproxVectors(TestSuiteType& t, const VectorType& vec1, const VectorType& vec2,
+                        const std::string& messageIfFailed = "", double tol = 1e-10) {
+  t.check(isApproxSame(vec1, vec2, tol)) << messageIfFailed << " vec1 is\t" << vec1.transpose() << "\n vec2 is\t"
+                                         << vec2.transpose();
+}
+
 template <typename TestSuiteType, typename ScalarType>
 requires std::is_integral_v<ScalarType>
 void checkScalars(TestSuiteType& t, const ScalarType val, const ScalarType expectedVal,

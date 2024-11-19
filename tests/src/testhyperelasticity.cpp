@@ -39,8 +39,9 @@ auto testMatPar() {
 }
 
 auto testVolumetricFunctions() {
-  const auto detC = testMatrix().determinant();
-  const auto J    = sqrt(detC);
+  const auto detC      = testMatrix().determinant();
+  const auto J         = sqrt(detC);
+  constexpr double tol = 1e-14;
 
   TestSuite t("Test volumetric functions by AD");
 
@@ -48,77 +49,40 @@ auto testVolumetricFunctions() {
     auto vf_ad          = vf.template rebind<autodiff::dual2nd>();
     autodiff::dual2nd x = J;
     auto f              = [&](const auto& xloc) { return vf_ad.storedEnergyImpl(xloc); };
+    auto derivs         = derivatives(f, autodiff::wrt(x), autodiff::at(x));
+    auto uprime         = vf.firstDerivativeImpl(J);
+    auto uprimeprime    = vf.secondDerivativeImpl(J);
 
-    auto derivs = derivatives(f, autodiff::wrt(x), autodiff::at(x));
-
-    auto uprime      = vf.firstDerivativeImpl(J);
-    auto uprimeprime = vf.secondDerivativeImpl(J);
-
-    t.check(Dune::FloatCmp::eq(uprime, derivs[1], 1e-14))
-        << testLocation() << "Uprime is " << uprime << " but should be " << derivs[1] << " according to AD for "
-        << Dune::className<VF>();
-    t.check(Dune::FloatCmp::eq(uprimeprime, derivs[2], 1e-14))
-        << testLocation() << "Uprimeprime is " << uprimeprime << " but should be " << derivs[2]
-        << " according to AD for " << Dune::className<VF>();
+    checkScalars(t, uprime, derivs[1], testLocation() + Dune::className<VF>(), tol);
+    checkScalars(t, uprimeprime, derivs[2], testLocation() + Dune::className<VF>(), tol);
   };
 
   auto checkFirstDerivativeOfFirstDerivative = [&]<typename VF>(const VF& vf) {
-    auto vf_ad       = vf.template rebind<autodiff::dual>();
-    autodiff::dual x = J;
-    auto f           = [&](const auto& xloc) { return vf_ad.firstDerivativeImpl(xloc); };
-
+    auto vf_ad          = vf.template rebind<autodiff::dual>();
+    autodiff::dual x    = J;
+    auto f              = [&](const auto& xloc) { return vf_ad.firstDerivativeImpl(xloc); };
     auto uprimeprime_ad = derivative(f, autodiff::wrt(x), autodiff::at(x));
+    auto uprimeprime    = vf.secondDerivativeImpl(J);
 
-    auto uprimeprime = vf.secondDerivativeImpl(J);
-
-    t.check(Dune::FloatCmp::eq(uprimeprime, uprimeprime_ad, 1e-14))
-        << testLocation() << "Uprimeprime is " << uprimeprime << " but should be " << uprimeprime_ad
-        << " according to AD for " << Dune::className<VF>() << " by taking first derivative of first derivative of U";
+    checkScalars(t, uprimeprime, uprimeprime_ad, testLocation() + Dune::className<VF>(), tol);
   };
 
-  auto vf1 = VF1{};
-  checkFirstAndSecondDerivativeOfEnergy(vf1);
-  checkFirstDerivativeOfFirstDerivative(vf1);
+  auto checkVolumetricFunctionsByAD = [&]<typename VF>(const VF& vf) {
+    checkFirstAndSecondDerivativeOfEnergy(vf);
+    checkFirstDerivativeOfFirstDerivative(vf);
+  };
 
-  auto vf2 = VF2{};
-  checkFirstAndSecondDerivativeOfEnergy(vf2);
-  checkFirstDerivativeOfFirstDerivative(vf2);
-
-  auto vf3 = VF3{};
-  checkFirstAndSecondDerivativeOfEnergy(vf3);
-  checkFirstDerivativeOfFirstDerivative(vf3);
-
-  auto vf4 = VF4{0.5};
-  checkFirstAndSecondDerivativeOfEnergy(vf4);
-  checkFirstDerivativeOfFirstDerivative(vf4);
-
-  auto vf5 = VF5{};
-  checkFirstAndSecondDerivativeOfEnergy(vf5);
-  checkFirstDerivativeOfFirstDerivative(vf5);
-
-  auto vf6 = VF6{};
-  checkFirstAndSecondDerivativeOfEnergy(vf6);
-  checkFirstDerivativeOfFirstDerivative(vf6);
-
-  auto vf7 = VF7{0.5};
-  checkFirstAndSecondDerivativeOfEnergy(vf7);
-  checkFirstDerivativeOfFirstDerivative(vf7);
-
-  auto vf8 = VF8{};
-  checkFirstAndSecondDerivativeOfEnergy(vf8);
-  checkFirstDerivativeOfFirstDerivative(vf8);
-
-  auto vf9 = VF9{};
-  checkFirstAndSecondDerivativeOfEnergy(vf9);
-  checkFirstDerivativeOfFirstDerivative(vf9);
-
-  auto vf10 = VF10{0.4};
-  checkFirstAndSecondDerivativeOfEnergy(vf10);
-  checkFirstDerivativeOfFirstDerivative(vf10);
-
-  auto vf11 = VF11{};
-  checkFirstAndSecondDerivativeOfEnergy(vf11);
-  checkFirstDerivativeOfFirstDerivative(vf11);
+  checkVolumetricFunctionsByAD(VF1{});
+  checkVolumetricFunctionsByAD(VF2{});
+  checkVolumetricFunctionsByAD(VF3{});
+  checkVolumetricFunctionsByAD(VF4{0.5});
+  checkVolumetricFunctionsByAD(VF5{});
+  checkVolumetricFunctionsByAD(VF6{});
+  checkVolumetricFunctionsByAD(VF7{0.5});
+  checkVolumetricFunctionsByAD(VF8{});
+  checkVolumetricFunctionsByAD(VF9{});
+  checkVolumetricFunctionsByAD(VF10{0.4});
+  checkVolumetricFunctionsByAD(VF11{});
 
   return t;
 }
