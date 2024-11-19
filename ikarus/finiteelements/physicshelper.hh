@@ -56,23 +56,25 @@ struct LamesFirstParameterAndShearModulus
   double mu;
 };
 
-/**
- * \brief Concept for checking if a type is a valid material parameter tuple.
- *
- * \tparam MP Type to check.
- */
-template <typename MP>
-concept MPTuple =
-    std::is_same_v<MP, YoungsModulusAndPoissonsRatio> or std::is_same_v<MP, YoungsModulusAndBulkModulus> or
-    std::is_same_v<MP, YoungsModulusAndLamesFirstParameter> or std::is_same_v<MP, BulkModulusAndLamesFirstParameter> or
-    std::is_same_v<MP, LamesFirstParameterAndShearModulus> or std::is_same_v<MP, YoungsModulusAndShearModulus>;
-
+namespace Concepts {
+  /**
+   * \brief Concept for checking if a type is a valid material parameter tuple.
+   *
+   * \tparam MP Type to check.
+   */
+  template <typename MP>
+  concept MPTuple =
+      std::is_same_v<MP, YoungsModulusAndPoissonsRatio> or std::is_same_v<MP, YoungsModulusAndBulkModulus> or
+      std::is_same_v<MP, YoungsModulusAndLamesFirstParameter> or
+      std::is_same_v<MP, BulkModulusAndLamesFirstParameter> or std::is_same_v<MP, LamesFirstParameterAndShearModulus> or
+      std::is_same_v<MP, YoungsModulusAndShearModulus>;
+} // namespace Concepts
 /**
  * \brief Conversion utility for Lame's constants.
  *
  * \tparam ValuePair Type of the value pair to convert.
  */
-template <MPTuple ValuePair>
+template <Concepts::MPTuple ValuePair>
 struct ConvertLameConstants
 {
   constexpr double toLamesFirstParameter() {

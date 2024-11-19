@@ -19,6 +19,12 @@
 
 namespace Ikarus::Materials::Muesli {
 
+/**
+ * \brief Wrapper class for small strain materials from the muesli library. It can be templated with all materials
+ * derived from muesli::elasticIsotropicMaterial. It models the Ikarus material interface.
+ *
+ * \tparam SM muesli material model implementation
+ */
 template <typename SM = muesli::elasticIsotropicMaterial>
 requires(std::is_base_of_v<muesli::smallStrainMaterial, SM>)
 struct SmallStrain : public Material<SmallStrain<SM>>
@@ -44,9 +50,9 @@ struct SmallStrain : public Material<SmallStrain<SM>>
 
   /**
    * \brief Constructor for SmallStrain muesli materials (only activated for isotropic linear elasticity).
-   * \param mpt The Lame's parameters (first parameter and shear modulus).
+   * \param mpt Arbitrary Material Parameter tuple defined in physicshelper.hh
    */
-  template <typename MPT>
+  template <Concepts::MPTuple MPT>
   requires(std::same_as<MaterialModel, muesli::elasticIsotropicMaterial>)
   explicit SmallStrain(const MPT& mpt)
       : materialParameter_{Muesli::propertiesFromIkarusMaterialParameters(mpt)},
@@ -70,7 +76,7 @@ struct SmallStrain : public Material<SmallStrain<SM>>
   /**
    * \brief Computes the stored energy in the Neo-Hookean material model.
    * \tparam Derived The derived type of the input matrix.
-   * \param C The right Cauchy-Green tensor.
+   * \param E The linear strain tensor.
    * \return ScalarType The stored energy.
    */
   template <typename Derived>
@@ -88,7 +94,7 @@ struct SmallStrain : public Material<SmallStrain<SM>>
    * \brief Computes the stresses in the Neo-Hookean material model.
    * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
-   * \param E The liinear strain tensor.
+   * \param E The linear strain tensor.
    * \return StressMatrix The stresses.
    */
   template <bool voigt, typename Derived>
@@ -110,7 +116,7 @@ struct SmallStrain : public Material<SmallStrain<SM>>
    * \brief Computes the tangent moduli in the Neo-Hookean material model.
    * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
-   * \param E The liinear strain tensor.
+   * \param E The linear strain tensor.
    * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> The tangent moduli.
    */
   template <bool voigt, typename Derived>

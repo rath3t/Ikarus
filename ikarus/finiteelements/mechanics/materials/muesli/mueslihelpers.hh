@@ -20,7 +20,14 @@ namespace Ikarus::Materials::Muesli {
 // Alias for Muesli material properties
 using MaterialProperties = muesli::materialProperties;
 
-template <MPTuple MPT>
+/**
+ * \brief converts Ikarus material parameters to Muesli material properties
+ * 
+ * \tparam MPT the type of the Ikarus material parameters
+ * \param mpt the Ikarus material parameters
+ * \return MaterialProperties meusli material properties with the Lambd and mu set
+ */
+template <Concepts::MPTuple MPT>
 inline MaterialProperties propertiesFromIkarusMaterialParameters(const MPT& mpt) {
   auto converter = convertLameConstants(mpt);
 
@@ -31,15 +38,44 @@ inline MaterialProperties propertiesFromIkarusMaterialParameters(const MPT& mpt)
   return mpm;
 }
 
+/**
+ * \brief adds a tag to the muesli materialproperties that the material model should use regularized stretches (i.e.
+ * deviatoric principal stretchs), applicable to NeoHooke material model
+ */
 inline void addRegularizedTag(MaterialProperties& mpm) { mpm.insert({"subtype regularized", 0}); }
+
+/**
+ * \brief adds a tag to the muesli materialproperties that the material model should be compressible, applicable to
+ * ArrudaBoyce and Yeoh material model
+ */
 inline void addCompressibleTag(MaterialProperties& mpm) { mpm.insert({"compressible", 0}); }
+
+/**
+ * \brief adds a tag to the muesli materialproperties that the material model should be incompressible, applicable to
+ * MooneyRivlin material model
+ */
 inline void addIncompressibleTag(MaterialProperties& mpm) { mpm.insert({"incompressible", 0}); }
 
+/**
+ * \brief Converts the entries of a Eigen::Matrix to a provided muesli::tensor (symmetric 2nd order tensor)
+ *
+ * \tparam Derived the derived Eigen::Matrix type
+ * \param it provided istensor
+ * \param C the Eigen::Matrix that is to be converted
+ */
 template <typename Derived>
 inline void toistensor(istensor& it, const Eigen::MatrixBase<Derived>& C) {
   it = istensor(C(0, 0), C(1, 1), C(2, 2), C(1, 2), C(2, 0), C(0, 1));
 }
 
+/**
+ * \brief Converts a provided muesli::istensor (symmetric 2nd order tensor) to a Eigen::Matrix
+ *
+ * \tparam ScalarType the ScalarType (defaults to double)
+ * \tparam dim the dimension (defaults to 3)
+ * \param it provided istensor
+ * \return Eigen::Matrix<ScalarType, dim, dim> converted matrix
+ */
 template <typename ScalarType = double, int dim = 3>
 inline Eigen::Matrix<ScalarType, dim, dim> toMatrix(const istensor& it) {
   auto S = Eigen::Matrix<double, dim, dim>{};
@@ -49,6 +85,14 @@ inline Eigen::Matrix<ScalarType, dim, dim> toMatrix(const istensor& it) {
   return S;
 }
 
+/**
+ * \brief Converts a provided muesli::istensor4 (symmetric 4th order tensor) to a Eigen::TensorFixedSize
+ *
+ * \tparam ScalarType the ScalaType (defaults to double)
+ * \tparam dim the dimension (defaults to 3)
+ * \param it provided istensor
+ * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>> converted tensor
+ */
 template <typename ScalarType = double, std::size_t dim = 3>
 inline auto toTensor(const itensor4& it) -> Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>> {
   Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>> moduli{};
