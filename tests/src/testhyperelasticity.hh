@@ -38,6 +38,56 @@ auto testMatPar() {
   return YoungsModulusAndPoissonsRatio{.emodul = Emod, .nu = nu};
 }
 
+struct Deformations
+{
+  static constexpr int dim = 3;
+  using MatrixType         = Eigen::Matrix<double, dim, dim>;
+  Deformations()           = default;
+
+  template <DeformationType DT>
+  MatrixType rightCauchyGreen(double lambda) const {
+    if constexpr (DT == DeformationType::Undeformed)
+      return undeformed(lambda);
+    else if constexpr (DT == DeformationType::UniaxialTensile)
+      return uniaxialTensile(lambda);
+    else if constexpr (DT == DeformationType::BiaxialTensile)
+      return biaxialTensile(lambda);
+    else if constexpr (DT == DeformationType::PureShear)
+      return pureShear(lambda);
+    else
+      return random(lambda);
+  }
+
+private:
+  /// Convert deformation gradient to right Cauchy-Green tensor
+  MatrixType toC(const MatrixType& F) const { return (F.transpose() * F).eval(); }
+
+  MatrixType undeformed([[maybe_unused]] double lambda_) const {
+    auto F = MatrixType::Identity().eval();
+    return toC(F);
+  }
+
+  MatrixType uniaxialTensile(double lambda_) const {
+    auto F = MatrixType::Zero().eval();
+    F.diagonal() << lambda_, 1.0 / sqrt(lambda_), 1.0 / sqrt(lambda_);
+    return toC(F);
+  }
+
+  MatrixType biaxialTensile(double lambda_) const {
+    auto F = MatrixType::Zero().eval();
+    F.diagonal() << lambda_, lambda_, 1.0 / (lambda_ * lambda_);
+    return toC(F);
+  }
+
+  MatrixType pureShear(double lambda_) const {
+    auto F = MatrixType::Zero().eval();
+    F.diagonal() << lambda_, 1.0, 1.0 / lambda_;
+    return toC(F);
+  }
+
+  MatrixType random([[maybe_unused]] double lambda_) const { return testMatrix(); }
+};
+
 auto testVolumetricFunctions() {
   const auto detC      = testMatrix().determinant();
   const auto J         = sqrt(detC);
@@ -130,56 +180,6 @@ auto recoverNeoHookeTest() {
   return t;
 }
 
-struct Deformations
-{
-  static constexpr int dim = 3;
-  using MatrixType         = Eigen::Matrix<double, dim, dim>;
-  Deformations()           = default;
-
-  template <DeformationType DT>
-  MatrixType rightCauchyGreen(double lambda) const {
-    if constexpr (DT == DeformationType::Undeformed)
-      return undeformed(lambda);
-    else if constexpr (DT == DeformationType::UniaxialTensile)
-      return uniaxialTensile(lambda);
-    else if constexpr (DT == DeformationType::BiaxialTensile)
-      return biaxialTensile(lambda);
-    else if constexpr (DT == DeformationType::PureShear)
-      return pureShear(lambda);
-    else
-      return random(lambda);
-  }
-
-private:
-  /// Convert deformation gradient to right Cauchy-Green tensor
-  MatrixType toC(const MatrixType& F) const { return (F.transpose() * F).eval(); }
-
-  MatrixType undeformed([[maybe_unused]] double lambda_) const {
-    auto F = MatrixType::Identity().eval();
-    return toC(F);
-  }
-
-  MatrixType uniaxialTensile(double lambda_) const {
-    auto F = MatrixType::Zero().eval();
-    F.diagonal() << lambda_, 1.0 / sqrt(lambda_), 1.0 / sqrt(lambda_);
-    return toC(F);
-  }
-
-  MatrixType biaxialTensile(double lambda_) const {
-    auto F = MatrixType::Zero().eval();
-    F.diagonal() << lambda_, lambda_, 1.0 / (lambda_ * lambda_);
-    return toC(F);
-  }
-
-  MatrixType pureShear(double lambda_) const {
-    auto F = MatrixType::Zero().eval();
-    F.diagonal() << lambda_, 1.0, 1.0 / lambda_;
-    return toC(F);
-  }
-
-  MatrixType random([[maybe_unused]] double lambda_) const { return testMatrix(); }
-};
-
 template <typename DEV, DeformationType def>
 requires(Concepts::DeviatoricFunction<DEV>)
 auto materialResults() {
@@ -206,9 +206,9 @@ requires(Concepts::DeviatoricFunction<DEV>)
 auto testMaterialResult(const DEV& dev) {
   Dune::TestSuite t("Test Deviatoric Function Results for the material model: " + dev.name() +
                     " with deformation type as " + toString(def));
-  auto [energy_ex, stresses_ex, tangentModuli_ex] = materialResults<DEV, def>();
-  auto deformation                                = Deformations{};
-  constexpr double lambda                         = 1.37;
+  auto [energyEx, firstDerivativesEx, secondDerivativesEx] = materialResults<DEV, def>();
+  auto deformation                                         = Deformations{};
+  constexpr double lambda                                  = 1.37;
   auto C = Materials::Impl::maybeFromVoigt(deformation.rightCauchyGreen<def>(lambda));
   Eigen::SelfAdjointEigenSolver<decltype(C)> eigensolver{};
   eigensolver.compute(C, Eigen::EigenvaluesOnly);
@@ -218,9 +218,11 @@ auto testMaterialResult(const DEV& dev) {
   auto ddWdLambda          = dev.secondDerivativeImpl(principalStretches);
   constexpr double tol     = 1e-14;
 
-  checkScalars(t, W, energy_ex, testLocation() + dev.name() + ": Incorrect Energies", tol);
-  checkApproxVectors(t, dWdLambda, stresses_ex, testLocation() + dev.name() + ": Incorrect stresses", tol);
-  checkApproxMatrices(t, ddWdLambda, tangentModuli_ex, testLocation() + dev.name() + ": Incorrect tangentModuli", tol);
+  checkScalars(t, W, energyEx, testLocation() + dev.name() + ": Incorrect Energies.", tol);
+  checkApproxVectors(t, dWdLambda, firstDerivativesEx, testLocation() + dev.name() + ": Incorrect first derivatives.",
+                     tol);
+  checkApproxMatrices(t, ddWdLambda, secondDerivativesEx,
+                      testLocation() + dev.name() + ": Incorrect second derivatives.", tol);
 
   return t;
 }
