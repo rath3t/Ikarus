@@ -216,7 +216,7 @@ auto testMaterialResult(const DEV& dev) {
   auto W                   = dev.storedEnergyImpl(principalStretches);
   auto dWdLambda           = dev.firstDerivativeImpl(principalStretches);
   auto ddWdLambda          = dev.secondDerivativeImpl(principalStretches);
-  constexpr double tol     = 1e-12;
+  constexpr double tol     = 1e-14;
 
   checkScalars(t, W, energy_ex, testLocation() + dev.name() + ": Incorrect Energies", tol);
   checkApproxVectors(t, dWdLambda, stresses_ex, testLocation() + dev.name() + ": Incorrect stresses", tol);

@@ -173,8 +173,8 @@ struct OgdenT
     } else {
       for (auto j : parameterRange())
         for (auto k : dimensionRange())
-          dS(k, k) += -2 * (mu[j] * (pow(lambda[k], alpha[j]) - 1)) / pow(lambda[k], 2) +
-                      (mu[j] * pow(lambda[k], alpha[j]) * alpha[j] / lambda[k]) / pow(lambda[k], 1);
+          dS(k, k) += (-2 * (mu[j] * (pow(lambda[k], alpha[j]) - 1)) + (mu[j] * pow(lambda[k], alpha[j]) * alpha[j])) /
+                      pow(lambda[k], 2);
     }
     return dS;
   }
