@@ -71,7 +71,7 @@ struct BlatzKoT
     const ScalarType J = lambda[0] * lambda[1] * lambda[2];
 
     for (auto k : dimensionRange())
-      dWdLambda[k] = materialParameter_.mu * (-2 / pow(lambda[k], 3) + 2 * (J / lambda[k])) / 2;
+      dWdLambda[k] = materialParameter_.mu * (-1.0 / pow(lambda[k], 3) + (J / lambda[k]));
 
     return dWdLambda;
   }

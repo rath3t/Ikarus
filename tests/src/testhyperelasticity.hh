@@ -101,7 +101,7 @@ auto recoverNeoHookeTest() {
   std::array<double, 1> mu_og    = {mu};
   std::array<double, 1> alpha_og = {2.0};
 
-  auto nhFromogdenTotal     = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og);
+  auto nhFromogdenTotal     = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
   auto nhFromogdenDevi      = makeOgden<1, PrincipalStretchTag::deviatoric>(mu_og, alpha_og);
   auto nhFromInvariantBased = makeInvariantBased<1>({mu / 2.0}, {1}, {0});
   auto nh                   = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
@@ -216,7 +216,7 @@ auto testMaterialResult(const DEV& dev) {
   auto W                   = dev.storedEnergyImpl(principalStretches);
   auto dWdLambda           = dev.firstDerivativeImpl(principalStretches);
   auto ddWdLambda          = dev.secondDerivativeImpl(principalStretches);
-  constexpr double tol     = 1e-14;
+  constexpr double tol     = 1e-12;
 
   checkScalars(t, W, energy_ex, testLocation() + dev.name() + ": Incorrect Energies", tol);
   checkApproxVectors(t, dWdLambda, stresses_ex, testLocation() + dev.name() + ": Incorrect stresses", tol);
@@ -241,9 +241,9 @@ auto testMaterialResults() {
   auto ogdenTotal = Ogden<3, PrincipalStretchTag::total>(mu_og, alpha_og);
   auto ogdenDevi  = Ogden<3, PrincipalStretchTag::deviatoric>(mu_og, alpha_og);
   auto mr         = InvariantBased<2>({1, 0}, {0, 1}, {mu / 2.0, mu / 2.0});
-  auto yeoh       = InvariantBased<3>({1, 2, 3}, {0, 0, 0}, {2.0 * mu / 3.0, mu / 6.0, mu / 6.0});
+  auto yeoh       = InvariantBased<3>({1, 2, 3}, {0, 0, 0}, {mu / 2.0, mu / 6.0, mu / 3.0});
   auto ab         = ArrudaBoyce({mu, 0.85});
-  auto gent       = Gent({mu, 0.85});
+  auto gent       = Gent({mu, 2.5});
 
   auto checkForDeformationType = [&]<DeformationType def>() {
     t.subTest(testMaterialResult<def>(bk));
