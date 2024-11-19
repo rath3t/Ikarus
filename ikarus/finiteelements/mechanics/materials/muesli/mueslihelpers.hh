@@ -22,7 +22,7 @@ using MaterialProperties = muesli::materialProperties;
 
 /**
  * \brief converts Ikarus material parameters to Muesli material properties
- * 
+ *
  * \tparam MPT the type of the Ikarus material parameters
  * \param mpt the Ikarus material parameters
  * \return MaterialProperties meusli material properties with the Lambd and mu set
