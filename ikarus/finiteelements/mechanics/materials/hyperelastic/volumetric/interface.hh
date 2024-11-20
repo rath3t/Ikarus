@@ -25,7 +25,7 @@ namespace Ikarus::Materials {
  * gradient. The underlying volumetric function must only implement the energy \f$ U(J) \f$ and its first
  * and second derivatives w.r.t \f$ J \f$.
  *
- * \tparam VF volumetric function, has to adhere to the \ref VolumetricFunction.
+ * \tparam VF Volumetric function.
  */
 template <Concepts::VolumetricFunction VF>
 struct Volumetric

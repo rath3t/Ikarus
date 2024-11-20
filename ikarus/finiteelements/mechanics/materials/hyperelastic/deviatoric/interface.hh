@@ -29,7 +29,7 @@ namespace Ikarus::Materials {
  * \f$ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) \f$ and its first and second derivatives
  * w.r.t the total principal stretches.
  *
- * \tparam DF deviatoric material function, has to adhere to the \ref DeviatoricFunction.
+ * \tparam DF Deviatoric function.
  */
 template <Concepts::DeviatoricFunction DF>
 struct Deviatoric
