@@ -204,19 +204,14 @@ private:
    * \return ScalarType Either 0.0 or x * y.
    */
   ScalarType safeMultiply(ScalarType x, ScalarType y) const {
-    auto checkInfinityTimeZero = [](double val1, double val2) -> ScalarType {
+    auto checkInfinityTimeZero = [](double val1, double val2) -> bool {
       constexpr double tol = 1e-14;
-      if ((std::isinf(val1) && Dune::FloatCmp::eq(val2, 0.0, tol)) ||
-          (std::isinf(val2) && Dune::FloatCmp::eq(val1, 0.0, tol)))
-        return 0.0;
-      return val1 * val2;
+      return ((std::isinf(val1) && Dune::FloatCmp::eq(val2, 0.0, tol)) ||
+              (std::isinf(val2) && Dune::FloatCmp::eq(val1, 0.0, tol)));
     };
-    if constexpr (Concepts::AutodiffScalar<ScalarType>) {
-      double xAD = static_cast<double>(x);
-      double yAD = static_cast<double>(y);
-      return checkInfinityTimeZero(xAD, yAD);
-    } else
-      return checkInfinityTimeZero(x, y);
+
+    // static_cast needed if Concepts::AutodiffScalar<ScalarType>
+    return checkInfinityTimeZero(static_cast<double>(x), static_cast<double>(y)) ? ScalarType{0.0} : x * y;
   }
 };
 
