@@ -44,6 +44,8 @@ struct GentT
   using SecondDerivative   = Eigen::Matrix<ScalarType, dim, dim>;
   using MaterialParameters = GentMatParameters;
 
+  static constexpr auto stretchTag = PrincipalStretchTag::deviatoric;
+
   [[nodiscard]] constexpr static std::string name() noexcept { return "Gent"; }
 
   /**

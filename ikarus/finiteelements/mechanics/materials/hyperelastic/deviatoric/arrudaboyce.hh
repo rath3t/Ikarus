@@ -61,6 +61,8 @@ struct ArrudaBoyceT
   using MaterialParameters      = ArrudaBoyceMatParameters;
   static constexpr int numTerms = 5;
 
+  static constexpr auto stretchTag = PrincipalStretchTag::deviatoric;
+
   [[nodiscard]] constexpr static std::string name() noexcept { return "ArrudaBoyce"; }
 
   /**

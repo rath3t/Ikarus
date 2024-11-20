@@ -39,6 +39,8 @@ struct InvariantBasedT
   using FirstDerivative  = Eigen::Vector<ScalarType, dim>;
   using SecondDerivative = Eigen::Matrix<ScalarType, dim, dim>;
 
+  static constexpr auto stretchTag = PrincipalStretchTag::deviatoric;
+
   [[nodiscard]] constexpr static std::string name() noexcept {
     return "InvariantBased (n = " + std::to_string(numMatParameters);
   }
