@@ -28,21 +28,26 @@ namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of the Gent material model.
+ * \ingroup materials
  *
  * \details The energy is computed as
  * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = -\frac{\mu}{2} J_m \ln{(1-\frac{W_1 - 3}{J_m})}, \f]
  * with \f$ J_m > W_1-3\f$.
  *
  * The first derivatives w.r.t the total principal stretches are
- * \f[ \fracpt{\Psi}{\lambda_i} = \frac{\mu J_m}{2(J_m - W_1) + 6}\fracpt{W_1}{\lambda_i} .\f]
+ * \f[ \fracpt{\Psi}{\lambda_i} = \frac{\mu J_m}{2(J_m - W_1) + 6}\fracpt{W_1}{\lambda_i}. \f]
  *
  * The second derivatives w.r.t the total principal stretches are
- * \f[ \fracpt{^2 \Psi}{\lambda_i\partial\lambda_j} = \frac{\mu}{2\alpha}(\fracpt{^2 W_1}{\lambda_i\partial\lambda_j} +
- * \frac{1}{\alpha J_m}\fracpt{W1}{\lambda_i}\fracpt{W1}{\lambda_j}) - \delta_{ij}
- * \frac{\mu}{2\alpha\lambda_i}\fracpt{W_1}{\lambda_i},\f] with \f$ \alpha = 1 - \frac{W_1 - 3}{J_m}\f$.
+ * \f[ \fracpt{^2 \Psi}{\lambda_i\partial\lambda_j} =
+ \frac{\mu}{2\alpha} (\fracpt{^2 W_1}{\lambda_i\partial\lambda_j} +
+ \frac{1}{\alpha J_m} \fracpt{W1}{\lambda_i} \fracpt{W1}{\lambda_j}) -
+ \delta_{ij} \frac{\mu}{2\alpha\lambda_i} \fracpt{W_1}{\lambda_i}, \f]
+ * with \f$ \alpha = 1 - \frac{W_1 - 3}{J_m} \f].
  *
  * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material. For information on the deviatoric
- * invariant \f$ W_1 \f$, see \file deviatoricinvariants.hh \tparam ST The underlying scalar type. \ingroup materials
+ * invariant \f$ W_1 \f$, see \file deviatoricinvariants.hh 
+ *
+ * \tparam ST The underlying scalar type.
  */
 template <typename ST>
 struct GentT

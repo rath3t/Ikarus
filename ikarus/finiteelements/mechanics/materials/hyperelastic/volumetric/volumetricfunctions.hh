@@ -36,9 +36,10 @@ struct VF0T
 
   [[nodiscard]] constexpr static std::string name() noexcept { return "None"; }
 };
+
 /**
  * \brief Volumetric function No. 1 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details $U(J) = \frac{1}{2}(J - 1)^2$
+ * \details \f$ U(J) = \frac{1}{2}(J - 1)^2 \f$
  * \tparam ST ScalarType
  * \ingroup materials
  */
@@ -64,7 +65,7 @@ struct VF1T
 
 /**
  * \brief Volumetric function No. 2 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details $U(J) = \frac{1}{4}\left((J - 1)^2 + (\ln J )^2 \right)$ according to Simo and Taylor 1982
+ * \details \f$ U(J) = \frac{1}{4}((J - 1)^2 + (\ln J )^2) \f$
  * \tparam ST ScalarType
  * \ingroup materials
  */
@@ -91,6 +92,12 @@ struct VF2T
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 2"; }
 };
 
+/**
+ * \brief Volumetric function No. 3 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details \f$ U(J) = \frac{1}{2}(\ln J )^2 \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF3T
 {
@@ -111,6 +118,12 @@ struct VF3T
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 3"; }
 };
 
+/**
+ * \brief Volumetric function No. 4 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details \f$ U(J) = \frac{1}{\beta^2}(\frac{1}{J^\beta} - 1 + \beta(\ln J)) \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF4T
 {
@@ -143,6 +156,12 @@ private:
   double beta_;
 };
 
+/**
+ * \brief Volumetric function No. 5 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details \f$ U(J) = \frac{1}{4}(J^2 - 1 - 2 \ln J) \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF5T
 {
@@ -163,6 +182,12 @@ struct VF5T
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 5"; }
 };
 
+/**
+ * \brief Volumetric function No. 6 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details \f$ U(J) = (J - \ln J - 1) \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF6T
 {
@@ -183,6 +208,12 @@ struct VF6T
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 6"; }
 };
 
+/**
+ * \brief Volumetric function No. 7 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details \f$ U(J) = J^\beta(\beta \ln J - 1) + 1 \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF7T
 {
@@ -213,6 +244,12 @@ private:
   double beta_;
 };
 
+/**
+ * \brief Volumetric function No. 8 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details \f$ U(J) = J \ln J - J + 1 \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF8T
 {
@@ -233,6 +270,12 @@ struct VF8T
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 8"; }
 };
 
+/**
+ * \brief Volumetric function No. 9 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details \f$ U(J) = \frac{1}{32}(J^2 - J^{-2})^2 \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF9T
 {
@@ -253,6 +296,13 @@ struct VF9T
   [[nodiscard]] constexpr static std::string name() noexcept { return "Function 9"; }
 };
 
+/**
+ * \brief Volumetric function No. 10 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details \f$ U(J) = \frac{J}{\beta}(1 - \frac{J^{-\beta}}{1-\beta}) +
+ \frac{1}{\beta - 1} \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF10T
 {
@@ -283,6 +333,12 @@ private:
   double beta_;
 };
 
+/**
+ * \brief Volumetric function No. 11 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \details \f$ U(J) = \frac{1}{50}(J^5 + J^{-5} - 2) \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF11T
 {
