@@ -16,10 +16,11 @@
 
 namespace Ikarus {
 
+///< Structure representing material parameters for the Gent material model.
 struct GentMatParameters
 {
-  double mu;
-  double Jm;
+  double mu; ///< Denotes the shear modulus.
+  double Jm; ///< Denotes a dimensionless parameter that controls the extensibility of chains
 };
 } // namespace Ikarus
 
@@ -73,6 +74,7 @@ struct GentT
     const Invariants& invariants = Impl::invariants(lambda);
     const auto& devInvariants    = DeviatoricInvariants<PrincipalStretches>(lambda);
     const auto W1                = devInvariants.value().first;
+    checkJm(W1);
     return -(matPar_.mu / 2.0) * matPar_.Jm * log(1.0 - ((W1 - 3.0) / matPar_.Jm));
   }
 
@@ -91,6 +93,7 @@ struct GentT
     const auto& dW1dLambda    = devInvariants.firstDerivative().first;
     const auto mu             = matPar_.mu;
     const auto Jm             = matPar_.Jm;
+    checkJm(W1);
 
     for (auto k : dimensionRange())
       dWdLambda[k] += (mu * dW1dLambda[k] * Jm) / (2.0 * (Jm - W1) + 6.0);
@@ -114,6 +117,7 @@ struct GentT
     const auto& ddW1dLambda   = devInvariants.secondDerivative().first;
     const auto mu             = matPar_.mu;
     const auto Jm             = matPar_.Jm;
+    checkJm(W1);
 
     for (auto i : dimensionRange())
       for (auto j : dimensionRange()) {
@@ -140,6 +144,11 @@ private:
   MaterialParameters matPar_;
 
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+
+  void checkJm(ScalarType W1) const {
+    if (Dune::FloatCmp::le(matPar_.Jm, static_cast<double>(W1) - 3.0, 1e-14))
+      DUNE_THROW(Dune::InvalidStateException, "The material parameter Jm should be greater than (W1 - 3)");
+  }
 };
 
 /**

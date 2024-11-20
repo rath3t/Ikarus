@@ -38,15 +38,15 @@ struct BlatzKoT
 
   /**
    * \brief Constructor for BlatzKoT.
-   * \param mpt material parameters, here the shear modulus mu.
+   * \param mu The shear modulus.
    */
-  explicit BlatzKoT(MaterialParameters mpt)
-      : materialParameter_{mpt} {}
+  explicit BlatzKoT(MaterialParameters mu)
+      : mu_{mu} {}
 
   /**
    * \brief Returns the material parameters stored in the material
    */
-  const MaterialParameters& materialParametersImpl() const { return materialParameter_; }
+  const MaterialParameters& materialParametersImpl() const { return mu_; }
 
   /**
    * \brief Computes the stored energy in the BlatzKo material model.
@@ -55,7 +55,7 @@ struct BlatzKoT
    * \return ScalarType
    */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
-    return materialParameter_ / 2 *
+    return mu_ / 2 *
            (1 / pow(lambda[0], 2) + 1 / pow(lambda[1], 2) + 1 / pow(lambda[2], 2) +
             2 * lambda[0] * lambda[1] * lambda[2] - 5);
   }
@@ -71,7 +71,7 @@ struct BlatzKoT
     const ScalarType J = lambda[0] * lambda[1] * lambda[2];
 
     for (auto k : dimensionRange())
-      dWdLambda[k] = materialParameter_ * (-1.0 / pow(lambda[k], 3) + (J / lambda[k]));
+      dWdLambda[k] = mu_ * (-1.0 / pow(lambda[k], 3) + (J / lambda[k]));
 
     return dWdLambda;
   }
@@ -92,7 +92,7 @@ struct BlatzKoT
           dS(i, j) += (1.0 / pow(lambda[i], 2)) * (1.0 / pow(lambda[i], 2) - J) + 3.0 / pow(lambda(i), 4);
         else
           dS(i, j) += J / (lambda[i] * lambda[j]);
-        dS(i, j) *= materialParameter_;
+        dS(i, j) *= mu_;
       }
 
     return dS;
@@ -105,11 +105,11 @@ struct BlatzKoT
    */
   template <typename STO>
   auto rebind() const {
-    return BlatzKoT<STO>(materialParameter_);
+    return BlatzKoT<STO>(mu_);
   }
 
 private:
-  MaterialParameters materialParameter_;
+  MaterialParameters mu_;
 
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
 };

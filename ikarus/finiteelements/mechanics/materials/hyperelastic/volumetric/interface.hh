@@ -44,7 +44,7 @@ struct Volumetric
    * \param matPar Materialparameter that is considered as the penalty parameter for the constraint against volumetric
    * deformations. Typically, if the deviatoric part of the energy function is a function of the toal principal
    * stretches, then this material parameter is the  Lamé's first parameter and if the energy is a function of the
-   * deviatoric principal stretches, then bulk modulus is used. 
+   * deviatoric principal stretches, then bulk modulus is used.
    *
    * \param vf the volumetric function
    */
