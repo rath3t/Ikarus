@@ -15,5 +15,6 @@ namespace Ikarus::Materials {
 template struct LinearElasticityT<double>;
 template struct NeoHookeT<double>;
 template struct StVenantKirchhoffT<double>;
+template struct Hyperelastic<Deviatoric<BlatzKoT<double>>>;
 
 } // namespace Ikarus::Materials

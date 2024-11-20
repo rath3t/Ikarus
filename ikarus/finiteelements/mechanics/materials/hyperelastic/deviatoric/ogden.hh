@@ -70,7 +70,7 @@ struct OgdenT
   /**
    * \brief Returns the material parameters (mu values) stored in the material
    */
-  const MaterialParameters& materialParametersImpl() const { return materialParameters_; }
+  MaterialParameters materialParametersImpl() const { return materialParameters_; }
 
   /**
    * \brief Returns the material exponents (alpha values) stored in the material
@@ -123,20 +123,20 @@ struct OgdenT
       auto lambdaBar = Impl::deviatoricStretches(lambda);
 
       auto dWdLambdaBar = FirstDerivative::Zero().eval();
-      for (auto j : parameterRange())
-        for (auto k : dimensionRange())
+      for (const auto j : parameterRange())
+        for (const auto k : dimensionRange())
           dWdLambdaBar[k] += mu[j] * (pow(lambdaBar[k], alpha[j] - 1));
 
       ScalarType sumLambdaBar{0.0};
-      for (auto b : dimensionRange())
+      for (const auto b : dimensionRange())
         sumLambdaBar += lambdaBar[b] * dWdLambdaBar[b];
 
-      for (auto i : dimensionRange())
+      for (const auto i : dimensionRange())
         dWdLambda[i] = (lambdaBar[i] * dWdLambdaBar[i] - (1.0 / 3.0) * sumLambdaBar) / lambda[i];
 
     } else {
-      for (auto j : parameterRange())
-        for (auto k : dimensionRange())
+      for (const auto j : parameterRange())
+        for (const auto k : dimensionRange())
           dWdLambda[k] += (mu[j] * (pow(lambda[k], alpha[j]) - 1)) / lambda[k];
     }
     return dWdLambda;
@@ -157,17 +157,17 @@ struct OgdenT
       const auto lambdaBar = Impl::deviatoricStretches(lambda);
       const auto dWdLambda = firstDerivativeImpl(lambda);
 
-      for (auto a : dimensionRange()) {
-        for (auto b : dimensionRange()) {
+      for (const auto a : dimensionRange()) {
+        for (const auto b : dimensionRange()) {
           if (a == b) {
-            for (auto p : parameterRange()) {
+            for (const auto p : parameterRange()) {
               ScalarType sumC{0.0};
               for (auto c : dimensionRange())
                 sumC += pow(lambdaBar[c], alpha[p]);
               dS(a, b) += mu[p] * alpha[p] * ((1.0 / 3.0) * pow(lambdaBar[a], alpha[p]) + (1.0 / 9.0) * sumC);
             }
           } else {
-            for (auto p : parameterRange()) {
+            for (const auto p : parameterRange()) {
               ScalarType sumC{0.0};
               for (auto c : dimensionRange())
                 sumC += pow(lambdaBar[c], alpha[p]);
@@ -184,8 +184,8 @@ struct OgdenT
         }
       }
     } else {
-      for (auto j : parameterRange())
-        for (auto k : dimensionRange())
+      for (const auto j : parameterRange())
+        for (const auto k : dimensionRange())
           dS(k, k) += (-2 * (mu[j] * (pow(lambda[k], alpha[j]) - 1)) + (mu[j] * pow(lambda[k], alpha[j]) * alpha[j])) /
                       pow(lambda[k], 2);
     }
@@ -206,8 +206,8 @@ private:
   MaterialParameters materialParameters_;
   MaterialExponents materialExponents_;
 
-  inline auto parameterRange() const { return Dune::Hybrid::integralRange(numMatParameters); }
-  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+  inline auto parameterRange() const { return Dune::range(numMatParameters); }
+  inline auto dimensionRange() const { return Dune::range(dim); }
 };
 
 /**

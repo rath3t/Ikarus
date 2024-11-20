@@ -56,13 +56,13 @@ struct Deviatoric
   /**
    * \brief Returns the material parameters stored in the deviatoric part of the material.
    */
-  const MaterialParameters& materialParametersImpl() const { return deviatoricFunction_.materialParametersImpl(); }
+  const MaterialParameters materialParameters() const { return deviatoricFunction_.materialParametersImpl(); }
 
   /**
    * \brief Returns the stored energy obtained from the deviatoric function.
    *
-   * \param lambdas the principal stretches
-   * \return ScalarType the energy
+   * \param lambdas the principal stretches.
+   * \return ScalarType the energy.
    */
   ScalarType storedEnergy(const PrincipalStretches& lambda) const {
     checkDuplicates(lambda);
@@ -72,7 +72,7 @@ struct Deviatoric
   /**
    * \brief Returns the principal PK2 stresses obtained from the first derivative of the deviatoric function.
    *
-   * \param lambda the principal stretches
+   * \param lambda the principal stretches.
    * \return StressMatrix the stresses in Cartesian coordinate system.
    */
   StressMatrix stresses(const PrincipalStretches& lambda) const {
@@ -81,7 +81,7 @@ struct Deviatoric
 
     // Compute the principal PK2 stresses by dividing by the stretches
     StressMatrix S;
-    for (auto k : dimensionRange())
+    for (const auto k : dimensionRange())
       S[k] = dWdLambda[k] / lambda[k];
 
     return S;
@@ -90,7 +90,7 @@ struct Deviatoric
   /**
    * \brief Returns the material tangent modulus obtained from the second derivative of the deviatoric function.
    *
-   * \param lambda the principal stretches
+   * \param lambda the principal stretches.
    * \return MaterialTensor the tangentModuli in Cartesian coordinate system.
    */
   MaterialTensor tangentModuli(const PrincipalStretches& lambda) const {
@@ -101,12 +101,12 @@ struct Deviatoric
     auto L = MaterialTensor{};
     L.setZero();
 
-    for (auto i : dimensionRange())
-      for (auto k : dimensionRange())
+    for (const auto i : dimensionRange())
+      for (const auto k : dimensionRange())
         L(i, i, k, k) = 1.0 / (lambda(i) * lambda(k)) * dS(i, k);
 
-    for (auto i : dimensionRange())
-      for (auto k : dimensionRange())
+    for (const auto i : dimensionRange())
+      for (const auto k : dimensionRange())
         if (i != k) {
           if (Dune::FloatCmp::eq(lambda(i), lambda(k), 1e-8))
             L(i, k, i, k) = 0.5 * (L(i, i, i, i) - L(i, i, k, k));
@@ -131,7 +131,7 @@ struct Deviatoric
 private:
   DF deviatoricFunction_;
 
-  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+  inline auto dimensionRange() const { return Dune::range(dim); }
 
   /**
    * \brief A function to check if duplicate principal stretches exists.

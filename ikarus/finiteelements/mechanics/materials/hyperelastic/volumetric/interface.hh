@@ -53,26 +53,31 @@ struct Volumetric
         volumetricFunction_{vf} {}
 
   /**
-   * \brief Computes stored energy of the volumetric function
+   * \brief Returns the material parameters stored in the deviatoric part of the material.
+   */
+  const MaterialParameter materialParameter() const { return matPar_; }
+
+  /**
+   * \brief Computes stored energy of the volumetric function.
    *
-   * \param J determinant of the deformation gradient \f$ J = \det\BF \f$
-   * \return ScalarType energy
+   * \param J determinant of the deformation gradient \f$ J = \det\BF \f$.
+   * \return ScalarType energy.
    */
   ScalarType storedEnergy(const JType& J) const { return matPar_ * volumetricFunction_.storedEnergyImpl(J); };
 
   /**
-   * \brief Computes the first derivatives of the energy of the volumetric function w.r.t \f$ J \f$
+   * \brief Computes the first derivatives of the energy of the volumetric function w.r.t \f$ J \f$.
    *
-   * \param J determinant of the deformation gradient \f$ J = \det\BF \f$
-   * \return ScalarType energy
+   * \param J determinant of the deformation gradient \f$ J = \det\BF \f$.
+   * \return ScalarType energy.
    */
   ScalarType firstDerivative(const JType& J) const { return matPar_ * volumetricFunction_.firstDerivativeImpl(J); }
 
   /**
-   * \brief Computes the second derivatives of the energy of the volumetric function w.r.t \f$ J \f$
+   * \brief Computes the second derivatives of the energy of the volumetric function w.r.t \f$ J \f$.
    *
-   * \param J determinant of the deformation gradient \f$ J = \det\BF \f$
-   * \return ScalarType energy
+   * \param J determinant of the deformation gradient \f$ J = \det\BF \f$.
+   * \return ScalarType energy.
    */
   ScalarType secondDerivative(const JType& J) const { return matPar_ * volumetricFunction_.secondDerivativeImpl(J); };
 

@@ -68,7 +68,7 @@ struct DeviatoricInvariants
     auto dW2dLambda                         = FirstDerivative::Zero().eval();
     auto [I1, I2, I3, I3Pow1by3, I3Pow2by3] = computeInvariants(invariants);
 
-    for (auto i : dimensionRange()) {
+    for (const auto i : dimensionRange()) {
       dW1dLambda[i] = 2.0 * (3.0 * pow(lambda_[i], 2.0) - I1) / (3.0 * lambda_[i] * I3Pow1by3);
       dW2dLambda[i] = -2.0 * (3.0 * (I3 / pow(lambda_[i], 2.0)) - I2) / (3.0 * lambda_[i] * I3Pow2by3);
     }
@@ -85,8 +85,8 @@ struct DeviatoricInvariants
     auto ddW2dLambda                        = SecondDerivative::Zero().eval();
     auto [I1, I2, I3, I3Pow1by3, I3Pow2by3] = computeInvariants(invariants);
 
-    for (auto i : dimensionRange())
-      for (auto j : dimensionRange()) {
+    for (const auto i : dimensionRange())
+      for (const auto j : dimensionRange()) {
         if (i == j) {
           ddW1dLambda(i, j) = (2.0 / 9.0) * (5 * I1 - 3 * pow(lambda_[i], 2.0)) / (pow(lambda_[i], 2.0) * I3Pow1by3);
           ddW2dLambda(i, j) =
@@ -104,7 +104,7 @@ struct DeviatoricInvariants
 private:
   PrincipalStretches lambda_;
 
-  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+  inline auto dimensionRange() const { return Dune::range(dim); }
 
   auto computeInvariants(const Invariants& invariants) const {
     ScalarType I1        = invariants[0];

@@ -53,7 +53,7 @@ struct InvariantBasedT
     return "InvariantBased (n = " + std::to_string(numMatParameters);
   }
 
-  const MaterialParameters& materialParametersImpl() const { return matParameters_; }
+  MaterialParameters materialParametersImpl() const { return matParameters_; }
 
   const Exponents& pExponents() const { return pex_; }
 
@@ -62,9 +62,9 @@ struct InvariantBasedT
   /**
    * \brief Constructor for InvariantBasedT
    *
-   * \param pex Array of exponents related to the first invariant
-   * \param qex Array of exponents related to the second invariant
-   * \param matParameters Array of material parameters
+   * \param pex Array of exponents related to the first invariant.
+   * \param qex Array of exponents related to the second invariant.
+   * \param matParameters Array of material parameters.
    */
   explicit InvariantBasedT(const Exponents& pex, const Exponents& qex, const MaterialParameters& matParameters)
       : pex_{pex},
@@ -75,7 +75,7 @@ struct InvariantBasedT
    * \brief Computes the stored energy in the InvariantBased material model.
    *
    * \param lambda principal stretches
-   * \return ScalarType
+   * \return ScalarType the energy
    */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
     const Invariants& invariants = Impl::invariants(lambda);
@@ -87,7 +87,7 @@ struct InvariantBasedT
     W1 -= 3.0;
     W2 -= 3.0;
 
-    for (auto i : parameterRange())
+    for (const auto i : parameterRange())
       energy += matParameters_[i] * pow(W1, pex[i]) * pow(W2, qex[i]);
 
     return energy;
@@ -97,7 +97,7 @@ struct InvariantBasedT
    * \brief Computes the first derivative of the stored energy function w.r.t. the total principal stretches.
    *
    * \param lambda principal stretches
-   * \return ScalarType
+   * \return FirstDerivative the first derivative
    */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
     const Invariants& invariants = Impl::invariants(lambda);
@@ -112,8 +112,8 @@ struct InvariantBasedT
     W2 -= 3.0;
     const auto& [dW1dLambda, dW2dLambda] = devInvariants.firstDerivative();
 
-    for (auto p : parameterRange())
-      for (auto k : dimensionRange()) {
+    for (const auto p : parameterRange())
+      for (const auto k : dimensionRange()) {
         auto W1pm1p = safeMultiply(pow(W1, pex[p] - 1.0), pex[p]);
         auto W2qm1q = safeMultiply(pow(W2, qex[p] - 1.0), qex[p]);
         dWdLambda[k] +=
@@ -126,8 +126,8 @@ struct InvariantBasedT
   /**
    * \brief Computes the second derivatives of the stored energy function w.r.t. the total principal stretches.
    *
-   * \param lambda principal stretches
-   * \return ScalarType
+   * \param lambda principal stretches.
+   * \return SecondDerivative the second derivative
    */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
     const Invariants& invariants = Impl::invariants(lambda);
@@ -143,9 +143,9 @@ struct InvariantBasedT
     const auto& [dW1dLambda, dW2dLambda]   = devInvariants.firstDerivative();
     const auto& [ddW1dLambda, ddW2dLambda] = devInvariants.secondDerivative();
 
-    for (auto p : parameterRange())
-      for (auto i : dimensionRange())
-        for (auto j : dimensionRange()) {
+    for (const auto p : parameterRange())
+      for (const auto i : dimensionRange())
+        for (const auto j : dimensionRange()) {
           auto W1pm1p       = safeMultiply(pow(W1, pex[p] - 1.0), pex[p]);
           auto W2qm1q       = safeMultiply(pow(W2, qex[p] - 1.0), qex[p]);
           auto W1pm2pp      = safeMultiply(pow(W1, pex[p] - 2.0), pex[p] * (pex[p] - 1.0));
@@ -179,8 +179,8 @@ private:
   Exponents pex_, qex_;
   MaterialParameters matParameters_;
 
-  inline auto parameterRange() const { return Dune::Hybrid::integralRange(numMatParameters); }
-  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+  inline auto parameterRange() const { return Dune::range(numMatParameters); }
+  inline auto dimensionRange() const { return Dune::range(dim); }
 
   /** \brief A function to transform the underlying type of the exponents to ScalarType.
    *

@@ -10,6 +10,7 @@
 #pragma once
 
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/materialhelpers.hh>
 #include <ikarus/finiteelements/mechanics/materials/tags.hh>
 #include <ikarus/utils/tensorutils.hh>
 
@@ -55,7 +56,7 @@ struct BlatzKoT
   /**
    * \brief Returns the material parameters stored in the material
    */
-  const MaterialParameters& materialParametersImpl() const { return mu_; }
+  MaterialParameters materialParametersImpl() const { return mu_; }
 
   /**
    * \brief Computes the stored energy in the BlatzKo material model.
@@ -77,7 +78,7 @@ struct BlatzKoT
    */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
     auto dWdLambda     = FirstDerivative::Zero().eval();
-    const ScalarType J = lambda[0] * lambda[1] * lambda[2];
+    const ScalarType J = Impl::determinantFromPrincipalValues<ScalarType>(lambda);
 
     for (auto k : dimensionRange())
       dWdLambda[k] = mu_ * (-1.0 / pow(lambda[k], 3) + (J / lambda[k]));
@@ -93,10 +94,10 @@ struct BlatzKoT
    */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
     auto dS            = SecondDerivative::Zero().eval();
-    const ScalarType J = lambda[0] * lambda[1] * lambda[2];
+    const ScalarType J = Impl::determinantFromPrincipalValues<ScalarType>(lambda);
 
-    for (auto i : dimensionRange())
-      for (auto j : dimensionRange()) {
+    for (const auto i : dimensionRange())
+      for (const auto j : dimensionRange()) {
         if (i == j)
           dS(i, j) += (1.0 / pow(lambda[i], 2)) * (1.0 / pow(lambda[i], 2) - J) + 3.0 / pow(lambda(i), 4);
         else
@@ -120,7 +121,7 @@ struct BlatzKoT
 private:
   MaterialParameters mu_;
 
-  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+  inline auto dimensionRange() const { return Dune::range(dim); }
 };
 
 /**

@@ -99,25 +99,82 @@ void checkPositiveDet(ScalarType det) {
                    std::to_string(static_cast<double>(det)));
 }
 
-template <typename PrincipalStretches>
-inline PrincipalStretches deviatoricStretches(const PrincipalStretches& lambda) {
+/**
+ * \brief Calculates the principal stretches of the input strain matrix C.
+ *
+ * \tparam ScalarType The ScalarType
+ * \tparam Derived The derived type of the input matrix
+ * \param C the input strain matrix
+ * \param options should be either `Eigen::ComputeEigenvectors` or `Eigen::EigenvaluesOnly`
+ * \return auto pair of principalstretches and corresponding eigenvectors (if `Eigen::EigenvaluesOnly` the
+ * eigenvectors is a zero matrix )
+ */
+template <typename ScalarType, typename Derived>
+auto principalStretches(const Eigen::MatrixBase<Derived>& C, int options = Eigen::ComputeEigenvectors) {
+  Eigen::SelfAdjointEigenSolver<Derived> eigensolver{};
+
+  // For AD we use the direct method which uses a closed form calculation, but has less accuracy
+  if constexpr (Concepts::AutodiffScalar<ScalarType>)
+    eigensolver.computeDirect(C, options);
+  else
+    eigensolver.compute(C, options);
+
+  if (eigensolver.info() != Eigen::Success)
+    DUNE_THROW(Dune::MathError, "Failed to compute eigenvalues and eigenvectors of C.");
+
+  auto& eigenvalues  = eigensolver.eigenvalues();
+  auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : Derived::Zero();
+
+  auto principalStretches = eigenvalues.array().sqrt().eval();
+  return std::make_pair(principalStretches, eigenvectors);
+}
+
+/**
+ * \brief Computes the determinant of a matrix through its principal values (i.e. eigenvalues).
+ *
+ * \tparam ScalarType The Scalartype used for multiplication.
+ * \tparam Container A container type.
+ * \param principalValues the principal values.
+ * \return ScalarType the determinant.
+ */
+template <typename ScalarType, Concepts::EigenVector Vector>
+inline ScalarType determinantFromPrincipalValues(const Vector& principalValues) {
+  return std::accumulate(principalValues.begin(), principalValues.end(), ScalarType{1.0}, std::multiplies());
+}
+
+/**
+ * \brief Computes the deviatoric part of the principal stretches as \f$ \bar{\lambda_i} = \lambda_i^{-\frac{1}{3}} \f$
+ *
+ * \tparam Vector the type of the vector of principal stretches
+ * \param lambda the total principal stretches
+ * \return Vector the deviatoric principal stretches
+ */
+template <Concepts::EigenVector Vector>
+inline Vector deviatoricStretches(const Vector& lambda) {
   using ScalarType = std::remove_cvref_t<decltype(lambda[0])>;
 
-  ScalarType J    = std::accumulate(lambda.begin(), lambda.end(), ScalarType{1.0}, std::multiplies());
+  ScalarType J    = Impl::determinantFromPrincipalValues<ScalarType>(lambda);
   ScalarType Jmod = pow(J, -1.0 / 3.0);
 
-  auto lambdaBar = PrincipalStretches::Zero().eval();
-  for (auto i : Dune::Hybrid::integralRange(3))
+  auto lambdaBar = Vector::Zero().eval();
+  for (auto i : Dune::range(3))
     lambdaBar[i] = Jmod * lambda[i];
 
   return lambdaBar;
 }
 
-template <typename PrincipalStretches>
-inline PrincipalStretches invariants(const PrincipalStretches& lambda) {
+/**
+ * \brief Calcualtes the invariants from the principal stretches
+ *
+ * \tparam Vector the type of the vector of principal stretches
+ * \param lambda the total principal stretches
+ * \return Vector the invariants
+ */
+template <Concepts::EigenVector Vector>
+inline Vector invariants(const Vector& lambda) {
   using ScalarType   = std::remove_cvref_t<decltype(lambda[0])>;
   auto lambdaSquared = lambda.array().square();
-  auto invariants    = PrincipalStretches::Zero().eval();
+  auto invariants    = Vector::Zero().eval();
 
   invariants[0] = std::accumulate(lambdaSquared.begin(), lambdaSquared.end(), ScalarType{0.0});
   invariants[1] =

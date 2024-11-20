@@ -98,9 +98,9 @@ struct VF2T
 };
 
 /**
- * \brief Volumetric function No. 3 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details \f$ U(J) = \frac{1}{2}(\ln J )^2 \f$
- * \tparam ST ScalarType
+ * \brief Volumetric function No. 3 found in \cite hartmann_polyconvexity_2003 Tab. 4.
+ * \details \f$ U(J) = \frac{1}{2}(\ln J )^2 \f$.
+ * \tparam ST ScalarType.
  * \ingroup materials
  */
 template <typename ST>
@@ -124,9 +124,9 @@ struct VF3T
 };
 
 /**
- * \brief Volumetric function No. 4 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details \f$ U(J) = \frac{1}{\beta^2}(\frac{1}{J^\beta} - 1 + \beta(\ln J)) \f$
- * \tparam ST ScalarType
+ * \brief Volumetric function No. 4 found in \cite hartmann_polyconvexity_2003 Tab. 4.
+ * \details \f$ U(J) = \frac{1}{\beta^2}(\frac{1}{J^\beta} - 1 + \beta(\ln J)) \f$.
+ * \tparam ST ScalarType.
  * \ingroup materials
  */
 template <typename ST>
@@ -162,9 +162,9 @@ private:
 };
 
 /**
- * \brief Volumetric function No. 5 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details \f$ U(J) = \frac{1}{4}(J^2 - 1 - 2 \ln J) \f$
- * \tparam ST ScalarType
+ * \brief Volumetric function No. 5 found in \cite hartmann_polyconvexity_2003 Tab. 4.
+ * \details \f$ U(J) = \frac{1}{4}(J^2 - 1 - 2 \ln J) \f$.
+ * \tparam ST ScalarType.
  * \ingroup materials
  */
 template <typename ST>
@@ -188,9 +188,9 @@ struct VF5T
 };
 
 /**
- * \brief Volumetric function No. 6 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details \f$ U(J) = (J - \ln J - 1) \f$
- * \tparam ST ScalarType
+ * \brief Volumetric function No. 6 found in \cite hartmann_polyconvexity_2003 Tab. 4.
+ * \details \f$ U(J) = (J - \ln J - 1) \f$.
+ * \tparam ST ScalarType.
  * \ingroup materials
  */
 template <typename ST>
@@ -214,9 +214,9 @@ struct VF6T
 };
 
 /**
- * \brief Volumetric function No. 7 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details \f$ U(J) = J^\beta(\beta \ln J - 1) + 1 \f$
- * \tparam ST ScalarType
+ * \brief Volumetric function No. 7 found in \cite hartmann_polyconvexity_2003 Tab. 4.
+ * \details \f$ U(J) = J^\beta(\beta \ln J - 1) + 1 \f$.
+ * \tparam ST ScalarType.
  * \ingroup materials
  */
 template <typename ST>
@@ -250,9 +250,9 @@ private:
 };
 
 /**
- * \brief Volumetric function No. 8 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details \f$ U(J) = J \ln J - J + 1 \f$
- * \tparam ST ScalarType
+ * \brief Volumetric function No. 8 found in \cite hartmann_polyconvexity_2003 Tab. 4.
+ * \details \f$ U(J) = J \ln J - J + 1 \f$.
+ * \tparam ST ScalarType.
  * \ingroup materials
  */
 template <typename ST>
@@ -276,9 +276,9 @@ struct VF8T
 };
 
 /**
- * \brief Volumetric function No. 9 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details \f$ U(J) = \frac{1}{32}(J^2 - J^{-2})^2 \f$
- * \tparam ST ScalarType
+ * \brief Volumetric function No. 9 found in \cite hartmann_polyconvexity_2003 Tab. 4.
+ * \details \f$ U(J) = \frac{1}{32}(J^2 - J^{-2})^2 \f$.
+ * \tparam ST ScalarType.
  * \ingroup materials
  */
 template <typename ST>
@@ -302,10 +302,10 @@ struct VF9T
 };
 
 /**
- * \brief Volumetric function No. 10 found in \cite hartmann_polyconvexity_2003 Tab. 4
+ * \brief Volumetric function No. 10 found in \cite hartmann_polyconvexity_2003 Tab. 4.
  * \details \f$ U(J) = \frac{J}{\beta}(1 - \frac{J^{-\beta}}{1-\beta}) +
- \frac{1}{\beta - 1} \f$
- * \tparam ST ScalarType
+ \frac{1}{\beta - 1} \f$.
+ * \tparam ST ScalarType.
  * \ingroup materials
  */
 template <typename ST>
@@ -339,9 +339,9 @@ private:
 };
 
 /**
- * \brief Volumetric function No. 11 found in \cite hartmann_polyconvexity_2003 Tab. 4
- * \details \f$ U(J) = \frac{1}{50}(J^5 + J^{-5} - 2) \f$
- * \tparam ST ScalarType
+ * \brief Volumetric function No. 11 found in \cite hartmann_polyconvexity_2003 Tab. 4.
+ * \details \f$ U(J) = \frac{1}{50}(J^5 + J^{-5} - 2) \f$.
+ * \tparam ST ScalarType.
  * \ingroup materials
  */
 template <typename ST>

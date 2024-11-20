@@ -77,7 +77,7 @@ struct ArrudaBoyceT
   /**
    * \brief Returns the material parameters stored in the material
    */
-  const MaterialParameters& materialParametersImpl() const { return matPar_; }
+  MaterialParameters materialParametersImpl() const { return matPar_; }
 
   /**
    * \brief Computes the stored energy in the ArrudaBoyce material model.
@@ -95,7 +95,7 @@ struct ArrudaBoyceT
     const auto lambdaM_       = matPar_.lambdaM_;
     const auto beta           = 1 / pow(lambdaM_, 2.0);
 
-    for (auto i : parameterRange())
+    for (const auto i : parameterRange())
       energy += alphas_[i] * pow(beta, i) * (pow(W1, i + 1) - pow(3, i + 1));
     energy *= mu_;
 
@@ -119,8 +119,8 @@ struct ArrudaBoyceT
     const auto lambdaM_       = matPar_.lambdaM_;
     const auto beta           = 1 / pow(lambdaM_, 2.0);
 
-    for (auto j : parameterRange())
-      for (auto k : dimensionRange())
+    for (const auto j : parameterRange())
+      for (const auto k : dimensionRange())
         dWdLambda[k] += mu_ * alphas_[j] * pow(beta, j) * pow(W1, j) * dW1dLambda[k] * (j + 1);
 
     return dWdLambda;
@@ -144,9 +144,9 @@ struct ArrudaBoyceT
     const auto lambdaM_       = matPar_.lambdaM_;
     const auto beta           = 1 / pow(lambdaM_, 2.0);
 
-    for (auto p : parameterRange())
-      for (auto i : dimensionRange())
-        for (auto j : dimensionRange()) {
+    for (const auto p : parameterRange())
+      for (const auto i : dimensionRange())
+        for (const auto j : dimensionRange()) {
           auto factor1 = mu_ * alphas_[p] * pow(beta, p);
           auto factor2 = pow(W1, p) * ddW1dLambda(i, j) * (p + 1);
           auto factor3 = pow(W1, p - 1) * dW1dLambda[i] * dW1dLambda[j] * p * (p + 1);
@@ -172,8 +172,8 @@ private:
   MaterialParameters matPar_;
   std::array<double, numTerms> alphas_ = {0.5, 1.0 / 20.0, 11.0 / 1050.0, 19.0 / 7000.0, 519.0 / 673750.0};
 
-  inline auto parameterRange() const { return Dune::Hybrid::integralRange(numTerms); }
-  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+  inline auto parameterRange() const { return Dune::range(numTerms); }
+  inline auto dimensionRange() const { return Dune::range(dim); }
 };
 
 /**

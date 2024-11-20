@@ -76,7 +76,7 @@ struct GentT
   /**
    * \brief Returns the material parameters stored in the material
    */
-  const MaterialParameters& materialParametersImpl() const { return matPar_; }
+  MaterialParameters materialParametersImpl() const { return matPar_; }
 
   /**
    * \brief Computes the stored energy in the Gent material model.
@@ -110,7 +110,7 @@ struct GentT
     const auto Jm             = matPar_.Jm;
     checkJm(W1);
 
-    for (auto k : dimensionRange())
+    for (const auto k : dimensionRange())
       dWdLambda[k] += (mu * dW1dLambda[k] * Jm) / (2.0 * (Jm - W1) + 6.0);
 
     return dWdLambda;
@@ -134,8 +134,8 @@ struct GentT
     const auto Jm             = matPar_.Jm;
     checkJm(W1);
 
-    for (auto i : dimensionRange())
-      for (auto j : dimensionRange()) {
+    for (const auto i : dimensionRange())
+      for (const auto j : dimensionRange()) {
         auto factor1 = 1.0 - ((W1 - 3.0) / Jm);
         dS(i, j) += (mu / (2.0 * factor1)) * (ddW1dLambda(i, j) + (dW1dLambda[i] * dW1dLambda[j] / (factor1 * Jm)));
         if (i == j)
@@ -158,7 +158,7 @@ struct GentT
 private:
   MaterialParameters matPar_;
 
-  inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
+  inline auto dimensionRange() const { return Dune::range(dim); }
 
   void checkJm(ScalarType W1) const {
     if (Dune::FloatCmp::le(matPar_.Jm, static_cast<double>(W1) - 3.0, 1e-14))

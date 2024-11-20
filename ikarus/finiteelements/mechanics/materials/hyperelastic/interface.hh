@@ -20,11 +20,11 @@ namespace Ikarus::Materials {
 /**
  * \brief Implementation of a general Hyperelastic Material material model.
  * \details \f$\Psi(\BC) = \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) + U(J)\f$ with \f$\hat{\Psi}\f$ being the
- *deviatoric part of the strain energy function and \f$ U(J) \f$ being the volumetric part. After calling the underlying
- *deviatoric and volumetric function, the transformation to cartesian coordinate system is implemented in this
- *interface.
+ * deviatoric part of the strain energy function and \f$ U(J) \f$ being the volumetric part. After calling the
+ * underlying deviatoric and volumetric function, the transformation to cartesian coordinate system is implemented in
+ * this interface.
  *
- *\ingroup  materials
+ * \ingroup materials
  */
 template <typename DEV, typename VOL = NoVolumetricPart>
 requires(std::same_as<typename DEV::ScalarType, typename VOL::ScalarType>)
@@ -83,7 +83,12 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   /**
    * \brief Returns the material parameters stored in the deviatoric part of the material.
    */
-  const MaterialParameters& materialParametersImpl() const { return dev_.materialParameter_; }
+  const MaterialParameters materialParametersImpl() const {
+    if constexpr (hasVolumetricPart)
+      return {dev_.materialParameters(), vol_.materialParameter()};
+    else
+      return dev_.materialParameters();
+  }
 
   /**
    * \brief Computes the total stored energy in the Hyperelastic material model.
@@ -161,6 +166,8 @@ private:
   DEV dev_;
   VOL vol_;
 
+  inline auto dimensionRange() const { return Dune::range(dim); }
+
   StressMatrix transformDeviatoricStresses(const typename DEV::StressMatrix& principalStress,
                                            const Eigen::Matrix<ScalarType, 3, 3>& N) const {
     auto S = StressMatrix::Zero().eval();
@@ -179,8 +186,8 @@ private:
     MaterialTensor moduli{};
     moduli.setZero();
 
-    for (int i = 0; i < dim; ++i)
-      for (int k = 0; k < dim; ++k) {
+    for (const auto i : dimensionRange())
+      for (const auto k : dimensionRange()) {
         // First term: L[i, i, k, k] * ((N[i] ⊗ N[i]) ⊗ (N[k] ⊗ N[k]))
         auto NiNi = dyadic(N.col(i).eval(), N.col(i).eval());
         auto NkNk = dyadic(N.col(k).eval(), N.col(k).eval());
@@ -211,39 +218,15 @@ private:
     return moduli;
   }
 
-  /**
-   * \brief Calculates the principal stretches of the input strain matrix C
-   *
-   * \tparam Derived The derived type of the input matrix
-   * \param Craw the input strain matrix
-   * \param options should be either `Eigen::ComputeEigenvectors` or `Eigen::EigenvaluesOnly`
-   * \return auto pair of principalstretches and corresponding eigenvectors (if `Eigen::EigenvaluesOnly` the
-   * eigenvectors is a zero matrix )
-   */
   template <typename Derived>
   auto principalStretches(const Eigen::MatrixBase<Derived>& Craw, int options = Eigen::ComputeEigenvectors) const {
     StrainMatrix C = Impl::maybeFromVoigt(Craw);
-    Eigen::SelfAdjointEigenSolver<StrainMatrix> eigensolver{};
-
-    // For AD we use the direct method which uses a closed form calculation, but has less accuracy
-    if constexpr (Concepts::AutodiffScalar<ScalarType>)
-      eigensolver.computeDirect(C, options);
-    else
-      eigensolver.compute(C, options);
-
-    if (eigensolver.info() != Eigen::Success)
-      DUNE_THROW(Dune::MathError, "Failed to compute eigenvalues and eigenvectors of C.");
-
-    auto& eigenvalues  = eigensolver.eigenvalues();
-    auto& eigenvectors = options == Eigen::ComputeEigenvectors ? eigensolver.eigenvectors() : StrainMatrix::Zero();
-
-    auto principalStretches = eigenvalues.array().sqrt().eval();
-    return std::make_pair(principalStretches, eigenvectors);
+    return Impl::principalStretches<ScalarType>(C, options);
   }
 
   auto detF(const typename DEV::PrincipalStretches& lambda) const -> typename VOL::JType {
     if constexpr (hasVolumetricPart) {
-      const auto detC = std::accumulate(lambda.begin(), lambda.end(), ScalarType{1.0}, std::multiplies());
+      const auto detC = Impl::determinantFromPrincipalValues<ScalarType>(lambda);
       Impl::checkPositiveDet(detC);
       return detC;
     }
