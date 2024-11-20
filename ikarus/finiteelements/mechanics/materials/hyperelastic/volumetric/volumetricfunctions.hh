@@ -16,7 +16,12 @@
 
 namespace Ikarus::Materials {
 
-// Default implementation (no volumetric part)
+/**
+ * \brief Default volumetric function
+ * \details \f$ U(J) = 0 \f$
+ * \tparam ST ScalarType
+ * \ingroup materials
+ */
 template <typename ST>
 struct VF0T
 {

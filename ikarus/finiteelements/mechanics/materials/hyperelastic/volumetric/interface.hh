@@ -18,14 +18,14 @@ namespace Ikarus::Materials {
 /**
  * \brief Interface for the volumetric part of a hyperelastic material. Has to be parametrized with a volumetric
  * function.
- *
- * \details The volumetric part of the hyperelastic model (i.e., related to \f$ U(J)\f$) is
- * parametrized with a certain volumetric function (VF) implemented in terms of the determinant of the deformation
- * gradient (\f$ J\f$). The underlying volumetric function must only implement the energy \f $U(J) \f$ and its first and
- * second derivatives w.r.t \f$ J\f$.
- *
- * \tparam VF volumetric function, has to adhere to the \concept `VolumetricFunction`.
  * \ingroup materials
+ *
+ * \details The volumetric part of the hyperelastic model, i.e., related to \f$ U(J) \f$, is
+ * parametrized with a certain volumetric function (VF) implemented in terms of the determinant of the deformation
+ * gradient. The underlying volumetric function must only implement the energy \f$ U(J) \f$ and its first
+ * and second derivatives w.r.t \f$ J \f$.
+ *
+ * \tparam VF volumetric function, has to adhere to the \ref VolumetricFunction.
  */
 template <Concepts::VolumetricFunction VF>
 struct Volumetric
@@ -55,23 +55,23 @@ struct Volumetric
   /**
    * \brief Computes stored energy of the volumetric function
    *
-   * \param J determinant of the deformation gradient $J = \det\BF$
+   * \param J determinant of the deformation gradient \f$ J = \det\BF \f$
    * \return ScalarType energy
    */
   ScalarType storedEnergy(const JType& J) const { return matPar_ * volumetricFunction_.storedEnergyImpl(J); };
 
   /**
-   * \brief Computes the first derivatives of the energy of the volumetric function w.r.t $J$
+   * \brief Computes the first derivatives of the energy of the volumetric function w.r.t \f$ J \f$
    *
-   * \param J determinant of the deformation gradient $J = \det\BF$
+   * \param J determinant of the deformation gradient \f$ J = \det\BF \f$
    * \return ScalarType energy
    */
   ScalarType firstDerivative(const JType& J) const { return matPar_ * volumetricFunction_.firstDerivativeImpl(J); }
 
   /**
-   * \brief Computes the second derivatives of the energy of the volumetric function w.r.t $J$
+   * \brief Computes the second derivatives of the energy of the volumetric function w.r.t \f$ J \f$
    *
-   * \param J determinant of the deformation gradient $J = \det\BF$
+   * \param J determinant of the deformation gradient \f$ J = \det\BF \f$
    * \return ScalarType energy
    */
   ScalarType secondDerivative(const JType& J) const { return matPar_ * volumetricFunction_.secondDerivativeImpl(J); };

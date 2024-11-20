@@ -19,16 +19,17 @@ namespace Ikarus::Materials {
 /**
  * \brief This is the interface implementation for the deviatoric part of a hyperelastic material.
  *    It is intended to be used with the hyperelastic material model.
- *
- * \details The deviatoric part of the hyperelastic model (i.e., related to \f$\hat{\Psi}(\lambda_1, \lambda_2,
- * \lambda_3)\f$) is parametrized with a certain deviatoric function (DF) implemented in terms of principal stretches.
- * The three interface functions (energy, streses and tangentModulus) are called with the argument being the principal
- * stretches
- * (\f$\lambda_i\f$). The underlying deviatoric function must only implement the energy \f$\hat{\Psi}(\lambda_1,
- * \lambda_2, \lambda_3)\f$ and its first and second derivatives w.r.t the total principal stretches.
- *
- * \tparam DF deviatoric material function, has to adhere to the \concept `DeviatoricFunction`.
  * \ingroup materials
+ *
+ * \details The deviatoric part of the hyperelastic model, i.e., related to
+ * \f$ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) \f$, is parametrized with a certain
+ * deviatoric function (DF) implemented in terms of principal stretches.
+ * The three interface functions (energy, streses and tangentModulus) are called with the argument being the principal
+ * stretches (\f$ \lambda_i \f$). The underlying deviatoric function must only implement the energy
+ * \f$ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) \f$ and its first and second derivatives
+ * w.r.t the total principal stretches.
+ *
+ * \tparam DF deviatoric material function, has to adhere to the \ref DeviatoricFunction.
  */
 template <Concepts::DeviatoricFunction DF>
 struct Deviatoric

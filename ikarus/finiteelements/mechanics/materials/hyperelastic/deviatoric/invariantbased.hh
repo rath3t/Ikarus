@@ -27,7 +27,7 @@ namespace Ikarus::Materials {
  C_{pq} (W_1 - 3)^p (W_2 - 3)^q}. \f]
  *
  * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material. For information on the deviatoric
- * invariant \f$ W_1 \f$, see \ref DeviatoricInvariants.
+ * invariants \f$ W_1, W_2 \f$, see \ref DeviatoricInvariants.
  *
  * \tparam ST The underlying scalar type.
  * \tparam n Number of material parameters
