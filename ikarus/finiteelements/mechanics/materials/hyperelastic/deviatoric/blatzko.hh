@@ -21,9 +21,9 @@ namespace Ikarus::Materials {
  * \ingroup materials
  *
  * \details The energy is computed as
- * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \frac{\mu}{2}(
- \frac{1}{\lambda_1^2} + \frac{1}{\lambda_2^2} + \frac{1}{\lambda_3^2}
- + 2\lambda_1 \lambda_2 \lambda_3 - 5). \f]
+ * \f[ \hat{\Psi}(\la_1, \la_2, \la_3) = \frac{\mu}{2}(
+ \frac{1}{\la_1^2} + \frac{1}{\la_2^2} + \frac{1}{\la_3^2}
+ + 2\la_1 \la_2 \la_3 - 5). \f]
  *
  * \remark A special Blatz-Ko material model is implemented here. It assumes material parameters which corresponds to a
  * Poisson's ratio of 0.25.

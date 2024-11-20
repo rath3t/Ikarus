@@ -31,18 +31,18 @@ namespace Ikarus::Materials {
  * \ingroup materials
  *
  * \details The energy is computed as
- * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = -\frac{\mu}{2} J_m \ln{(1-\frac{W_1 - 3}{J_m})}, \f]
+ * \f[ \hat{\Psi}(\la_1, \la_2, \la_3) = -\frac{\mu}{2} J_m \ln{(1-\frac{W_1 - 3}{J_m})}, \f]
  * with \f$ J_m > W_1-3\f$.
  *
  * The first derivatives w.r.t the total principal stretches are
- * \f[ \fracpt{\Psi}{\lambda_i} = \frac{\mu J_m}{2(J_m - W_1) + 6}\fracpt{W_1}{\lambda_i}. \f]
+ * \f[ \fracpt{\Psi}{\la_i} = \frac{\mu J_m}{2(J_m - W_1) + 6}\fracpt{W_1}{\la_i}. \f]
  *
  * The second derivatives w.r.t the total principal stretches are
- * \f[ \fracpt{^2 \Psi}{\lambda_i\partial\lambda_j} =
- \frac{\mu}{2\alpha} (\fracpt{^2 W_1}{\lambda_i\partial\lambda_j} +
- \frac{1}{\alpha J_m} \fracpt{W_1}{\lambda_i} \fracpt{W_1}{\lambda_j}) -
- \delta_{ij} \frac{\mu}{2\alpha\lambda_i} \fracpt{W_1}{\lambda_i}, \f]
- * with \f$ \alpha = 1 - \frac{W_1 - 3}{J_m} \f$.
+ * \f[ \fracpt{^2 \Psi}{\la_i\partial\la_j} =
+ \frac{\mu}{2\al} (\fracpt{^2 W_1}{\la_i\partial\la_j} +
+ \frac{1}{\al J_m} \fracpt{W_1}{\la_i} \fracpt{W_1}{\la_j}) -
+ \delta_{ij} \frac{\mu}{2\al\la_i} \fracpt{W_1}{\la_i}, \f]
+ * with \f$ \al = 1 - \frac{W_1 - 3}{J_m} \f$.
  *
  * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material. For information on the deviatoric
  * invariant \f$ W_1 \f$, see \ref DeviatoricInvariants.

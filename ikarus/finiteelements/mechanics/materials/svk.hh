@@ -20,14 +20,14 @@ namespace Ikarus::Materials {
  * \brief Implementation of the Saint Venant-Kirchhoff material model.
  * \ingroup materials
  *   The energy is computed as
- *  \f[ \psi(\BE) = \frac{\lambda}{2} (\tr \BE)^2   +\mu \tr (\BE^2) ,\f]
+ *  \f[ \psi(\BE) = \frac{\la}{2} (\tr \BE)^2   +\mu \tr (\BE^2) ,\f]
  *  where \f$ \BE \f$ denotes the Green-Lagrangian strain.
  *
  *  The second Piola-Kirchhoff stresses are computed as
- *     \f[ \BS(\BE) =\fracpt{\psi(\BE)}{\BE} = \lambda \tr \BE \BI  +2 \mu \BE,\f]
+ *     \f[ \BS(\BE) =\fracpt{\psi(\BE)}{\BE} = \la \tr \BE \BI  +2 \mu \BE,\f]
  *
  * and the material tangent moduli are computed as
- *      \f[ \BBC(\BE) =\fracpt{^2\psi(\BE)}{\BE^2} =  \lambda \tr \BE \CI  +2 \mu \CI^{\mathrm{sym}},\f]
+ *      \f[ \BBC(\BE) =\fracpt{^2\psi(\BE)}{\BE^2} =  \la \tr \BE \CI  +2 \mu \CI^{\mathrm{sym}},\f]
  *      where \f$ \CI_{IJKL} =  \de_{IJ}\de_{KL}\f$ and \f$ \CI_{IJKL}^\mathrm{sym} =  \frac{1}{2}(\de_{IK}\de_{JL}+
  * \de_{IL}\de_{JK})\f$.
  * \tparam ST The scalar type used in the material.

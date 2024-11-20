@@ -19,10 +19,10 @@ namespace Ikarus::Materials {
  * \ingroup materials
  *
  * \details The three invariants are
- * \f[ I_1 = \lambda_1^2 + \lambda_2^2 + \lambda_3^2, \f]
- * \f[ I_2 = \lambda_1^2 \lambda_2^2 + \lambda_2^2 \lambda_3^2 +
- \lambda_1^2 \lambda_3^2, \f]
- * \f[ I_3 = \lambda_1^2 \lambda_2^2 \lambda_3^2. \f]
+ * \f[ I_1 = \la_1^2 + \la_2^2 + \la_3^2, \f]
+ * \f[ I_2 = \la_1^2 \la_2^2 + \la_2^2 \la_3^2 +
+ \la_1^2 \la_3^2, \f]
+ * \f[ I_3 = \la_1^2 \la_2^2 \la_3^2. \f]
  *
  * The deviatoric invariants are then defined as
  * \f[ W_1 = I_1 I_3^{-1/3}, \f]

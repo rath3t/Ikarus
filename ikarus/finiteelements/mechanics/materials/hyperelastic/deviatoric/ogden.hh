@@ -20,16 +20,16 @@ namespace Ikarus::Materials {
  * \ingroup materials
  *
  * \details If total principal stretches are used, the energy is computed via
- * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \sum_{p=1}^n{
- \frac{\mu_n}{\alpha_n} ({\lambda_1}^{\alpha_n} + {\lambda_2}^{\alpha_n} +
- {\lambda_3}^{\alpha_n} - 3) - \mu_n \ln J}, \f]
- * with \f$ J = \lambda_1 \lambda_2 \lambda_3 \f$.
+ * \f[ \hat{\Psi}(\la_1, \la_2, \la_3) = \sum_{p=1}^n{
+ \frac{\mu_n}{\al_n} ({\la_1}^{\al_n} + {\la_2}^{\al_n} +
+ {\la_3}^{\al_n} - 3) - \mu_n \ln J}, \f]
+ * with \f$ J = \la_1 \la_2 \la_3 \f$.
  *
- * If deviatoric principal stretches (\f$ \bar{\lambda_i} = \lambda_i J^{-1/3} \f$)
+ * If deviatoric principal stretches (\f$ \bar{\la_i} = \la_i J^{-1/3} \f$)
  * are used, the energy is computed via
- * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \sum_{p=1}^n{
- \frac{\mu_n}{\alpha_n}({\bar{\lambda_1}}^{\alpha_n} + {\bar{\lambda_2}}^{\alpha_n} +
- {\bar{\lambda_3}}^{\alpha_n} - 3) }. \f]
+ * \f[ \hat{\Psi}(\la_1, \la_2, \la_3) = \sum_{p=1}^n{
+ \frac{\mu_n}{\al_n}({\bar{\la_1}}^{\al_n} + {\bar{\la_2}}^{\al_n} +
+ {\bar{\la_3}}^{\al_n} - 3) }. \f]
  *
  * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material.
  * \tparam ST The underlying scalar type.

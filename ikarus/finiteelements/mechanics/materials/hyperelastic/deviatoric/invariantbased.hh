@@ -23,7 +23,7 @@ namespace Ikarus::Materials {
  * \details This is a general model based on deviatoric invariants. It can be used to derive other specific material
  * models, for instance Mooney-Rivlin and Yeoh models.
  * The energy is computed as
- * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \sum_{p,q=0}^n{
+ * \f[ \hat{\Psi}(\la_1, \la_2, \la_3) = \sum_{p,q=0}^n{
  C_{pq} (W_1 - 3)^p (W_2 - 3)^q}. \f]
  *
  * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material. For information on the deviatoric

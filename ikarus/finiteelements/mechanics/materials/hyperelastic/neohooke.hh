@@ -19,14 +19,14 @@ namespace Ikarus::Materials {
  * \brief Implementation of the Neo-Hookean material model.
 * \ingroup materials
 *  The energy is computed as
-*  \f[ \psi(\BC) = \frac{\mu}{2} (\tr \BC-3- 2 \log \sqrt{\det \BC}) + \frac{\lambda}{2} (\log \sqrt{\det \BC})^2 ,\f]
+*  \f[ \psi(\BC) = \frac{\mu}{2} (\tr \BC-3- 2 \log \sqrt{\det \BC}) + \frac{\la}{2} (\log \sqrt{\det \BC})^2 ,\f]
 * where \f$ \BC \f$ denotes the right Cauchy-Green strain tensor.
 *
 *  The second Piola-Kirchhoff stresses are computed as
-*      \f[ \BS(\BC) =\fracpt{\psi(\BC)}{\BC} = \mu (\BI-\BC^{-1}) + \lambda \log \sqrt{\det \BC}  \BC^{-1},\f]
+*      \f[ \BS(\BC) =\fracpt{\psi(\BC)}{\BC} = \mu (\BI-\BC^{-1}) + \la \log \sqrt{\det \BC}  \BC^{-1},\f]
 *
 * and the material tangent moduli are computed as
-*      \f[ \BBC(\BC) =\fracpt{^2\psi(\BC)}{\BC^2} =  \lambda \BC^{-1} \otimes  \BC^{-1} + 2 (\mu- \lambda \log
+*      \f[ \BBC(\BC) =\fracpt{^2\psi(\BC)}{\BC^2} =  \la \BC^{-1} \otimes  \BC^{-1} + 2 (\mu- \la \log
 \sqrt{\det \BC} ) \CI,\f]
 *      where \f$ \CI_{IJKL} =  \frac{1}{2}({(\BC^{-1})}^{IK}{(\BC^{-1})}^{JL}+{(\BC^{-1})}^{IL} {(\BC^{-1})}^{JK}).\f$
 *

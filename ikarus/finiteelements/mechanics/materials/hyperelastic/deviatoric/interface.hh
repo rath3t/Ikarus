@@ -22,11 +22,11 @@ namespace Ikarus::Materials {
  * \ingroup materials
  *
  * \details The deviatoric part of the hyperelastic model, i.e., related to
- * \f$ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) \f$, is parametrized with a certain
+ * \f$ \hat{\Psi}(\la_1, \la_2, \la_3) \f$, is parametrized with a certain
  * deviatoric function (DF) implemented in terms of principal stretches.
  * The three interface functions (energy, streses and tangentModulus) are called with the argument being the principal
- * stretches (\f$ \lambda_i \f$). The underlying deviatoric function must only implement the energy
- * \f$ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) \f$ and its first and second derivatives
+ * stretches (\f$ \la_i \f$). The underlying deviatoric function must only implement the energy
+ * \f$ \hat{\Psi}(\la_1, \la_2, \la_3) \f$ and its first and second derivatives
  * w.r.t the total principal stretches.
  *
  * \tparam DF Deviatoric function.
@@ -136,8 +136,8 @@ private:
   /**
    * \brief A function to check if duplicate principal stretches exists.
    *
-   * \details The computation of tangentModuli includes an additional term in the denominator (\lambda_b - \lambda_a).
-   * This results in nan if \lambda_b = \lambda_a. In the explicit implementation, this is circumvented using the
+   * \details The computation of tangentModuli includes an additional term in the denominator (\la_b - \la_a).
+   * This results in nan if \la_b = \la_a. In the explicit implementation, this is circumvented using the
    * L'Hôpital's rule. However, AutoDiff doesn't see such numerical issues and hence results in nan. The tolerance
    * can be greater than 1e-4, but that leads to inaccurate results.
    *
