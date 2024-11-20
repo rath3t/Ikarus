@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file ogden.hh
- * \brief Implementation of the regularized InvariantBased material model.
+ * \file invariantbased.hh
+ * \brief Implementation of the InvariantBased material model.
  * \ingroup materials
  */
 

@@ -47,7 +47,7 @@ inline auto makeBlatzKo(double mu) {
  *
  * \param mu The shear parameters (mu_i).
  * \param og The (exponential) parameters (alpha_i).
- * \param K The bulk modulus.
+ * \param K Bulk modulus (or) Lamé's first parameter
  * \param vf The volumetric function.
  *
  * \return A hyperelastic material model.
@@ -73,7 +73,7 @@ inline auto makeOgden(const typename Ogden<n, tag>::MaterialParameters& mu,
  * \param mu The shear parameters (mu_i).
  * \param pex The exponents related to the first invariant.
  * \param qex The exponents related to the second invariant.
- * \param K The bulk modulus.
+ * \param K Bulk modulus (or) Lamé's first parameter
  * \param vf The volumetric function.
  *
  * \return A hyperelastic material model.
@@ -97,7 +97,7 @@ inline auto makeInvariantBased(const typename InvariantBased<n>::MaterialParamet
  * \tparam VolumetricFunction Type of the volumetric function.
  *
  * \param mu The shear parameters (mu_i).
- * \param K The bulk modulus.
+ * \param K Bulk modulus (or) Lamé's first parameter
  * \param vf The volumetric function.
  *
  * \return A hyperelastic material model.
@@ -118,7 +118,7 @@ inline auto makeMooneyRivlin(const typename InvariantBased<2>::MaterialParameter
  * \tparam VolumetricFunction Type of the volumetric function.
  *
  * \param mu The shear parameters (mu_i).
- * \param K The bulk modulus.
+ * \param K Bulk modulus (or) Lamé's first parameter
  * \param vf The volumetric function.
  *
  * \return A hyperelastic material model.
@@ -139,7 +139,7 @@ inline auto makeYeoh(const typename InvariantBased<3>::MaterialParameters& mu, d
  * \tparam VolumetricFunction Type of the volumetric function.
  *
  * \param matPar The Arruda-Boyce material parameters (C and lambdaM).
- * \param K The bulk modulus.
+ * \param K Bulk modulus (or) Lamé's first parameter
  * \param vf The volumetric function.
  *
  * \return A hyperelastic material model.
@@ -161,7 +161,7 @@ inline auto makeArrudaBoyce(const ArrudaBoyceMatParameters& matPar, double K = 0
  * \tparam VolumetricFunction Type of the volumetric function.
  *
  * \param matPar The Gent material parameters (mu and Jm).
- * \param K The bulk modulus.
+ * \param K Bulk modulus (or) Lamé's first parameter
  * \param vf The volumetric function.
  *
  * \return A hyperelastic material model.

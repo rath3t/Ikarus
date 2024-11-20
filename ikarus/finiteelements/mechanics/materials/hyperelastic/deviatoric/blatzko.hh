@@ -18,7 +18,10 @@ namespace Ikarus::Materials {
 /**
  * \brief Implementation of the Blatz-Ko material model.
  *
- *\tparam ST The underlying scalar type.
+ * \remark A special Blatz-Ko material model is implemented here. It assumes material parameters which corresponds to a
+ * Poisson's ratio of 0.25.
+ *
+ * \tparam ST The underlying scalar type.
  */
 template <typename ST>
 struct BlatzKoT

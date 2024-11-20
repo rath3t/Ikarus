@@ -3,7 +3,7 @@
 
 /**
  * \file ogden.hh
- * \brief Implementation of the regularized Ogden material model.
+ * \brief Implementation of the Ogden material model.
  * \ingroup materials
  */
 

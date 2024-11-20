@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file ogden.hh
- * \brief Implementation of the regularized InvariantBased material model.
+ * \file deviatoricinvariants.hh
+ * \brief Implementation of the computation of the deviatoric invariants and its derivatives.
  * \ingroup materials
  */
 

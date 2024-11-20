@@ -45,7 +45,7 @@ namespace Ikarus::Materials {
  * with \f$ \alpha = 1 - \frac{W_1 - 3}{J_m} \f].
  *
  * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material. For information on the deviatoric
- * invariant \f$ W_1 \f$, see \file deviatoricinvariants.hh 
+ * invariant \f$ W_1 \f$, see \file deviatoricinvariants.hh
  *
  * \tparam ST The underlying scalar type.
  */
