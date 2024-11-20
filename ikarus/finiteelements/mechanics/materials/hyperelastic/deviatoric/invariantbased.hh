@@ -101,10 +101,13 @@ struct InvariantBasedT
     W2 -= 3.0;
     const auto& [dW1dLambda, dW2dLambda] = devInvariants.firstDerivative();
 
-    for (auto j : parameterRange())
-      for (auto k : dimensionRange())
+    for (auto p : parameterRange())
+      for (auto k : dimensionRange()) {
+        auto W1pm1p = safeMultiply(pow(W1, pex[p] - 1.0), pex[p]);
+        auto W2qm1q = safeMultiply(pow(W2, qex[p] - 1.0), qex[p]);
         dWdLambda[k] +=
-            mu[j] * pow(W1, pex[j]) * pow(W2, qex[j]) * ((pex[j] * dW1dLambda[k]) / W1 + (qex[j] * dW2dLambda[k]) / W2);
+            mu[p] * ((W1pm1p * pow(W2, qex[p]) * dW1dLambda[k]) + (pow(W1, pex[p]) * W2qm1q * dW2dLambda[k]));
+      }
 
     return dWdLambda;
   }
@@ -132,15 +135,20 @@ struct InvariantBasedT
     for (auto p : parameterRange())
       for (auto i : dimensionRange())
         for (auto j : dimensionRange()) {
-          auto factor1 = (pex[p] / W1) * (((pex[p] - 1.0) / W1) * dW1dLambda[i] * dW1dLambda[j] + ddW1dLambda(i, j));
-          auto factor2 = (qex[p] / W2) * (((qex[p] - 1.0) / W2) * dW2dLambda[i] * dW2dLambda[j] + ddW2dLambda(i, j));
-          auto factor3 =
-              ((pex[p] * qex[p]) / (W1 * W2)) * (dW1dLambda[i] * dW2dLambda[j] + dW1dLambda[j] * dW2dLambda[i]);
-          auto factor4 = mu[p] * pow(W1, pex[p]) * pow(W2, qex[p]);
-          dS(i, j) += (factor4 * (factor1 + factor2 + factor3));
+          auto W1pm1p       = safeMultiply(pow(W1, pex[p] - 1.0), pex[p]);
+          auto W2qm1q       = safeMultiply(pow(W2, qex[p] - 1.0), qex[p]);
+          auto W1pm2pp      = safeMultiply(pow(W1, pex[p] - 2.0), pex[p] * (pex[p] - 1.0));
+          auto W2qm2qq      = safeMultiply(pow(W2, qex[p] - 2.0), qex[p] * (qex[p] - 1.0));
+          auto dW1W2dlambda = dW1dLambda[i] * dW2dLambda[j] + dW1dLambda[j] * dW2dLambda[i];
+          auto factor1      = (W2qm1q * dW1W2dlambda + pow(W2, qex[p]) * ddW1dLambda(i, j)) * W1pm1p * mu[p];
+          auto factor2      = W2qm1q * ddW2dLambda(i, j) * pow(W1, pex[p]) * mu[p];
+          auto factor3      = W1pm2pp * pow(W2, qex[p]) * dW1dLambda[i] * dW1dLambda[j] * mu[p];
+          auto factor4      = W2qm2qq * pow(W1, pex[p]) * dW2dLambda[i] * dW2dLambda[j] * mu[p];
+          dS(i, j) += factor1 + factor2 + factor3 + factor4;
           if (i == j) {
-            auto factor5 = (pex[p] / W1 * dW1dLambda[i]) + (qex[p] / W2 * dW2dLambda[i]);
-            dS(i, j) -= (1.0 / lambda[i]) * factor4 * factor5;
+            auto factor5 =
+                mu[p] * (W1pm1p * pow(W2, qex[p]) * dW1dLambda[i] + pow(W1, pex[p]) * W2qm1q * dW2dLambda[i]);
+            dS(i, j) -= (1.0 / lambda[i]) * factor5;
           }
         }
     return dS;
@@ -178,6 +186,35 @@ private:
       return transformedExp_;
     } else
       return exp_;
+  }
+
+  /**
+   * \brief A function to safely multiply infinity times zero and return zero instead of nan.
+   *
+   * \details In the undeformed configuration, all principal stretches are equal to one. In this scenario, the
+   * deviatoric invariants W1 and W2 are zero. For any positive integer n, 0^{-n} is inf. Multiplying this with 0.0
+   * again leads to nan. In order to circumvent this, in such a scenario, zero is returned instead of nan.
+   *
+   * \remark If inf is multiplied with any other number apart from zero, nan is returned.
+   *
+   * \param x First number to be multiplied.
+   * \param y Second number to be multiplied.
+   * \return ScalarType Either 0.0 or x * y.
+   */
+  ScalarType safeMultiply(ScalarType x, ScalarType y) const {
+    auto checkInfinityTimeZero = [](double val1, double val2) -> ScalarType {
+      constexpr double tol = 1e-14;
+      if ((std::isinf(val1) && Dune::FloatCmp::eq(val2, 0.0, tol)) ||
+          (std::isinf(val2) && Dune::FloatCmp::eq(val1, 0.0, tol)))
+        return 0.0;
+      return val1 * val2;
+    };
+    if constexpr (Concepts::AutodiffScalar<ScalarType>) {
+      double xAD = static_cast<double>(x);
+      double yAD = static_cast<double>(y);
+      return checkInfinityTimeZero(xAD, yAD);
+    } else
+      return checkInfinityTimeZero(x, y);
   }
 };
 

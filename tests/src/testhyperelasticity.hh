@@ -181,8 +181,8 @@ auto recoverNeoHookeTest() {
     checkNHRecoveryImpl.operator()<def>(nhFromInvariantBased, nhFromogdenDevi);
   };
 
-  // Checking for these deformation states, will indirectly ensure correct transformation of quantities from principal
-  // coordinate system to Cartesian coordinate system.
+  // Checking for these deformation states will indirectly ensure correct transformation of quantities from principal
+  // coordinate system to Cartesian coordinate system (even for duplicate principal stretches).
   checkNHRecovery.operator()<DeformationType::Undeformed>();
   checkNHRecovery.operator()<DeformationType::UniaxialTensile>();
   checkNHRecovery.operator()<DeformationType::BiaxialTensile>();
@@ -192,8 +192,7 @@ auto recoverNeoHookeTest() {
   return t;
 }
 
-template <typename DEV, DeformationType def>
-requires(Concepts::DeviatoricFunction<DEV>)
+template <Concepts::DeviatoricFunction DEV, DeformationType def>
 auto materialResults() {
   if constexpr (std::is_same_v<DEV, BlatzKoT<double>>) {
     return BlatzKoResults<def>();
@@ -213,8 +212,7 @@ auto materialResults() {
     static_assert(Dune::AlwaysFalse<DEV>::value, "The requested deviatoric function is not implemented.");
 }
 
-template <DeformationType def, typename DEV, StrainTags tag = StrainTags::rightCauchyGreenTensor>
-requires(Concepts::DeviatoricFunction<DEV>)
+template <DeformationType def, Concepts::DeviatoricFunction DEV>
 auto testMaterialResult(const DEV& dev) {
   Dune::TestSuite t("Test Deviatoric Function Results for the material model: " + dev.name() +
                     " with deformation type as " + toString(def));
