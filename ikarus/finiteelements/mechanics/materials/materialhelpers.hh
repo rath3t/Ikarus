@@ -100,7 +100,7 @@ void checkPositiveDet(ScalarType det) {
 }
 
 /**
- * \brief Calculates the principal stretches of the input strain matrix C.
+ * \brief Computes the principal stretches of the input strain matrix C.
  *
  * \tparam ScalarType The ScalarType
  * \tparam Derived The derived type of the input matrix
@@ -164,7 +164,7 @@ inline Vector deviatoricStretches(const Vector& lambda) {
 }
 
 /**
- * \brief Calcualtes the invariants from the principal stretches
+ * \brief Computes the invariants from the principal stretches
  *
  * \tparam Vector the type of the vector of principal stretches
  * \param lambda the total principal stretches
