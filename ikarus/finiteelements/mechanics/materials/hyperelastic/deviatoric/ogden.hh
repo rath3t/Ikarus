@@ -17,11 +17,24 @@ namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of the Ogden material model.
- *
- *\tparam ST The underlying scalar type.
- * \tparam n number of ogden parameters
- * \tparam tag type of principal stretch quantity, either total stretches or deviatoric stretches
  * \ingroup materials
+ *
+ * \details If total principal stretches are used, the energy is computed via
+ * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \sum_{p=1}^n{
+ \frac{\mu_n}{\alpha_n} (\lambda_1^\alpha_n + \lambda_2^\alpha_n +
+ \lambda_3^\alpha_n - 3) - \mu_n \ln J}, \f]
+ * with \f$ J = \lambda_1 \lambda_2 \lambda_3\f$.
+ *
+ * If deviatoric principal stretches (\f$ \bar{\lambda_i} = \lambda_i J^{-1/3} \f$)
+ * are used, the energy is computed via
+ * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \sum_{p=1}^n{
+ \frac{\mu_n}{\alpha_n}(\bar{\lambda_1}^\alpha_n + \bar{\lambda_2}^\alpha_n +
+ \bar{\lambda_3}^\alpha_n - 3) }. \f]
+ *
+ * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material.
+ * \tparam ST The underlying scalar type.
+ * \tparam n Number of ogden parameters
+ * \tparam tag Type of principal stretch quantity, either total stretches or deviatoric stretches
  */
 template <typename ST, int n, PrincipalStretchTag tag>
 struct OgdenT
@@ -30,39 +43,39 @@ struct OgdenT
   using PrincipalStretches = Eigen::Vector<ScalarType, 3>;
 
   static constexpr PrincipalStretchTag stretchTag = tag;
-  static constexpr int nOgdenParameters           = n;
+  static constexpr int numMatParameters           = n;
   static constexpr int dim                        = 3;
   static constexpr bool usesDeviatoricStretches   = stretchTag == PrincipalStretchTag::deviatoric;
 
   using FirstDerivative  = Eigen::Vector<ScalarType, dim>;
   using SecondDerivative = Eigen::Matrix<ScalarType, dim, dim>;
 
-  using MaterialParameters = std::array<double, nOgdenParameters>;
-  using OgdenParameters    = std::array<double, nOgdenParameters>;
+  using MaterialParameters = std::array<double, numMatParameters>;
+  using MaterialExponents  = std::array<double, numMatParameters>;
 
   [[nodiscard]] constexpr static std::string name() noexcept {
-    return "Ogden (n = " + std::to_string(nOgdenParameters) + ", stretch type = " + toString(tag) + ")";
+    return "Ogden (n = " + std::to_string(numMatParameters) + ", stretch type = " + toString(tag) + ")";
   }
 
   /**
    * \brief Constructor for OgdenT
    *
    * \param mpt material parameters (array of mu values)
-   * \param opt ogden parameters (array of alpha values)
+   * \param mex material exponents (array of alpha values)
    */
-  explicit OgdenT(const MaterialParameters& mpt, const OgdenParameters& opt)
+  explicit OgdenT(const MaterialParameters& mpt, const MaterialExponents& mex)
       : materialParameters_{mpt},
-        ogdenParameters_{opt} {}
+        materialExponents_{mex} {}
 
   /**
-   * \brief Returns the material parameters stored in the material
+   * \brief Returns the material parameters (mu values) stored in the material
    */
   const MaterialParameters& materialParametersImpl() const { return materialParameters_; }
 
   /**
-   * \brief Returns the ogden parameters stored in the material
+   * \brief Returns the material exponents (alpha values) stored in the material
    */
-  const OgdenParameters& ogdenParameters() const { return ogdenParameters_; }
+  const MaterialExponents& materialExponents() const { return materialExponents_; }
 
   /**
    * \brief Computes the stored energy in the Ogden material model.
@@ -72,7 +85,7 @@ struct OgdenT
    */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
     auto& mu    = materialParameters_;
-    auto& alpha = ogdenParameters_;
+    auto& alpha = materialExponents_;
 
     ScalarType energy{};
 
@@ -103,7 +116,7 @@ struct OgdenT
    */
   FirstDerivative firstDerivativeImpl(const PrincipalStretches& lambda) const {
     auto& mu       = materialParameters_;
-    auto& alpha    = ogdenParameters_;
+    auto& alpha    = materialExponents_;
     auto dWdLambda = FirstDerivative::Zero().eval();
 
     if constexpr (usesDeviatoricStretches) {
@@ -137,7 +150,7 @@ struct OgdenT
    */
   SecondDerivative secondDerivativeImpl(const PrincipalStretches& lambda) const {
     auto& mu    = materialParameters_;
-    auto& alpha = ogdenParameters_;
+    auto& alpha = materialExponents_;
     auto dS     = SecondDerivative::Zero().eval();
 
     if constexpr (usesDeviatoricStretches) {
@@ -186,14 +199,14 @@ struct OgdenT
    */
   template <typename STO>
   auto rebind() const {
-    return OgdenT<STO, nOgdenParameters, stretchTag>(materialParameters_, ogdenParameters_);
+    return OgdenT<STO, numMatParameters, stretchTag>(materialParameters_, materialExponents_);
   }
 
 private:
   MaterialParameters materialParameters_;
-  OgdenParameters ogdenParameters_;
+  MaterialExponents materialExponents_;
 
-  inline auto parameterRange() const { return Dune::Hybrid::integralRange(nOgdenParameters); }
+  inline auto parameterRange() const { return Dune::Hybrid::integralRange(numMatParameters); }
   inline auto dimensionRange() const { return Dune::Hybrid::integralRange(dim); }
 };
 

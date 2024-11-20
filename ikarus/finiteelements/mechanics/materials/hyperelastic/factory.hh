@@ -46,7 +46,7 @@ inline auto makeBlatzKo(double mu) {
  * \tparam VolumetricFunction Type of the volumetric function.
  *
  * \param mu The shear parameters (mu_i).
- * \param og The (exponential) parameters (alpha_i).
+ * \param alpha The (exponential) parameters (alpha_i).
  * \param K Bulk modulus (or) Lamé's first parameter
  * \param vf The volumetric function.
  *
@@ -54,9 +54,9 @@ inline auto makeBlatzKo(double mu) {
  */
 template <int n, PrincipalStretchTag tag, typename VolumetricFunction = VF0T<double>>
 inline auto makeOgden(const typename Ogden<n, tag>::MaterialParameters& mu,
-                      const typename Ogden<n, tag>::OgdenParameters og, double K = 0.0,
+                      const typename Ogden<n, tag>::MaterialExponents alpha, double K = 0.0,
                       const VolumetricFunction& vf = VolumetricFunction{}) {
-  auto ogPre = Ogden<n, tag>(mu, og);
+  auto ogPre = Ogden<n, tag>(mu, alpha);
   auto dev   = Deviatoric(ogPre);
   auto vol   = Volumetric(K, vf);
 

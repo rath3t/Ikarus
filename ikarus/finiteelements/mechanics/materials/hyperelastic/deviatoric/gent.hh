@@ -40,12 +40,12 @@ namespace Ikarus::Materials {
  * The second derivatives w.r.t the total principal stretches are
  * \f[ \fracpt{^2 \Psi}{\lambda_i\partial\lambda_j} =
  \frac{\mu}{2\alpha} (\fracpt{^2 W_1}{\lambda_i\partial\lambda_j} +
- \frac{1}{\alpha J_m} \fracpt{W1}{\lambda_i} \fracpt{W1}{\lambda_j}) -
+ \frac{1}{\alpha J_m} \fracpt{W_1}{\lambda_i} \fracpt{W_1}{\lambda_j}) -
  \delta_{ij} \frac{\mu}{2\alpha\lambda_i} \fracpt{W_1}{\lambda_i}, \f]
  * with \f$ \alpha = 1 - \frac{W_1 - 3}{J_m} \f$.
  *
  * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material. For information on the deviatoric
- * invariant \f$ W_1 \f$, see \file deviatoricinvariants.hh
+ * invariant \f$ W_1 \f$, see \ref DeviatoricInvariants.
  *
  * \tparam ST The underlying scalar type.
  */

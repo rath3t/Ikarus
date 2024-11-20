@@ -18,11 +18,19 @@ namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of the InvariantBased material model.
- *
- *\tparam ST The underlying scalar type.
- * \tparam n number of ogden parameters
- * \tparam tag type of principal stretch quantity, either total stretches or deviatoric stretches
  * \ingroup materials
+ *
+ * \details This is a general model based on deviatoric invariants. It can be used to derive other specific material
+ * models, for instance Mooney-Rivlin and Yeoh models.
+ * The energy is computed as
+ * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \sum_{p,q=0}^n{
+ C_{pq} (W_1 - 3)^p (W_2 - 3)^q}. \f]
+ *
+ * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material. For information on the deviatoric
+ * invariant \f$ W_1 \f$, see \ref DeviatoricInvariants.
+ *
+ * \tparam ST The underlying scalar type.
+ * \tparam n Number of material parameters
  */
 template <typename ST, int n>
 struct InvariantBasedT
@@ -54,8 +62,9 @@ struct InvariantBasedT
   /**
    * \brief Constructor for InvariantBasedT
    *
-   * \param mpt material parameters (array of mu values)
-   * \param opt ogden parameters (array of alpha values)
+   * \param pex Array of exponents related to the first invariant
+   * \param qex Array of exponents related to the second invariant
+   * \param matParameters Array of material parameters
    */
   explicit InvariantBasedT(const Exponents& pex, const Exponents& qex, const MaterialParameters& matParameters)
       : pex_{pex},

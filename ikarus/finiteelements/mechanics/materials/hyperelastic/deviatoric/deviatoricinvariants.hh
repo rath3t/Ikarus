@@ -14,7 +14,22 @@
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::Materials {
-
+/**
+ * \brief Implementation of the deviatoric invariants and its derivatives.
+ * \ingroup materials
+ *
+ * \details The three invariants are
+ * \f[ I_1 = \lambda_1^2 + \lambda_2^2 + \lambda_3^2, \f]
+ * \f[ I_2 = \lambda_1^2 \lambda_2^2 + \lambda_2^2 \lambda_3^2 +
+ \lambda_1^2 \lambda_3^2, \f]
+ * \f[ I_3 = \lambda_1^2 \lambda_2^2 \lambda_3^2. \f]
+ *
+ * The deviatoric invariants are then defined as
+ * \f[ W_1 = I_1 I_3^{-1/3}, \f]
+ * \f[ W_2 = I_2 I_3^{-2/3}, \f]
+ *
+ * \tparam PS Type of the principal stretches.
+ */
 template <typename PS>
 struct DeviatoricInvariants
 {
@@ -26,9 +41,17 @@ struct DeviatoricInvariants
   using FirstDerivative  = Eigen::Vector<ScalarType, dim>;
   using SecondDerivative = Eigen::Matrix<ScalarType, dim, dim>;
 
+  /**
+   * \brief Constructor for DeviatoricInvariants
+   *
+   * \param lambda The principal stretches.
+   */
   explicit DeviatoricInvariants(const PrincipalStretches& lambda)
       : lambda_{lambda} {}
 
+  /**
+   * \brief Computation of value of the deviatoric invariants
+   */
   auto value() const {
     const Invariants& invariants = Impl::invariants(lambda_);
     ScalarType W1                = invariants[0] * pow(invariants[2], -1.0 / 3.0);
@@ -36,6 +59,9 @@ struct DeviatoricInvariants
     return std::make_pair(W1, W2);
   }
 
+  /**
+   * \brief Computation of the first derivatives of the deviatoric invariants w.r.t the total principal stretches.
+   */
   auto firstDerivative() const {
     const Invariants& invariants            = Impl::invariants(lambda_);
     auto dW1dLambda                         = FirstDerivative::Zero().eval();
@@ -50,6 +76,9 @@ struct DeviatoricInvariants
     return std::make_pair(dW1dLambda, dW2dLambda);
   }
 
+  /**
+   * \brief Computation of the second derivatives of the deviatoric invariants w.r.t the total principal stretches.
+   */
   auto secondDerivative() const {
     const Invariants& invariants            = Impl::invariants(lambda_);
     auto ddW1dLambda                        = SecondDerivative::Zero().eval();
