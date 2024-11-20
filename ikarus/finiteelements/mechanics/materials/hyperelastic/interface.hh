@@ -19,9 +19,10 @@ namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of a general Hyperelastic Material material model.
- * \details $\Psi(\BC) = \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) + U(J)$ with $\hat{\Psi}$ being the deviatoric
- * part of the strain energy function and U(J) being the volumetric part. After calling the underlying deviatoric and
- * volumetric function, the transformation to cartesian coordinate system is implemented in this interface.
+ * \details \f$\Psi(\BC) = \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) + U(J)\f$ with \f$\hat{\Psi}\f$ being the
+ *deviatoric part of the strain energy function and U(J) being the volumetric part. After calling the underlying
+ *deviatoric and volumetric function, the transformation to cartesian coordinate system is implemented in this
+ *interface.
  *
  *\ingroup  materials
  */

@@ -18,7 +18,7 @@ namespace Ikarus::Materials {
 /**
  * \brief Implementation of the Ogden material model.
  *
- * \tparam ST The scalar type for the strains and stresses,....
+ *\tparam ST The underlying scalar type.
  * \tparam n number of ogden parameters
  * \tparam tag type of principal stretch quantity, either total stretches or deviatoric stretches
  * \ingroup materials

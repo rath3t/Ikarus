@@ -31,7 +31,7 @@ namespace Ikarus::Materials {
 *      where \f$ \CI_{IJKL} =  \frac{1}{2}({(\BC^{-1})}^{IK}{(\BC^{-1})}^{JL}+{(\BC^{-1})}^{IL} {(\BC^{-1})}^{JK}).\f$
 *
 *  \remark See \cite bonet2008nonlinear, Section 6.4.3 for a discussion of this material
- * \tparam ST The scalar type for the strains and stresses,....
+ *\tparam ST The underlying scalar type.
  */
 template <typename ST>
 struct NeoHookeT : public Material<NeoHookeT<ST>>

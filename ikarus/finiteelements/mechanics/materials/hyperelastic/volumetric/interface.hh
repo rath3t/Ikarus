@@ -19,10 +19,10 @@ namespace Ikarus::Materials {
  * \brief Interface for the volumetric part of a hyperelastic material. Has to be parametrized with a volumetric
  * function.
  *
- * \details The volumetric part of the hyperelastic model (i.e., related to $U(J)$) is
+ * \details The volumetric part of the hyperelastic model (i.e., related to \f$ U(J)\f$) is
  * parametrized with a certain volumetric function (VF) implemented in terms of the determinant of the deformation
- * gradient (J). The underlying volumetric function must only implement the energy $U(J)$ and its first and second
- * derivatives w.r.t $J$.
+ * gradient (\f$ J\f$). The underlying volumetric function must only implement the energy \f $U(J) \f$ and its first and
+ * second derivatives w.r.t \f$ J\f$.
  *
  * \tparam VF volumetric function, has to adhere to the \concept `VolumetricFunction`.
  * \ingroup materials

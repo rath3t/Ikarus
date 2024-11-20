@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file ogden.hh
- * \brief Implementation of the regularized ArrudaBoyce material model.
+ * \file arrudaboyce.hh
+ * \brief Implementation of the ArrudaBoyce material model.
  * \ingroup materials
  */
 
@@ -31,23 +31,25 @@ namespace Ikarus::Materials {
  * \ingroup materials
  *
  * \details The energy is computed as
- * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \mu  \sum_{p=0}^4{\alpha_p  \beta^p}  (W1^{p+1} - 3^{p+1}), \f]
- * with \f$ \beta = \frac{1}{\lambda_m^2} \f$.
+ * \f[ \hat{\Psi}(\lambda_1, \lambda_2, \lambda_3) = \mu  \sum_{p=0}^4{\alpha_p  \beta^p}  (W_1^{p+1} - 3^{p+1}), \f]
+ * with
+ * \f[ \beta = \frac{1}{\lambda_m^2} , \alpha_0 = \frac{1}{2}, \alpha_1 = \frac{1}{20}, \alpha_2 = \frac{11}{1050},
+ * \alpha_3 = \frac{19}{7000}, \alpha_4 = \frac{519}{673750} \f].
  *
  * The first derivatives w.r.t the total principal stretches are
- * \f[ \fracpt{\Psi}{\lambda_i} = \mu * \sum_{p=0}^4{\sum_{k=1}^3{\alpha_p  \beta^p  W1^p  \fracpt{W1}{\lambda_i}
+ * \f[ \fracpt{\Psi}{\lambda_i} = \mu \sum_{p=0}^4{\sum_{k=1}^3{\alpha_p  \beta^p  W_1^p  \fracpt{W_1}{\lambda_i}
  * (p+1)}} \f].
  *
  * The second derivatives w.r.t the total principal stretches are
- * \f[ \fracpt{^2 \Psi}{\lambda_i\partial\lambda_j} = \mu * \sum_{p=0}^4{\sum_{i=1}^3{\sum_{j=1}^3{ \alpha_p \beta^p
- * (W1^p (p+1) \fracpt{^2 W1}{\lambda_i\partial\lambda_j} + W1^{p-1} p (p+1)
- * \fracpt{W1}{\lambda_i}\fracpt{W1}{\lambda_j} - \delta_{ij} \frac{1}{\lambda_i} W1^p (p+1) \fracpt{W1}{\lambda_i}) }}}
- * \f]
+ * \f[ \fracpt{^2 \Psi}{\lambda_i\partial\lambda_j} = \mu \sum_{p=0}^4{\sum_{i=1}^3{\sum_{j=1}^3{ \alpha_p \beta^p
+ * (W_1^p (p+1) \fracpt{^2 W_1}{\lambda_i\partial\lambda_j} + W_1^{p-1} p (p+1)
+ * \fracpt{W_1}{\lambda_i}\fracpt{W_1}{\lambda_j} - \delta_{ij} \frac{1}{\lambda_i} W_1^p (p+1) \fracpt{W_1}{\lambda_i})
+ * }}} \f]
  *
  * \remark See \cite hiermaierStructuresCrashImpact2010 and \cite bergstromMechanicsSolidPolymers2015 for details on
- * this material.
+ * this material. For information on the deviatoric invariant \f$ W_1 \f$, see \file deviatoricinvariants.hh
  *
- * \tparam ST The scalar type for the strains and stresses,....
+ *\tparam ST The underlying scalar type.
  */
 template <typename ST>
 struct ArrudaBoyceT
@@ -89,7 +91,7 @@ struct ArrudaBoyceT
     const Invariants& invariants = Impl::invariants(lambda);
     ScalarType energy{0.0};
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
-    auto W1                   = devInvariants.value().first;
+    const auto W1             = devInvariants.value().first;
     const auto mu_            = matPar_.mu_;
     const auto lambdaM_       = matPar_.lambdaM_;
     const auto beta           = 1 / pow(lambdaM_, 2.0);
@@ -112,7 +114,7 @@ struct ArrudaBoyceT
     auto dWdLambda               = FirstDerivative::Zero().eval();
 
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
-    auto W1                   = devInvariants.value().first;
+    const auto W1             = devInvariants.value().first;
     const auto& dW1dLambda    = devInvariants.firstDerivative().first;
     const auto mu_            = matPar_.mu_;
     const auto lambdaM_       = matPar_.lambdaM_;
@@ -136,7 +138,7 @@ struct ArrudaBoyceT
     auto dS                      = SecondDerivative::Zero().eval();
 
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
-    auto W1                   = devInvariants.value().first;
+    const auto W1             = devInvariants.value().first;
     const auto& dW1dLambda    = devInvariants.firstDerivative().first;
     const auto& ddW1dLambda   = devInvariants.secondDerivative().first;
     const auto mu_            = matPar_.mu_;

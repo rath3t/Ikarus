@@ -18,7 +18,7 @@ namespace Ikarus::Materials {
 /**
  * \brief Implementation of the Blatz-Ko material model.
  *
- * \tparam ST The scalar type for the strains and stresses,....
+ *\tparam ST The underlying scalar type.
  */
 template <typename ST>
 struct BlatzKoT
