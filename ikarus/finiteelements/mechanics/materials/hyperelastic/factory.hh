@@ -30,7 +30,7 @@ namespace Ikarus::Materials {
  *
  *\return A hyperelastic material model.
  */
-inline auto makeBlatzKo(ShearModulus mu) {
+inline auto makeBlatzKo(double mu) {
   auto bk  = BlatzKo(mu);
   auto dev = Deviatoric<decltype(bk)>(bk);
 
@@ -48,14 +48,13 @@ inline auto makeBlatzKo(ShearModulus mu) {
  * \param mu The shear parameters (mu_i).
  * \param og The (exponential) parameters (alpha_i).
  * \param K The bulk modulus.
- * \param vf The
- * volumetric function.
+ * \param vf The volumetric function.
  *
  * \return A hyperelastic material model.
  */
 template <int n, PrincipalStretchTag tag, typename VolumetricFunction = VF0T<double>>
 inline auto makeOgden(const typename Ogden<n, tag>::MaterialParameters& mu,
-                      const typename Ogden<n, tag>::OgdenParameters og, BulkModulus K = {0.0},
+                      const typename Ogden<n, tag>::OgdenParameters og, double K = 0.0,
                       const VolumetricFunction& vf = VolumetricFunction{}) {
   auto ogPre = Ogden<n, tag>(mu, og);
   auto dev   = Deviatoric(ogPre);
@@ -82,7 +81,7 @@ inline auto makeOgden(const typename Ogden<n, tag>::MaterialParameters& mu,
 template <int n, typename VolumetricFunction = VF0T<double>>
 inline auto makeInvariantBased(const typename InvariantBased<n>::MaterialParameters& mu,
                                const typename InvariantBased<n>::Exponents pex,
-                               const typename InvariantBased<n>::Exponents qex, BulkModulus K = {0.0},
+                               const typename InvariantBased<n>::Exponents qex, double K = 0.0,
                                const VolumetricFunction& vf = VolumetricFunction{}) {
   auto invariantBasedPre = InvariantBased<n>(pex, qex, mu);
   auto dev               = Deviatoric(invariantBasedPre);
@@ -104,7 +103,7 @@ inline auto makeInvariantBased(const typename InvariantBased<n>::MaterialParamet
  * \return A hyperelastic material model.
  */
 template <typename VolumetricFunction = VF0T<double>>
-inline auto makeMooneyRivlin(const typename InvariantBased<2>::MaterialParameters& mu, BulkModulus K = {0.0},
+inline auto makeMooneyRivlin(const typename InvariantBased<2>::MaterialParameters& mu, double K = 0.0,
                              const VolumetricFunction& vf = VolumetricFunction{}) {
   typename InvariantBased<2>::Exponents pex = {1, 0};
   typename InvariantBased<2>::Exponents qex = {0, 1};
@@ -125,7 +124,7 @@ inline auto makeMooneyRivlin(const typename InvariantBased<2>::MaterialParameter
  * \return A hyperelastic material model.
  */
 template <typename VolumetricFunction = VF0T<double>>
-inline auto makeYeoh(const typename InvariantBased<3>::MaterialParameters& mu, BulkModulus K = {0.0},
+inline auto makeYeoh(const typename InvariantBased<3>::MaterialParameters& mu, double K = 0.0,
                      const VolumetricFunction& vf = VolumetricFunction{}) {
   typename InvariantBased<3>::Exponents pex = {1, 2, 3};
   typename InvariantBased<3>::Exponents qex = {0, 0, 0};
@@ -146,7 +145,7 @@ inline auto makeYeoh(const typename InvariantBased<3>::MaterialParameters& mu, B
  * \return A hyperelastic material model.
  */
 template <typename VolumetricFunction = VF0T<double>>
-inline auto makeArrudaBoyce(const ArrudaBoyceMatParameters& matPar, BulkModulus K = {0.0},
+inline auto makeArrudaBoyce(const ArrudaBoyceMatParameters& matPar, double K = 0.0,
                             const VolumetricFunction& vf = VolumetricFunction{}) {
   auto abPre = ArrudaBoyce(matPar);
   auto dev   = Deviatoric(abPre);
@@ -168,7 +167,7 @@ inline auto makeArrudaBoyce(const ArrudaBoyceMatParameters& matPar, BulkModulus 
  * \return A hyperelastic material model.
  */
 template <typename VolumetricFunction = VF0T<double>>
-inline auto makeGent(const GentMatParameters& matPar, BulkModulus K = {0.0},
+inline auto makeGent(const GentMatParameters& matPar, double K = 0.0,
                      const VolumetricFunction& vf = VolumetricFunction{}) {
   auto gentPre = Gent(matPar);
   auto dev     = Deviatoric(gentPre);

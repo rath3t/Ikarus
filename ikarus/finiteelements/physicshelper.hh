@@ -56,18 +56,6 @@ struct LamesFirstParameterAndShearModulus
   double mu;
 };
 
-///< Structure representing shear modulus.
-struct ShearModulus
-{
-  double mu;
-};
-
-///< Structure representing bulk modulus.
-struct BulkModulus
-{
-  double K;
-};
-
 /**
  * \brief Concept for checking if a type is a valid material parameter tuple.
  *

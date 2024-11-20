@@ -32,7 +32,7 @@ struct BlatzKoT
   using FirstDerivative  = Eigen::Vector<ScalarType, dim>;
   using SecondDerivative = Eigen::Matrix<ScalarType, dim, dim>;
 
-  using MaterialParameters = ShearModulus;
+  using MaterialParameters = double;
 
   [[nodiscard]] constexpr static std::string name() noexcept { return "BlatzKo"; }
 
@@ -40,7 +40,7 @@ struct BlatzKoT
    * \brief Constructor for BlatzKoT.
    * \param mpt material parameters, here the shear modulus mu.
    */
-  explicit BlatzKoT(const MaterialParameters& mpt)
+  explicit BlatzKoT(MaterialParameters mpt)
       : materialParameter_{mpt} {}
 
   /**
@@ -55,7 +55,7 @@ struct BlatzKoT
    * \return ScalarType
    */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
-    return materialParameter_.mu / 2 *
+    return materialParameter_ / 2 *
            (1 / pow(lambda[0], 2) + 1 / pow(lambda[1], 2) + 1 / pow(lambda[2], 2) +
             2 * lambda[0] * lambda[1] * lambda[2] - 5);
   }
@@ -71,7 +71,7 @@ struct BlatzKoT
     const ScalarType J = lambda[0] * lambda[1] * lambda[2];
 
     for (auto k : dimensionRange())
-      dWdLambda[k] = materialParameter_.mu * (-1.0 / pow(lambda[k], 3) + (J / lambda[k]));
+      dWdLambda[k] = materialParameter_ * (-1.0 / pow(lambda[k], 3) + (J / lambda[k]));
 
     return dWdLambda;
   }
@@ -92,7 +92,7 @@ struct BlatzKoT
           dS(i, j) += (1.0 / pow(lambda[i], 2)) * (1.0 / pow(lambda[i], 2) - J) + 3.0 / pow(lambda(i), 4);
         else
           dS(i, j) += J / (lambda[i] * lambda[j]);
-        dS(i, j) *= materialParameter_.mu;
+        dS(i, j) *= materialParameter_;
       }
 
     return dS;

@@ -150,7 +150,7 @@ auto recoverNeoHookeTest() {
   std::array<double, 1> mu_og    = {mu};
   std::array<double, 1> alpha_og = {2.0};
 
-  auto nhFromogdenTotal     = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, {Lambda}, VF3{});
+  auto nhFromogdenTotal     = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, Lambda, VF3{});
   auto nhFromogdenDevi      = makeOgden<1, PrincipalStretchTag::deviatoric>(mu_og, alpha_og);
   auto nhFromInvariantBased = makeInvariantBased<1>({mu / 2.0}, {1}, {0});
   auto nh                   = NeoHooke(toLamesFirstParameterAndShearModulus(matPar));
@@ -248,7 +248,7 @@ auto testMaterialResults() {
   std::array<double, 3> mu_og    = {2.0 * mu / 3.0, mu / 6.0, mu / 6.0};
   std::array<double, 3> alpha_og = {1.23, 0.59, 0.18};
 
-  auto bk = BlatzKo(ShearModulus{mu});
+  auto bk = BlatzKo(mu);
 
   auto ogdenTotal = Ogden<3, PrincipalStretchTag::total>(mu_og, alpha_og);
   auto ogdenDevi  = Ogden<3, PrincipalStretchTag::deviatoric>(mu_og, alpha_og);

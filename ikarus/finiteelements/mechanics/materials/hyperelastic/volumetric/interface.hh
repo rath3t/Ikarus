@@ -34,19 +34,22 @@ struct Volumetric
   using JType      = typename VF::JType;
 
   using VolumetricFunction = VF;
-  using MaterialParameter  = BulkModulus;
+  using MaterialParameter  = double;
 
   [[nodiscard]] constexpr static std::string name() noexcept { return "Volumetric function: " + VF::name(); }
 
   /**
    * \brief Construct a new volumetric part
    *
-   * \param K Materialparameter is most often the bulk modulus, but it is also common for modified material laws to use
-   * lamés first parameter
+   * \param matPar Materialparameter that is considered as the penalty parameter for the constraint against volumetric
+   * deformations. Typically, if the deviatoric part of the energy function is a function of the toal principal
+   * stretches, then this material parameter is the  Lamé's first parameter and if the energy is a function of the
+   * deviatoric principal stretches, then bulk modulus is used. 
+   *
    * \param vf the volumetric function
    */
-  Volumetric(MaterialParameter K, const VF vf)
-      : K_{K},
+  Volumetric(MaterialParameter matPar, const VF vf)
+      : matPar_{matPar},
         volumetricFunction_{vf} {}
 
   /**
@@ -55,7 +58,7 @@ struct Volumetric
    * \param J determinant of the deformation gradient $J = \det\BF$
    * \return ScalarType energy
    */
-  ScalarType storedEnergy(const JType& J) const { return K_.K * volumetricFunction_.storedEnergyImpl(J); };
+  ScalarType storedEnergy(const JType& J) const { return matPar_ * volumetricFunction_.storedEnergyImpl(J); };
 
   /**
    * \brief Computes the first derivatives of the energy of the volumetric function w.r.t $J$
@@ -63,7 +66,7 @@ struct Volumetric
    * \param J determinant of the deformation gradient $J = \det\BF$
    * \return ScalarType energy
    */
-  ScalarType firstDerivative(const JType& J) const { return K_.K * volumetricFunction_.firstDerivativeImpl(J); }
+  ScalarType firstDerivative(const JType& J) const { return matPar_ * volumetricFunction_.firstDerivativeImpl(J); }
 
   /**
    * \brief Computes the second derivatives of the energy of the volumetric function w.r.t $J$
@@ -71,7 +74,7 @@ struct Volumetric
    * \param J determinant of the deformation gradient $J = \det\BF$
    * \return ScalarType energy
    */
-  ScalarType secondDerivative(const JType& J) const { return K_.K * volumetricFunction_.secondDerivativeImpl(J); };
+  ScalarType secondDerivative(const JType& J) const { return matPar_ * volumetricFunction_.secondDerivativeImpl(J); };
 
   /**
    * \brief Rebinds the material to a different scalar type.
@@ -81,11 +84,11 @@ struct Volumetric
   template <typename STO>
   auto rebind() const {
     auto reboundVF = volumetricFunction_.template rebind<STO>();
-    return Volumetric<decltype(reboundVF)>(K_, reboundVF);
+    return Volumetric<decltype(reboundVF)>(matPar_, reboundVF);
   }
 
 private:
-  MaterialParameter K_;
+  MaterialParameter matPar_;
   VF volumetricFunction_;
 };
 } // namespace Ikarus::Materials
