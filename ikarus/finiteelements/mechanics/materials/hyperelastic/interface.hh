@@ -94,8 +94,8 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   ScalarType storedEnergyImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
 
-    auto lambdas = principalStretches(C, Eigen::EigenvaluesOnly).first;
-    auto J       = detF(C);
+    const auto& lambdas = principalStretches(C, Eigen::EigenvaluesOnly).first;
+    auto J              = detF(lambdas);
 
     return dev_.storedEnergy(lambdas) + vol_.storedEnergy(J);
   }
@@ -111,11 +111,11 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   StressMatrix stressesImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
-      auto [lambdas, N] = principalStretches(C);
-      auto J            = detF(C);
+      const auto& [lambdas, N] = principalStretches(C);
+      auto J                   = detF(lambdas);
 
-      auto Sdev = transformDeviatoricStresses(dev_.stresses(lambdas), N);
-      auto Svol = transformVolumetricStresses(vol_.firstDerivative(J), C, J);
+      const auto& Sdev = transformDeviatoricStresses(dev_.stresses(lambdas), N);
+      const auto& Svol = transformVolumetricStresses(vol_.firstDerivative(J), C, J);
 
       return Sdev + Svol;
     } else
@@ -133,11 +133,11 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   MaterialTensor tangentModuliImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
-      auto [lambdas, N] = principalStretches(C);
-      auto J            = detF(C);
+      const auto& [lambdas, N] = principalStretches(C);
+      auto J                   = detF(lambdas);
 
-      auto moduliDev = transformDeviatoricTangentModuli(dev_.tangentModuli(lambdas), N);
-      auto moduliVol = transformVolumetricTangentModuli(vol_.firstDerivative(J), vol_.secondDerivative(J), C, J);
+      const auto& moduliDev = transformDeviatoricTangentModuli(dev_.tangentModuli(lambdas), N);
+      const auto& moduliVol = transformVolumetricTangentModuli(vol_.firstDerivative(J), vol_.secondDerivative(J), C, J);
 
       return moduliDev + moduliVol;
     } else
@@ -213,7 +213,7 @@ private:
   /**
    * \brief Calculates the principal stretches of the input strain matrix C
    *
-   * \tparam Derived The derived type of the input matri
+   * \tparam Derived The derived type of the input matrix
    * \param Craw the input strain matrix
    * \param options should be either `Eigen::ComputeEigenvectors` or `Eigen::EigenvaluesOnly`
    * \return auto pair of principalstretches and corresponding eigenvectors (if `Eigen::EigenvaluesOnly` the
@@ -240,15 +240,11 @@ private:
     return std::make_pair(principalStretches, eigenvectors);
   }
 
-  template <typename Derived>
-  auto detF(const Eigen::MatrixBase<Derived>& Craw) const -> typename VOL::JType {
-    StrainMatrix C = Impl::maybeFromVoigt(Craw);
-
+  auto detF(const typename DEV::PrincipalStretches& lambda) const -> typename VOL::JType {
     if constexpr (hasVolumetricPart) {
-      const auto detC = C.determinant();
+      const auto detC = std::accumulate(lambda.begin(), lambda.end(), ScalarType{1.0}, std::multiplies());
       Impl::checkPositiveDet(detC);
-
-      return sqrt(detC);
+      return detC;
     }
     return 0.0;
   }
