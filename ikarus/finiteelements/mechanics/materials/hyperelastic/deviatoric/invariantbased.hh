@@ -23,7 +23,7 @@ namespace Ikarus::Materials {
  * \details This is a general model based on deviatoric invariants. It can be used to derive other specific material
  * models, for instance Mooney-Rivlin and Yeoh models.
  * The energy is computed as
- * \f[ \hat{\Psi}(\la_1, \la_2, \la_3) = \sum_{p,q=0}^n{
+ * \f[ \hat{\Psi}(\la_1, \la_2, \la_3) = \sum_{p+q,q=0}^n{
  C_{pq} (W_1 - 3)^p (W_2 - 3)^q}. \f]
  *
  * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material. For information on the deviatoric
@@ -69,7 +69,9 @@ struct InvariantBasedT
   explicit InvariantBasedT(const Exponents& pex, const Exponents& qex, const MaterialParameters& matParameters)
       : pex_{pex},
         qex_{qex},
-        matParameters_{matParameters} {}
+        matParameters_{matParameters} {
+    checkExponents();
+  }
 
   /**
    * \brief Computes the stored energy in the InvariantBased material model.
@@ -221,6 +223,14 @@ private:
 
     // static_cast needed if Concepts::AutodiffScalar<ScalarType>
     return checkInfinityTimeZero(static_cast<double>(x), static_cast<double>(y)) ? ScalarType{0.0} : x * y;
+  }
+
+  /** \brief check that for all exponents: \f$ q_i \not p_i \f$ */
+  void checkExponents() const {
+    for (const auto i : parameterRange())
+      if (pex_[i] == 0 and qex_[i] == 0)
+        DUNE_THROW(Dune::InvalidStateException, "The exponent q" + std::to_string(i) + "and the exponent p" +
+                                                    std::to_string(i) + "should not be zero at the same time.");
   }
 };
 

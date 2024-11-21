@@ -17,4 +17,10 @@ template struct NeoHookeT<double>;
 template struct StVenantKirchhoffT<double>;
 template struct Hyperelastic<Deviatoric<BlatzKoT<double>>>;
 
+// Here only the deviatoric parts can be precompiled
+template struct GentT<double>;
+template struct InvariantBasedT<double, 2>; // Money-Rivlin
+template struct InvariantBasedT<double, 3>; // Yeoh
+template struct ArrudaBoyceT<double>;
+
 } // namespace Ikarus::Materials

@@ -72,14 +72,14 @@ struct AutoDiffMAT : public RealMAT
   /**
    * \brief Computes the stored energy in the Neo-Hookean material model.
    * \tparam Derived The derived type of the input matrix.
-   * \param C The right Cauchy-Green tensor.
+   * \param E The strain mesasure.
    * \return The stored energy.
    */
   template <StrainTags tag, typename Derived>
-  auto storedEnergy(const Eigen::MatrixBase<Derived>& C) const {
-    if constexpr (requires { realMAT().template storedEnergy<tag>(C); }) {
+  auto storedEnergy(const Eigen::MatrixBase<Derived>& E) const {
+    if constexpr (requires { realMAT().template storedEnergy<tag>(E); }) {
       auto mat_ad = realMAT().template rebind<autodiff::dual>();
-      return mat_ad.template storedEnergy<tag>(C);
+      return mat_ad.template storedEnergy<tag>(E);
     } else {
       static_assert(Dune::AlwaysFalse<AutoDiffMAT>::value,
                     "Appropriate storedEnergy function not is implemented for the chosen material model.");
@@ -90,21 +90,21 @@ struct AutoDiffMAT : public RealMAT
    * \brief Computes the stresses in the Neo-Hookean material model.
    * \tparam voigt A boolean indicating whether to return stresses in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
-   * \param C The right Cauchy-Green tensor.
+   * \param E The strain mesasure.
    * \return The stresses.
    */
   template <StrainTags tag, bool voigt = true, typename Derived>
-  auto stresses(const Eigen::MatrixBase<Derived>& C) const {
-    if constexpr (requires { realMAT().template stresses<tag>(C); } and not(forceAutoDiffV or forceAutoDiffS)) {
-      return realMAT().template stresses<tag>(C);
-    } else if constexpr (requires { realMAT().template storedEnergy<tag>(C); }) {
+  auto stresses(const Eigen::MatrixBase<Derived>& E) const {
+    if constexpr (requires { realMAT().template stresses<tag>(E); } and not(forceAutoDiffV or forceAutoDiffS)) {
+      return realMAT().template stresses<tag>(E);
+    } else if constexpr (requires { realMAT().template storedEnergy<tag>(E); }) {
       auto mat_ad = realMAT().template rebind<autodiff::dual>();
 
       auto f = [&](const auto& x) { return mat_ad.template storedEnergy<tag>(x); };
 
       auto dx = Eigen::Vector<autodiff::dual, nVoigtIndices>{};
 
-      dx = toVoigt(C.derived());
+      dx = toVoigt(E.derived());
       autodiff::dual e;
 
       auto g = Eigen::Vector<double, nVoigtIndices>{};
@@ -121,33 +121,33 @@ struct AutoDiffMAT : public RealMAT
    * \brief Computes the tangent moduli in the Neo-Hookean material model.
    * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
-   * \param C The right Cauchy-Green tensor.
+   * \param E The strain mesasure.
    * \return The tangent moduli.
    */
   template <StrainTags tag, bool voigt = true, typename Derived>
-  auto tangentModuli(const Eigen::MatrixBase<Derived>& C) const {
-    if constexpr (requires { realMAT().template tangentModuli<tag>(C); } and not(forceAutoDiffV or forceAutoDiffS)) {
-      return realMAT().template tangentModuli<tag>(C);
-    } else if constexpr (requires { realMAT().template stresses<tag>(C); } and forceAutoDiffV and not forceAutoDiffS) {
+  auto tangentModuli(const Eigen::MatrixBase<Derived>& E) const {
+    if constexpr (requires { realMAT().template tangentModuli<tag>(E); } and not(forceAutoDiffV or forceAutoDiffS)) {
+      return realMAT().template tangentModuli<tag>(E);
+    } else if constexpr (requires { realMAT().template stresses<tag>(E); } and forceAutoDiffV and not forceAutoDiffS) {
       auto mat_ad = realMAT().template rebind<autodiff::dual>();
 
       auto f = [&](const auto& x) { return mat_ad.template stresses<tag>(x); };
 
       auto dx = Eigen::Vector<autodiff::dual, nVoigtIndices>{};
 
-      dx = toVoigt(C.derived());
+      dx = toVoigt(E.derived());
       Eigen::VectorXdual g(nVoigtIndices);
 
       auto h = Eigen::Matrix<double, nVoigtIndices, nVoigtIndices>{};
       jacobian(f, autodiff::wrt(dx), autodiff::at(dx), g, h);
 
       return (derivativeFactorImpl * h).eval();
-    } else if constexpr (requires { realMAT().template storedEnergy<tag>(C); }) {
+    } else if constexpr (requires { realMAT().template storedEnergy<tag>(E); }) {
       auto mat_ad = realMAT().template rebind<autodiff::dual2nd>();
 
       auto f = [&](const auto& x) { return mat_ad.template storedEnergy<tag>(x); };
 
-      Eigen::Matrix<autodiff::dual2nd, nVoigtIndices, 1> dx = toVoigt(C.derived());
+      Eigen::Matrix<autodiff::dual2nd, nVoigtIndices, 1> dx = toVoigt(E.derived());
 
       autodiff::dual2nd e;
       Eigen::Matrix<double, nVoigtIndices, 1> g;

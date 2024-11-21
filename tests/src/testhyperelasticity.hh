@@ -273,5 +273,8 @@ auto testMaterialResults() {
   checkForDeformationType.operator()<DeformationType::PureShear>();
   checkForDeformationType.operator()<DeformationType::Random>();
 
+  // Check malformed Invariant model constructor
+  t.checkThrow([]() { InvariantBased<2>({0, 0}, {0, 1}, {500, 500}); });
+
   return t;
 }
