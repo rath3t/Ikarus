@@ -21,7 +21,7 @@
 
 using namespace Ikarus;
 using namespace Ikarus::Materials;
-using namespace Ikarus::experimental;
+using namespace Ikarus::Experimental;
 using Dune::TestSuite;
 
 template <typename MAT, StrainTags strainTag>

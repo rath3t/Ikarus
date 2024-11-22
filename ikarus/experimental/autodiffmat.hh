@@ -18,13 +18,13 @@
 #include <ikarus/finiteelements/mechanics/materials/materialhelpers.hh>
 #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus::experimental {
+namespace Ikarus::Experimental {
 
 /**
  * \brief Implementation of a AutoDiff-based material model.
  * \ingroup experimental
  * \details As of now using autodiff on the implemented materials doens't always yield the expected result. Therefore
- * this is labelled as an experimental feature for now. Pleas validate your results independently.
+ * this is labelled as an experimental feature for now. Please validate your results independently.
  *
  * \tparam RealMAT Type of the original material model.
  * \tparam forceAutoDiffV Force automatic differentiation to compute tangentModuli via stresses and stresses via energy.
@@ -100,7 +100,8 @@ struct AutoDiffMAT : public RealMAT
     if constexpr (requires { realMAT().template stresses<tag>(E); } and not(forceAutoDiffV or forceAutoDiffS)) {
       return realMAT().template stresses<tag>(E);
     } else if constexpr (requires { realMAT().template storedEnergy<tag>(E); }) {
-      static_assert(!Concepts::EigenVector<Derived>, "The strain measure used for autodiff has to in matrix notation.");
+      static_assert(!Concepts::EigenVector<Derived>,
+                    "The strain measure used for autodiff has to be in matrix notation.");
       auto mat_ad = realMAT().template rebind<autodiff::dual>();
 
       auto f = [&](const auto& x) { return mat_ad.template storedEnergy<tag>(x); };
@@ -132,7 +133,8 @@ struct AutoDiffMAT : public RealMAT
     if constexpr (requires { realMAT().template tangentModuli<tag>(E); } and not(forceAutoDiffV or forceAutoDiffS)) {
       return realMAT().template tangentModuli<tag>(E);
     } else if constexpr (requires { realMAT().template stresses<tag>(E); } and forceAutoDiffV and not forceAutoDiffS) {
-      static_assert(!Concepts::EigenVector<Derived>, "The strain measure used for autodiff has to in matrix notation.");
+      static_assert(!Concepts::EigenVector<Derived>,
+                    "The strain measure used for autodiff has to be in matrix notation.");
       auto mat_ad = realMAT().template rebind<autodiff::dual>();
 
       auto f = [&](const auto& x) { return mat_ad.template stresses<tag>(x); };
@@ -147,7 +149,8 @@ struct AutoDiffMAT : public RealMAT
 
       return (derivativeFactorImpl * h).eval();
     } else if constexpr (requires { realMAT().template storedEnergy<tag>(E); }) {
-      static_assert(!Concepts::EigenVector<Derived>, "The strain measure used for autodiff has to in matrix notation.");
+      static_assert(!Concepts::EigenVector<Derived>,
+                    "The strain measure used for autodiff has to be in matrix notation.");
       auto mat_ad = realMAT().template rebind<autodiff::dual2nd>();
 
       auto f = [&](const auto& x) { return mat_ad.template storedEnergy<tag>(x); };
@@ -179,4 +182,4 @@ private:
   MaterialParameters materialParameter_;
 };
 
-} // namespace Ikarus::experimental
+} // namespace Ikarus::Experimental
