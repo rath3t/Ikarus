@@ -23,8 +23,7 @@ namespace Ikarus::Materials {
  * \details This is a general model based on deviatoric invariants. It can be used to derive other specific material
  * models, for instance Mooney-Rivlin and Yeoh models.
  * The energy is computed as
- * \f[ \hat{\Psi}(\la_1, \la_2, \la_3) = \sum_{p+q,q=0}^n{
- C_{pq} (W_1 - 3)^p (W_2 - 3)^q}. \f]
+ * \f[ \hat{\Psi}(\la_1, \la_2, \la_3) = \sum_{p+q=1}^n{C_{pq} (W_1 - 3)^p (W_2 - 3)^q}, \quad p,q \geq 0. \f]
  *
  * \remark See \cite bergstromMechanicsSolidPolymers2015 for details on this material. For information on the deviatoric
  * invariants \f$ W_1, W_2 \f$, see \ref DeviatoricInvariants.
@@ -225,7 +224,7 @@ private:
     return checkInfinityTimeZero(static_cast<double>(x), static_cast<double>(y)) ? ScalarType{0.0} : x * y;
   }
 
-  /** \brief check that for all exponents: \f$ q_i \not p_i \f$ */
+  /** \brief check that: \f$ \lnot (q_i = 0 \land p_i = 0) \forall i \f$ */
   void checkExponents() const {
     for (const auto i : parameterRange())
       if (pex_[i] == 0 and qex_[i] == 0)
