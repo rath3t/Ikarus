@@ -2,7 +2,4 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 # install headers
-install(
-  FILES autodiffmat.hh
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/experimental
-)
+install(FILES autodiffmat.hh DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/experimental)

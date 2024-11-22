@@ -23,7 +23,7 @@ namespace Ikarus::Experimental {
 /**
  * \brief Implementation of a AutoDiff-based material model.
  * \ingroup experimental
- * \details As of now using autodiff on the implemented materials doens't always yield the expected result. Therefore
+ * \details As of now using autodiff on the implemented materials doesn't always yield the expected result. Therefore
  * this is labelled as an experimental feature for now. Please validate your results independently.
  *
  * \tparam RealMAT Type of the original material model.
