@@ -56,7 +56,7 @@ SPDX-License-Identifier: LGPL-3.0-or-later
 - Add an About Ikarus page in the documentation ([#291](https://github.com/ikarus-project/ikarus/pull/291))
 - Add new class `Vtk::Writer`, which implements some convenience methods over the existing `dune-vtk` module ([#309](https://github.com/ikarus-project/ikarus/pull/309))
 - Add `VanishingStrain` material (useful for example for plane strain case), also refactor the constructor of `LinearElastic` to take any linear material law ([#317](https://github.com/ikarus-project/ikarus/pull/317))
-- Add hyperelastic and AutoDiff-based material models ([#333](https://github.com/ikarus-project/ikarus/pull/333))
+- Add hyperelastic and an experimental AutoDiff-based material models ([#333](https://github.com/ikarus-project/ikarus/pull/333))
     - The `Hyperelastic` class takes in its deviatoric and volumetric parts separately as arguments.
         - This class serves as a general interface for hyperelastic material models.
         - It also performs the necessary transformations from principal to Cartesian coordinate systems,
@@ -69,7 +69,7 @@ SPDX-License-Identifier: LGPL-3.0-or-later
         - The invariant-based model is a general model and can be used to create other material models,
           for example, Mooney-Rivlin and Yeoh models.
         - Eleven different volumetric functions are included.
-    - An AutoDiff-based material model is included mainly to test these hyperelastic material models.
+    - An AutoDiff-based material model is included mainly to test these hyperelastic material models. It can be found in the `experimental` namespace.
     - All materials are now in a separate namespace, `Ikarus::Materials`.
 
 ## Release v0.4 (Ganymede)

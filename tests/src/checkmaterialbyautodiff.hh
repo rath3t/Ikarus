@@ -17,9 +17,11 @@
 #include <ikarus/finiteelements/mechanics/materials.hh>
 #include <ikarus/finiteelements/physicshelper.hh>
 #include <ikarus/utils/init.hh>
+#include <ikarus/experimental/autodiffmat.hh>
 
 using namespace Ikarus;
 using namespace Ikarus::Materials;
+using namespace Ikarus::experimental;
 using Dune::TestSuite;
 
 template <typename MAT, StrainTags strainTag>

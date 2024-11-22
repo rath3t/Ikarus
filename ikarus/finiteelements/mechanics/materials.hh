@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/mechanics/materials/autodiffmat.hh>
 #include <ikarus/finiteelements/mechanics/materials/hyperelastic/factory.hh>
 #include <ikarus/finiteelements/mechanics/materials/linearelasticity.hh>
 #include <ikarus/finiteelements/mechanics/materials/svk.hh>
