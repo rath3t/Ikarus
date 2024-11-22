@@ -180,7 +180,6 @@ inline Vector invariants(const Vector& lambda) {
       lambdaSquared[0] * lambdaSquared[1] + lambdaSquared[1] * lambdaSquared[2] + lambdaSquared[0] * lambdaSquared[2];
   invariants[2] = determinantFromPrincipalValues<ScalarType>(lambdaSquared);
 
-
   return invariants;
 }
 } // namespace Ikarus::Materials::Impl
