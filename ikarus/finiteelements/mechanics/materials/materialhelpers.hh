@@ -178,7 +178,8 @@ inline Vector invariants(const Vector& lambda) {
   invariants[0] = std::accumulate(lambdaSquared.begin(), lambdaSquared.end(), ScalarType{0.0});
   invariants[1] =
       lambdaSquared[0] * lambdaSquared[1] + lambdaSquared[1] * lambdaSquared[2] + lambdaSquared[0] * lambdaSquared[2];
-  invariants[2] = determinantFromPrincipalValues<ScalarType>(lambda);
+  invariants[2] = determinantFromPrincipalValues<ScalarType>(lambdaSquared);
+
 
   return invariants;
 }
