@@ -20,7 +20,7 @@
 
 namespace Ikarus::Materials {
 /**
- * \brief Represents a pair of stress matrix indices (row and column).
+ * \brief Represents a pair of stress or strain matrix indices (row and column).
  */
 struct MatrixIndexPair
 {
@@ -137,8 +137,8 @@ auto principalStretches(const Eigen::MatrixBase<Derived>& C, int options = Eigen
  * \param principalValues the principal values.
  * \return ScalarType the determinant.
  */
-template <typename ScalarType, Concepts::EigenVector Vector>
-inline ScalarType determinantFromPrincipalValues(const Vector& principalValues) {
+template <typename ScalarType, typename Container>
+inline ScalarType determinantFromPrincipalValues(const Container& principalValues) {
   return std::accumulate(principalValues.begin(), principalValues.end(), ScalarType{1.0}, std::multiplies());
 }
 
@@ -149,12 +149,11 @@ inline ScalarType determinantFromPrincipalValues(const Vector& principalValues) 
  * \param lambda the total principal stretches
  * \return Vector the deviatoric principal stretches
  */
-template <Concepts::EigenVector Vector>
+template <Concepts::EigenVector3 Vector>
 inline Vector deviatoricStretches(const Vector& lambda) {
-  using ScalarType = std::remove_cvref_t<decltype(lambda[0])>;
-
-  ScalarType J    = Impl::determinantFromPrincipalValues<ScalarType>(lambda);
-  ScalarType Jmod = pow(J, -1.0 / 3.0);
+  using ScalarType = typename Vector::Scalar;
+  ScalarType J     = determinantFromPrincipalValues<ScalarType>(lambda);
+  ScalarType Jmod  = pow(J, -1.0 / 3.0);
 
   auto lambdaBar = Vector::Zero().eval();
   for (auto i : Dune::range(3))
@@ -170,16 +169,16 @@ inline Vector deviatoricStretches(const Vector& lambda) {
  * \param lambda the total principal stretches
  * \return Vector the invariants
  */
-template <Concepts::EigenVector Vector>
+template <Concepts::EigenVector3 Vector>
 inline Vector invariants(const Vector& lambda) {
-  using ScalarType   = std::remove_cvref_t<decltype(lambda[0])>;
+  using ScalarType   = typename Vector::Scalar;
   auto lambdaSquared = lambda.array().square();
   auto invariants    = Vector::Zero().eval();
 
   invariants[0] = std::accumulate(lambdaSquared.begin(), lambdaSquared.end(), ScalarType{0.0});
   invariants[1] =
       lambdaSquared[0] * lambdaSquared[1] + lambdaSquared[1] * lambdaSquared[2] + lambdaSquared[0] * lambdaSquared[2];
-  invariants[2] = std::accumulate(lambdaSquared.begin(), lambdaSquared.end(), ScalarType{1.0}, std::multiplies());
+  invariants[2] = determinantFromPrincipalValues<ScalarType>(lambda);
 
   return invariants;
 }
