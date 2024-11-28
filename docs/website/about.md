@@ -24,7 +24,13 @@ The idea of interface segregation between a grid space and an ansatz space from 
 Some of the features that we provide are
 
 - Element library (linear elastic, nonlinear elastic, Kirchhoff-Love Shell, truss)
-- Material library (St. Venant-Kirchhoff, Neo-Hookean)
+- Material library
+    - St. Venant-Kirchhoff
+    - Neo-Hookean
+    - Hyperelastic materials constructed using various deviatoric and volumetric functions.
+        - Deviatoric functions include Arruda-Boyce, Blatz-Ko, Gent, Invariant-based, and Ogden models.
+        - The invariant-based model is a general model and can be used to create other material models,
+        for example, Mooney-Rivlin and Yeoh models. 
 - Nonlinear Solvers (Newton-Raphson Method, Trust region Method)
 - Assemblers for sparse and dense matrices
 - Control routines (load control, displacement control, arc-length control)

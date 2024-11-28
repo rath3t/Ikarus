@@ -69,7 +69,7 @@ SPDX-License-Identifier: LGPL-3.0-or-later
         - The invariant-based model is a general model and can be used to create other material models,
           for example, Mooney-Rivlin and Yeoh models.
         - Eleven different volumetric functions are included.
-    - An AutoDiff-based material model is included mainly to test these hyperelastic material models. It can be found in the `experimental` namespace.
+    - An AutoDiff-based material model is included mainly to test these hyperelastic material models. It can be found in the `Experimental` namespace.
     - All materials are now in a separate namespace, `Ikarus::Materials`.
 
 ## Release v0.4 (Ganymede)
