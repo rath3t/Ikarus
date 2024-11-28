@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+// SPDX-FileCopyrightText: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
@@ -19,7 +19,7 @@
   #include <ikarus/finiteelements/mechanics/materials/muesli/mueslihelpers.hh>
   #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus::Materials::Muesli {
+namespace Ikarus::Materials {
 
 /**
  * \brief Wrapper class for small strain materials from the muesli library. It can be templated with all materials
@@ -37,7 +37,7 @@ struct SmallStrain : public Material<SmallStrain<SM>>
   static constexpr int worldDimension = 3;
   using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
   using StressMatrix                  = StrainMatrix;
-  using MaterialParameters            = Muesli::MaterialProperties;
+  using MaterialParameters            = muesli::materialProperties;
 
   static constexpr auto strainTag              = StrainTags::linear;
   static constexpr auto stressTag              = StressTags::linear;
@@ -58,7 +58,7 @@ struct SmallStrain : public Material<SmallStrain<SM>>
   template <Concepts::MPTuple MPT>
   requires(std::same_as<MaterialModel, muesli::elasticIsotropicMaterial>)
   explicit SmallStrain(const MPT& mpt)
-      : materialParameter_{Muesli::propertiesFromIkarusMaterialParameters(mpt)},
+      : materialParameter_{propertiesFromIkarusMaterialParameters(mpt)},
         material_{Dune::className<SM>(), materialParameter_},
         mp_{material_.createMaterialPoint()} {}
 
@@ -107,7 +107,7 @@ struct SmallStrain : public Material<SmallStrain<SM>>
       if constexpr (!Concepts::EigenVector<Derived>) {
         updateState(E);
         mp_->stress(stress_);
-        return Muesli::toMatrix(stress_);
+        return toMatrix(stress_);
       } else
         static_assert(!Concepts::EigenVector<Derived>,
                       "MuesliSmallStrain can only be called with a matrix and not a vector in Voigt notation");
@@ -129,7 +129,7 @@ struct SmallStrain : public Material<SmallStrain<SM>>
       if constexpr (!Concepts::EigenVector<Derived>) {
         updateState(E);
         mp_->tangentTensor(tangentModuli_);
-        return Muesli::toTensor(tangentModuli_);
+        return toTensor(tangentModuli_);
       } else
         static_assert(!Concepts::EigenVector<Derived>,
                       "MuesliSmallStrain can only be called with a matrix and not a vector in Voigt notation");
@@ -164,12 +164,12 @@ private:
 
   template <typename Derived>
   void updateState(const Eigen::MatrixBase<Derived>& E) const {
-    Muesli::toistensor(strain_, E);
+    toistensor(strain_, E);
     mp_->updateCurrentState(0.0, strain_);
   }
 };
 
-} // namespace Ikarus::Materials::Muesli
+} // namespace Ikarus::Materials
 
 #else
   #error Muesli materials depends on the Muesli library, which is not included

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+// SPDX-FileCopyrightText: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include <config.h>
@@ -61,7 +61,7 @@ auto compareIkarusAndMuesli(const MuesliMAT& muesliMat, const IkarusMAT& ikarusM
 }
 
 template <typename MAT>
-auto checkConstructors(Muesli::MaterialProperties matPar) {
+auto checkConstructors(muesli::materialProperties matPar) {
   TestSuite t;
   auto mm = MAT(matPar);
 
@@ -89,14 +89,14 @@ int main(int argc, char** argv) {
   double nu    = 0.25; // Blatz Ko assumes nu = 0.25
   auto matPar_ = YoungsModulusAndPoissonsRatio{.emodul = Emod, .nu = nu};
   auto matPar  = toLamesFirstParameterAndShearModulus(matPar_);
-  auto matProp = Muesli::propertiesFromIkarusMaterialParameters(matPar);
+  auto matProp = propertiesFromIkarusMaterialParameters(matPar);
 
   auto lin  = LinearElasticity(matPar);
-  auto linm = Muesli::SmallStrain(matPar);
+  auto linm = SmallStrain(matPar);
 
   t.subTest(compareIkarusAndMuesli<StrainTags::linear>(linm, lin));
 
-  auto nhm = Muesli::makeNeoHooke(matPar, false);
+  auto nhm = makeNeoHooke(matPar, false);
   auto nh  = NeoHooke(matPar);
 
   t.subTest(compareIkarusAndMuesli<StrainTags::rightCauchyGreenTensor>(nhm, nh));
@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
   t.subTest(compareIkarusAndMuesli<StrainTags::greenLagrangian>(nhm, nh));
 
   auto svk  = StVenantKirchhoff(matPar);
-  auto svkm = Muesli::makeSVK(matPar);
+  auto svkm = makeSVK(matPar);
 
   t.subTest(compareIkarusAndMuesli<StrainTags::rightCauchyGreenTensor>(svkm, svk));
   t.subTest(compareIkarusAndMuesli<StrainTags::deformationGradient>(svkm, svk));
@@ -118,15 +118,17 @@ int main(int argc, char** argv) {
   auto nhplaneStressm = planeStress(nhm);
   t.subTest(compareIkarusAndMuesli<StrainTags::rightCauchyGreenTensor>(nhplaneStressm, nhplaneStress));
 
-  t.subTest(checkConstructors<Muesli::FiniteStrain<Muesli::NeoHooke>>(matProp));
-  t.subTest(checkConstructors<Muesli::FiniteStrain<Muesli::StVenantKirchhoff>>(matProp));
-  t.subTest(checkConstructors<Muesli::SmallStrain<Muesli::LinearElasticity>>(matProp));
+  t.subTest(checkConstructors<FiniteStrain<muesli::neohookeanMaterial>>(matProp));
+  t.subTest(checkConstructors<FiniteStrain<muesli::svkMaterial>>(matProp));
+  t.subTest(checkConstructors<SmallStrain<muesli::elasticIsotropicMaterial>>(matProp));
 
-  Muesli::makeNeoHooke(YoungsModulusAndBulkModulus{1000, 500});
-  Muesli::makeNeoHooke(YoungsModulusAndPoissonsRatio{1000, 0.2});
-  Muesli::makeSVK(YoungsModulusAndLamesFirstParameter{1000, 500});
+  makeNeoHooke(YoungsModulusAndBulkModulus{1000, 500});
+  makeNeoHooke(YoungsModulusAndPoissonsRatio{1000, 0.2});
+  makeSVK(YoungsModulusAndLamesFirstParameter{1000, 500});
 
-  std::cout << svkm.name() << std::endl;
-  std::cout << nhm.name() << std::endl;
+  t.check(svkm.name() == "FiniteStrain: SvkMaterial");
+  t.check(nhm.name() == "FiniteStrain: NeohookeanMaterial");
+  t.check(linm.name() == "SmallStrain: ElasticIsotropicMaterial");
+
   return t.exit();
 }

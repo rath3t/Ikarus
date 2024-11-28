@@ -16,7 +16,7 @@ jobs:
   Build-Docs-Dry-Run:
     runs-on: ubuntu-latest
     container:
-      image: henrij22/ikarus-dev-extra-gcc:latest
+      image: ikarusproject/ikarus-dev:latest
       options: --memory-swap="20g" --memory="20g" --cpus="2" --user root
     steps:
       - uses: actions/checkout@v4

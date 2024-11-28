@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+// SPDX-FileCopyrightText: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
@@ -19,7 +19,7 @@
   #include <ikarus/finiteelements/mechanics/materials/muesli/mueslihelpers.hh>
   #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus::Materials::Muesli {
+namespace Ikarus::Materials {
 
 /**
  * \brief Wrapper class for finite strain materials from the muesli library. It can be templated with all materials
@@ -38,7 +38,7 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   static constexpr int worldDimension = 3;
   using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
   using StressMatrix                  = StrainMatrix;
-  using MaterialParameters            = Muesli::MaterialProperties;
+  using MaterialParameters            = muesli::materialProperties;
 
   static constexpr auto strainTag              = StrainTags::rightCauchyGreenTensor;
   static constexpr auto stressTag              = StressTags::PK2;
@@ -98,7 +98,7 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
       if constexpr (!Concepts::EigenVector<Derived>) {
         updateState(C);
         mp_->secondPiolaKirchhoffStress(stress_);
-        return Muesli::toMatrix(stress_);
+        return toMatrix(stress_);
       } else
         static_assert(!Concepts::EigenVector<Derived>,
                       "MuesliFiniteStrain can only be called with a matrix and not a vector in Voigt notation");
@@ -121,7 +121,7 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
         updateState(C);
 
         mp_->convectedTangent(tangentModuli_);
-        return Muesli::toTensor(tangentModuli_);
+        return toTensor(tangentModuli_);
       } else
         static_assert(!Concepts::EigenVector<Derived>,
                       "MuesliFiniteStrain can only be called with a matrix and not a vector in Voigt notation");
@@ -156,12 +156,12 @@ private:
 
   template <typename Derived>
   void updateState(const Eigen::MatrixBase<Derived>& C) const {
-    Muesli::toistensor(strain_, transformStrain<strainTag, StrainTags::deformationGradient>(C));
+    toistensor(strain_, transformStrain<strainTag, StrainTags::deformationGradient>(C));
     mp_->updateCurrentState(0.0, strain_);
   }
 };
 
-} // namespace Ikarus::Materials::Muesli
+} // namespace Ikarus::Materials
 #else
   #error Muesli materials depends on the Muesli library, which is not included
 #endif

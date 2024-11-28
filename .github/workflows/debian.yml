@@ -31,7 +31,7 @@ jobs:
         config:
           - {
               name: "Clang-16-Debug",
-              container: "henrij22/ikarus-dev-extra-clang:latest",
+              container: "ikarusproject/ikarus-dev-clang:latest",
               config: Debug,
               compilerC: clang-16,
               compilerCxx: clang++-16,
@@ -40,7 +40,7 @@ jobs:
             }
           - {
               name: "Clang-16-Release",
-              container: "henrij22/ikarus-dev-extra-clang:latest",
+              container: "ikarusproject/ikarus-dev-clang:latest",
               config: Release,
               compilerC: clang-16,
               compilerCxx: clang++-16,
@@ -49,7 +49,7 @@ jobs:
             }
           - {
               name: "Clang-16-Python-Release",
-              container: "henrij22/ikarus-dev-extra-clang:latest",
+              container: "ikarusproject/ikarus-dev-clang:latest",
               config: Release,
               compilerC: clang-16,
               compilerCxx: clang++-16,
@@ -58,7 +58,7 @@ jobs:
             }
           - {
               name: "Clang-16-Python-Debug",
-              container: "henrij22/ikarus-dev-extra-clang:latest",
+              container: "ikarusproject/ikarus-dev-clang:latest",
               config: Debug,
               compilerC: clang-16,
               compilerCxx: clang++-16,
@@ -67,7 +67,7 @@ jobs:
             }
           - {
               name: "Gcc-12-Debug",
-              container: "henrij22/ikarus-dev-extra-gcc:latest",
+              container: "ikarusproject/ikarus-dev-gcc:latest",
               config: Debug,
               compilerC: gcc-12,
               compilerCxx: g++-12,
@@ -76,7 +76,7 @@ jobs:
             }
           - {
               name: "Gcc-12-Release",
-              container: "henrij22/ikarus-dev-extra-gcc:latest",
+              container: "ikarusproject/ikarus-dev-gcc:latest",
               config: Release,
               compilerC: gcc-12,
               compilerCxx: g++-12,
@@ -85,7 +85,7 @@ jobs:
             }
           - {
               name: "Gcc-12-Python-Release",
-              container: "henrij22/ikarus-dev-extra-gcc:latest",
+              container: "ikarusproject/ikarus-dev-gcc:latest",
               config: Release,
               compilerC: gcc-12,
               compilerCxx: g++-12,
@@ -94,7 +94,7 @@ jobs:
             }
           - {
             name: "Gcc-12-Python-Debug",
-            container: "henrij22/ikarus-dev-extra-gcc:latest",
+            container: "ikarusproject/ikarus-dev-gcc:latest",
             config: Debug,
             compilerC: gcc-12,
             compilerCxx: g++-12,
