@@ -65,9 +65,7 @@ struct BlatzKoT
    * \return ScalarType
    */
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
-    return mu_ / 2 *
-           (1 / pow(lambda[0], 2) + 1 / pow(lambda[1], 2) + 1 / pow(lambda[2], 2) +
-            2 * lambda[0] * lambda[1] * lambda[2] - 5);
+    return mu_ / 2 * (lambda.cwiseInverse().squaredNorm() + 2 * lambda.prod() - 5);
   }
 
   /**
@@ -80,10 +78,7 @@ struct BlatzKoT
     auto dWdLambda     = FirstDerivative::Zero().eval();
     const ScalarType J = Impl::determinantFromPrincipalValues<ScalarType>(lambda);
 
-    for (auto k : dimensionRange())
-      dWdLambda[k] = mu_ * (-1.0 / pow(lambda[k], 3) + (J / lambda[k]));
-
-    return dWdLambda;
+    return mu_ * (-lambda.cwisePow(3).cwiseInverse() + (J * lambda.cwiseInverse()));
   }
 
   /**
@@ -96,14 +91,10 @@ struct BlatzKoT
     auto dS            = SecondDerivative::Zero().eval();
     const ScalarType J = Impl::determinantFromPrincipalValues<ScalarType>(lambda);
 
-    for (const auto i : dimensionRange())
-      for (const auto j : dimensionRange()) {
-        if (i == j)
-          dS(i, j) += (1.0 / pow(lambda[i], 2)) * (1.0 / pow(lambda[i], 2) - J) + 3.0 / pow(lambda(i), 4);
-        else
-          dS(i, j) += J / (lambda[i] * lambda[j]);
-        dS(i, j) *= mu_;
-      }
+    auto lam      = lambda.array();
+    dS            = J / (lambda * lambda.transpose()).array();
+    dS.diagonal() = lam.square().inverse() * (lam.square().inverse() - J) + (3.0 / lam.pow(4));
+    dS.array() *= mu_;
 
     return dS;
   }

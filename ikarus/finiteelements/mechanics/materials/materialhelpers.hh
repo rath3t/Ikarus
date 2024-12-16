@@ -139,7 +139,7 @@ auto principalStretches(const Eigen::MatrixBase<Derived>& C, int options = Eigen
  */
 template <typename ScalarType, typename Container>
 inline ScalarType determinantFromPrincipalValues(const Container& principalValues) {
-  return std::accumulate(principalValues.begin(), principalValues.end(), ScalarType{1.0}, std::multiplies());
+  return principalValues.prod();
 }
 
 /**

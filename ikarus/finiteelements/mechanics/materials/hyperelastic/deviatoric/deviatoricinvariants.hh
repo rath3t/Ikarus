@@ -56,7 +56,7 @@ struct DeviatoricInvariants
     const Invariants& invariants = Impl::invariants(lambda_);
     ScalarType W1                = invariants[0] * pow(invariants[2], -1.0 / 3.0);
     ScalarType W2                = invariants[1] * pow(invariants[2], -2.0 / 3.0);
-    return std::make_pair(W1, W2);
+    return std::array<ScalarType, 2>{W1, W2};
   }
 
   /**
@@ -68,10 +68,9 @@ struct DeviatoricInvariants
     auto dW2dLambda                         = FirstDerivative::Zero().eval();
     auto [I1, I2, I3, I3Pow1by3, I3Pow2by3] = computeInvariants(invariants);
 
-    for (const auto i : dimensionRange()) {
-      dW1dLambda[i] = 2.0 * (3.0 * pow(lambda_[i], 2.0) - I1) / (3.0 * lambda_[i] * I3Pow1by3);
-      dW2dLambda[i] = -2.0 * (3.0 * (I3 / pow(lambda_[i], 2.0)) - I2) / (3.0 * lambda_[i] * I3Pow2by3);
-    }
+    dW1dLambda = 2.0 * (3.0 * lambda_.cwisePow(2).array() - I1) / (3.0 * lambda_.array() * I3Pow1by3);
+    dW2dLambda =
+        -2.0 * (3.0 * I3 * lambda_.cwisePow(2).cwiseInverse().array() - I2) / (3.0 * lambda_.array() * I3Pow2by3);
 
     return std::make_pair(dW1dLambda, dW2dLambda);
   }

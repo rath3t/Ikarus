@@ -88,7 +88,7 @@ struct GentT
   ScalarType storedEnergyImpl(const PrincipalStretches& lambda) const {
     const Invariants& invariants = Impl::invariants(lambda);
     const auto& devInvariants    = DeviatoricInvariants<PrincipalStretches>(lambda);
-    const auto W1                = devInvariants.value().first;
+    const auto W1                = devInvariants.value()[0];
     checkJm(W1);
     return -(matPar_.mu / 2.0) * matPar_.Jm * log(1.0 - ((W1 - 3.0) / matPar_.Jm));
   }
@@ -104,7 +104,7 @@ struct GentT
     auto dWdLambda               = FirstDerivative::Zero().eval();
 
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
-    const auto W1             = devInvariants.value().first;
+    const auto W1             = devInvariants.value()[0];
     const auto& dW1dLambda    = devInvariants.firstDerivative().first;
     const auto mu             = matPar_.mu;
     const auto Jm             = matPar_.Jm;
@@ -127,7 +127,7 @@ struct GentT
     auto dS                      = SecondDerivative::Zero().eval();
 
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
-    const auto W1             = devInvariants.value().first;
+    const auto W1             = devInvariants.value()[0];
     const auto& dW1dLambda    = devInvariants.firstDerivative().first;
     const auto& ddW1dLambda   = devInvariants.secondDerivative().first;
     const auto mu             = matPar_.mu;

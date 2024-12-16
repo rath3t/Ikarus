@@ -90,7 +90,7 @@ struct ArrudaBoyceT
     const Invariants& invariants = Impl::invariants(lambda);
     ScalarType energy{0.0};
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
-    const auto W1             = devInvariants.value().first;
+    const auto W1             = devInvariants.value()[0];
     const auto mu_            = matPar_.mu_;
     const auto lambdaM_       = matPar_.lambdaM_;
     const auto beta           = 1 / pow(lambdaM_, 2.0);
@@ -113,7 +113,7 @@ struct ArrudaBoyceT
     auto dWdLambda               = FirstDerivative::Zero().eval();
 
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
-    const auto W1             = devInvariants.value().first;
+    const auto W1             = devInvariants.value()[0];
     const auto& dW1dLambda    = devInvariants.firstDerivative().first;
     const auto mu_            = matPar_.mu_;
     const auto lambdaM_       = matPar_.lambdaM_;
@@ -137,7 +137,7 @@ struct ArrudaBoyceT
     auto dS                      = SecondDerivative::Zero().eval();
 
     const auto& devInvariants = DeviatoricInvariants<PrincipalStretches>(lambda);
-    const auto W1             = devInvariants.value().first;
+    const auto W1             = devInvariants.value()[0];
     const auto& dW1dLambda    = devInvariants.firstDerivative().first;
     const auto& ddW1dLambda   = devInvariants.secondDerivative().first;
     const auto mu_            = matPar_.mu_;
