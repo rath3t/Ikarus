@@ -158,7 +158,7 @@ struct GentT
 private:
   MaterialParameters matPar_;
 
-  inline auto dimensionRange() const { return Dune::range(dim); }
+  inline static constexpr auto dimensionRange() { return Dune::range(dim); }
 
   void checkJm(ScalarType W1) const {
     if (Dune::FloatCmp::le(matPar_.Jm, static_cast<double>(W1) - 3.0, 1e-14))

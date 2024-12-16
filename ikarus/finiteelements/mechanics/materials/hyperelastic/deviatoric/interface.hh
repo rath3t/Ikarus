@@ -131,7 +131,7 @@ struct Deviatoric
 private:
   DF deviatoricFunction_;
 
-  inline auto dimensionRange() const { return Dune::range(dim); }
+  inline static constexpr auto dimensionRange() { return Dune::range(dim); }
 
   /**
    * \brief A function to check if duplicate principal stretches exists.

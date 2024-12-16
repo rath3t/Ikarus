@@ -170,10 +170,11 @@ struct ArrudaBoyceT
 
 private:
   MaterialParameters matPar_;
-  std::array<double, numTerms> alphas_ = {0.5, 1.0 / 20.0, 11.0 / 1050.0, 19.0 / 7000.0, 519.0 / 673750.0};
+  static constexpr std::array<double, numTerms> alphas_ = {0.5, 1.0 / 20.0, 11.0 / 1050.0, 19.0 / 7000.0,
+                                                           519.0 / 673750.0};
 
-  inline auto parameterRange() const { return Dune::range(numTerms); }
-  inline auto dimensionRange() const { return Dune::range(dim); }
+  inline static constexpr auto parameterRange() { return Dune::range(numTerms); }
+  inline static constexpr auto dimensionRange() { return Dune::range(dim); }
 };
 
 /**

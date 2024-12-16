@@ -121,7 +121,7 @@ struct BlatzKoT
 private:
   MaterialParameters mu_;
 
-  inline auto dimensionRange() const { return Dune::range(dim); }
+  inline static constexpr auto dimensionRange() { return Dune::range(dim); }
 };
 
 /**

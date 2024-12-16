@@ -180,8 +180,8 @@ private:
   Exponents pex_, qex_;
   MaterialParameters matParameters_;
 
-  inline auto parameterRange() const { return Dune::range(numMatParameters); }
-  inline auto dimensionRange() const { return Dune::range(dim); }
+  inline static constexpr auto parameterRange() { return Dune::range(numMatParameters); }
+  inline static constexpr auto dimensionRange() { return Dune::range(dim); }
 
   /** \brief A function to transform the underlying type of the exponents to ScalarType.
    *

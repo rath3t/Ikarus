@@ -104,7 +104,7 @@ struct DeviatoricInvariants
 private:
   PrincipalStretches lambda_;
 
-  inline auto dimensionRange() const { return Dune::range(dim); }
+  inline static constexpr auto dimensionRange() { return Dune::range(dim); }
 
   auto computeInvariants(const Invariants& invariants) const {
     ScalarType I1        = invariants[0];

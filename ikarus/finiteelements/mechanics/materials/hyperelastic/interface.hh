@@ -166,7 +166,7 @@ private:
   DEV dev_;
   VOL vol_;
 
-  inline auto dimensionRange() const { return Dune::range(dim); }
+  inline static constexpr auto dimensionRange() { return Dune::range(dim); }
 
   StressMatrix transformDeviatoricStresses(const typename DEV::StressMatrix& principalStress,
                                            const Eigen::Matrix<ScalarType, 3, 3>& N) const {
