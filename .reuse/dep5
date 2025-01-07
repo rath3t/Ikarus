@@ -10,26 +10,26 @@ Source: https://github.com/ikarus-project/ikarus
 # License: ...
 
 Files: sandbox/src/*
-Copyright: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+Copyright: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 License: CC0-1.0
 
 
 Files: ikarus/python/test/*
-Copyright: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+Copyright: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 License: CC0-1.0
 
 Files: tests/src/testfiles/*
-Copyright: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+Copyright: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 License: CC0-1.0
 
 Files: tests/src/testfiles/*
-Copyright: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+Copyright: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 License: CC0-1.0
 
 Files: docs/*
-Copyright: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+Copyright: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 License: CC-BY-SA-4.0
 
 Files: .github/ISSUE_TEMPLATE/*
-Copyright: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+Copyright: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 License: CC-BY-SA-4.0
