@@ -3,6 +3,6 @@
 
 # install headers
 install(FILES newtonraphson.hh trustregion.hh newtonraphsonwithscalarsubsidiaryfunction.hh
-              nonlinearsolverfactory.hh solverinfos.hh
+              nonlinearsolverfactory.hh solverinfos.hh convergencecriteria.hh
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/solver/nonlinearsolver
 )

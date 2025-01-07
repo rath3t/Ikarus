@@ -8,20 +8,17 @@
 
 #pragma once
 
-#include <iosfwd>
 #include <utility>
 
-#include "ikarus/assembler/dirichletbcenforcement.hh"
+#include <ikarus/assembler/dirichletbcenforcement.hh>
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
+#include <ikarus/solver/nonlinearsolver/convergencecriteria.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/concepts.hh>
 #include <ikarus/utils/observer/observer.hh>
 #include <ikarus/utils/observer/observermessages.hh>
 
 namespace Ikarus {
-
-template <typename NLO, typename LS = utils::SolverDefault, typename UF = utils::UpdateDefault>
-class NewtonRaphsonWithSubsidiaryFunction;
 
 struct NewtonRaphsonWithSubsidiaryFunctionSettings
 {
@@ -33,24 +30,28 @@ struct NewtonRaphsonWithSubsidiaryFunctionSettings
  * \struct NewtonRaphsonWithSubsidiaryFunctionConfig
  * \brief Settings for the Newton-Raphson solver with subsidiary function.
  */
-template <typename LS = utils::SolverDefault, typename UF = utils::UpdateDefault>
+template <ConvergenceCriterion CC = ConvergenceCriterion::ResiduumNorm, typename LS = utils::SolverDefault,
+          typename UF = utils::UpdateDefault>
 struct NewtonRaphsonWithSubsidiaryFunctionConfig
 {
   using LinearSolver   = LS;
   using UpdateFunction = UF;
+
+  static constexpr auto criteria = CC;
+
   NewtonRaphsonWithSubsidiaryFunctionSettings parameters;
   LS linearSolver;
   UF updateFunction;
 
   template <typename UF2>
   auto rebindUpdateFunction(UF2&& updateFunction) const {
-    NewtonRaphsonWithSubsidiaryFunctionConfig<LS, UF2> settings{
+    NewtonRaphsonWithSubsidiaryFunctionConfig<CC, LS, UF2> settings{
         .parameters = parameters, .linearSolver = linearSolver, .updateFunction = std::forward<UF2>(updateFunction)};
     return settings;
   }
 
   template <typename NLO>
-  using Solver = NewtonRaphsonWithSubsidiaryFunction<NLO, LS, UF>;
+  using Solver = NewtonRaphsonWithSubsidiaryFunction<NLO, CC, LS, UF>;
 };
 
 /**
@@ -62,14 +63,16 @@ struct NewtonRaphsonWithSubsidiaryFunctionConfig
  * \return Shared pointer to the NewtonRaphson solver instance.
  */
 template <typename NLO, typename NRConfig>
-requires traits::isSpecialization<NewtonRaphsonWithSubsidiaryFunctionConfig, std::remove_cvref_t<NRConfig>>::value
+requires traits::isSpecializationNonTypeAndTypes<NewtonRaphsonWithSubsidiaryFunctionConfig,
+                                                 std::remove_cvref_t<NRConfig>>::value
 auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
-  using LS           = std::remove_cvref_t<NRConfig>::LinearSolver;
-  using UF           = std::remove_cvref_t<NRConfig>::UpdateFunction;
-  auto solverFactory = []<class NLO2, class LS2, class UF2>(NLO2&& nlo2, LS2&& ls, UF2&& uf) {
-    return std::make_shared<NewtonRaphsonWithSubsidiaryFunction<std::remove_cvref_t<NLO2>, std::remove_cvref_t<LS2>,
-                                                                std::remove_cvref_t<UF2>>>(nlo2, std::forward<LS2>(ls),
-                                                                                           std::forward<UF2>(uf));
+  using LS                       = std::remove_cvref_t<NRConfig>::LinearSolver;
+  using UF                       = std::remove_cvref_t<NRConfig>::UpdateFunction;
+  static constexpr auto criteria = std::remove_cvref_t<NRConfig>::criteria;
+  auto solverFactory             = []<class NLO2, class LS2, class UF2>(NLO2&& nlo2, LS2&& ls, UF2&& uf) {
+    return std::make_shared<NewtonRaphsonWithSubsidiaryFunction<std::remove_cvref_t<NLO2>, criteria,
+                                                                            std::remove_cvref_t<LS2>, std::remove_cvref_t<UF2>>>(
+        nlo2, std::forward<LS2>(ls), std::forward<UF2>(uf));
   };
 
   if constexpr (std::remove_cvref_t<NLO>::numberOfFunctions == 3) {
@@ -100,7 +103,7 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
  * \tparam LS Type of the linear solver used internally (default is SolverDefault).
  * \tparam UF Type of the update function (default is UpdateDefault).
  */
-template <typename NLO, typename LS, typename UF>
+template <typename NLO, ConvergenceCriterion CC, typename LS, typename UF>
 class NewtonRaphsonWithSubsidiaryFunction : public IObservable<NonLinearSolverMessages>
 {
 public:
@@ -111,9 +114,11 @@ public:
 
   ///< Type representing the parameter vector of the nonlinear operator.
   using ValueType = typename NLO::template ParameterValue<0>;
-  ///< Type representing the update function.
-  using UpdateFunctionType = UF;
-  using NonLinearOperator  = NLO; ///< Type of the non-linear operator
+
+  using LinearSolverType            = LS;
+  using UpdateFunctionType          = UF;  ///< Type representing the update function.
+  using NonLinearOperator           = NLO; ///< Type of the non-linear operator
+  static constexpr auto criteraType = CC;
 
   /**
    * \brief Constructor for NewtonRaphsonWithSubsidiaryFunction.
@@ -201,8 +206,12 @@ public:
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
 
+    auto criteria = ConvergenceCriteria<NewtonRaphsonWithSubsidiaryFunction<NLO, CC, LS, UF>, CC>{};
+
+    bool converged = criteria(nonLinearOperator(), settings_, deltaD, 0.0, subsidiaryArgs);
+
     /// Iterative solving scheme
-    while (rNorm > settings_.tol && iter < settings_.maxIter) {
+    while (not(converged) && iter < settings_.maxIter) {
       this->notify(NonLinearSolverMessages::ITERATION_STARTED);
 
       /// Two-step solving procedure
@@ -239,6 +248,7 @@ public:
       this->notify(NonLinearSolverMessages::ITERATION_ENDED);
 
       ++iter;
+      converged = criteria(nonLinearOperator(), settings_, deltaD, deltalambda, subsidiaryArgs);
     }
 
     if (iter == settings_.maxIter)
@@ -274,15 +284,17 @@ private:
  * \param updateFunction Update function (default is UpdateDefault).
  * \return Shared pointer to the NewtonRaphson solver instance.
  */
-template <typename NLO, typename LS = utils::SolverDefault, typename UF = utils::UpdateDefault>
+template <typename NLO, ConvergenceCriterion CC = ConvergenceCriterion::ResiduumNorm,
+          typename LS = utils::SolverDefault, typename UF = utils::UpdateDefault>
 auto makeNewtonRaphsonWithSubsidiaryFunction(const NLO& nonLinearOperator, LS&& linearSolver = {},
                                              UF&& updateFunction = {}) {
-  return std::make_shared<NewtonRaphsonWithSubsidiaryFunction<NLO, LS, UF>>(
+  return std::make_shared<NewtonRaphsonWithSubsidiaryFunction<NLO, CC, LS, UF>>(
       nonLinearOperator, std::forward<LS>(linearSolver), std::move(updateFunction));
 }
 
-template <typename NLO, typename LS = utils::SolverDefault, typename UF = utils::UpdateDefault>
+template <typename NLO, ConvergenceCriterion CC = ConvergenceCriterion::ResiduumNorm,
+          typename LS = utils::SolverDefault, typename UF = utils::UpdateDefault>
 NewtonRaphsonWithSubsidiaryFunction(const NLO& nonLinearOperator, LS&& linearSolver = {}, UF&& updateFunction = {})
-    -> NewtonRaphsonWithSubsidiaryFunction<NLO, std::remove_cvref_t<LS>, std::remove_cvref_t<UF>>;
+    -> NewtonRaphsonWithSubsidiaryFunction<NLO, CC, std::remove_cvref_t<LS>, std::remove_cvref_t<UF>>;
 
 } // namespace Ikarus

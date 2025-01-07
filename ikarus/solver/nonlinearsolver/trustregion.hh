@@ -17,6 +17,7 @@
 #include <Eigen/Sparse>
 
 #include <ikarus/linearalgebra/truncatedconjugategradient.hh>
+#include <ikarus/solver/nonlinearsolver/convergencecriteria.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/defaultfunctions.hh>
 #include <ikarus/utils/linearalgebrahelper.hh>
@@ -25,17 +26,6 @@
 #include <ikarus/utils/traits.hh>
 
 namespace Ikarus {
-
-/**
- * \enum PreConditioner
- * \brief Enumeration of available preconditioners for the trust region solver.
- */
-enum class PreConditioner
-{
-  IncompleteCholesky,
-  IdentityPreconditioner,
-  DiagonalPreconditioner
-};
 
 struct TRSettings
 {
@@ -76,10 +66,6 @@ struct TrustRegionConfig
     return settings;
   }
 };
-
-template <typename NLO, PreConditioner preConditioner = PreConditioner::IncompleteCholesky,
-          typename UF = utils::UpdateDefault>
-class TrustRegion;
 
 /**
  * \brief Function to create a trust region non-linear solver
@@ -161,18 +147,18 @@ struct Stats
 <a href="https://github.com/NicolasBoumal/manopt/blob/master/manopt/solvers/trustregions/trustregions.m">Manopt</a>.
 * \ingroup solvers
 * \tparam NLO Type of the nonlinear operator to solve.
-* \tparam preConditioner Type of preconditioner to use (default is IncompleteCholesky).
+* \tparam pc Type of preconditioner to use (default is IncompleteCholesky).
 * \tparam UF Type of the update function
 */
-template <typename NLO, PreConditioner preConditioner, typename UF>
+template <typename NLO, PreConditioner pc, typename UF>
 class TrustRegion : public IObservable<NonLinearSolverMessages>
 {
 public:
   using Settings  = TRSettings;                               ///< Type of the settings for the TrustRegion solver
   using ValueType = typename NLO::template ParameterValue<0>; ///< Type of the parameter vector of
                                                               ///< the nonlinear operator
-  using CorrectionType = typename NLO::DerivativeType;        ///< Type of the correction of x += deltaX.
-  using UpdateFunction = UF;                                  ///< Type of the update function.
+  using CorrectionType     = typename NLO::DerivativeType;    ///< Type of the correction of x += deltaX.
+  using UpdateFunctionType = UF;                              ///< Type of the update function.
 
   using NonLinearOperator = NLO; ///< Type of the non-linear operator
 
@@ -180,6 +166,8 @@ public:
                                                                                         ///< cost
 
   using MatrixType = std::remove_cvref_t<typename NLO::template FunctionReturnType<2>>; ///< Type of the Hessian
+
+  static constexpr auto preConditioner = pc;
 
   /**
    * \brief Constructs a TrustRegion solver instance.
@@ -498,7 +486,7 @@ private:
   }
 
   NLO nonLinearOperator_;
-  UpdateFunction updateFunction_;
+  UpdateFunctionType updateFunction_;
   typename NLO::template ParameterValue<0> xOld_;
   CorrectionType eta_;
   CorrectionType Heta_;

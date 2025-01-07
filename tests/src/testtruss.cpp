@@ -114,7 +114,8 @@ static auto vonMisesTrussTest() {
   /// Choose linear solver
   auto linSolver = LinearSolver(SolverTypeTag::d_LDLT);
 
-  NewtonRaphsonConfig<decltype(linSolver)> nrConfig{.linearSolver = linSolver};
+  NewtonRaphsonConfig<Ikarus::ConvergenceCriterion::ResiduumNorm, decltype(linSolver)> nrConfig{.linearSolver =
+                                                                                                    linSolver};
 
   NonlinearSolverFactory nrFactory(nrConfig);
   auto nr = nrFactory.create(denseFlatAssembler);

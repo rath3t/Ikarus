@@ -269,6 +269,48 @@ auto norm(const Eigen::MatrixBase<Derived>& v) {
 auto norm(const std::floating_point auto& v) { return std::abs(v); }
 
 /**
+ * \brief Adding free maximum coefficient function to Eigen types.
+ * \ingroup utils
+ * \tparam Derived Type of the input Eigen matrix.
+ * \param v Input Eigen matrix.
+ * \return Maximum coefficient of the matrix.
+ */
+template <typename Derived>
+requires(!std::floating_point<Derived>)
+auto max(const Eigen::MatrixBase<Derived>& v) {
+  return v.maxCoeff();
+}
+
+/**
+ * \brief Helper Free Function to have the same interface as for Eigen Vector Types.
+ * \ingroup utils
+ * \param v Input scalar.
+ * \return The scalar itself.
+ */
+auto max(const std::floating_point auto& v) { return v; }
+
+/**
+ * \brief Adding free minimum coefficient function to Eigen types.
+ * \ingroup utils
+ * \tparam Derived Type of the input Eigen matrix.
+ * \param v Input Eigen matrix.
+ * \return Minimum coefficient of the matrix.
+ */
+template <typename Derived>
+requires(!std::floating_point<Derived>)
+auto min(const Eigen::MatrixBase<Derived>& v) {
+  return v.minCoeff();
+}
+
+/**
+ * \brief Helper Free Function to have the same interface as for Eigen Vector Types.
+ * \ingroup utils
+ * \param v Input scalar.
+ * \return The scalar itself.
+ */
+auto min(const std::floating_point auto& v) { return v; }
+
+/**
  * \brief Eigen::DiagonalMatrix Product Missing in Eigen.
  *  \ingroup utils
  * \tparam Scalar Scalar type.

@@ -256,7 +256,7 @@ public:
    *
    * \return auto& Reference to the zeroth function value.
    */
-  auto& value()
+  auto& value() const
   requires(sizeof...(DerivativeArgs) > 0)
   {
     return nthDerivative<0>();
@@ -269,7 +269,7 @@ public:
    *
    * \return auto& Reference to the derivative function value.
    */
-  auto& derivative()
+  auto& derivative() const
   requires(sizeof...(DerivativeArgs) > 1)
   {
     return nthDerivative<1>();
@@ -282,7 +282,7 @@ public:
    *
    * \return auto& Reference to the second derivative function value.
    */
-  auto& secondDerivative()
+  auto& secondDerivative() const
   requires(sizeof...(DerivativeArgs) > 2)
   {
     return nthDerivative<2>();
@@ -295,7 +295,7 @@ public:
    * \return auto& Reference to the n-th derivative function value.
    */
   template <int n>
-  auto& nthDerivative()
+  auto& nthDerivative() const
   requires(sizeof...(DerivativeArgs) > n)
   {
     if constexpr (requires { std::get<n>(derivativesEvaluated_).get(); })
@@ -309,13 +309,13 @@ public:
    *
    * \return auto& Reference to the last parameter value.
    */
-  auto& lastParameter() { return nthParameter<sizeof...(ParameterArgs) - 1>(); }
+  auto& lastParameter() const { return nthParameter<sizeof...(ParameterArgs) - 1>(); }
   /**
    * \brief Returns the first parameter value.
    *
    * \return auto& Reference to the first parameter value.
    */
-  auto& firstParameter()
+  auto& firstParameter() const
   requires(sizeof...(ParameterArgs) > 0)
   {
     return nthParameter<0>();
@@ -325,7 +325,7 @@ public:
    *
    * \return auto& Reference to the second parameter value.
    */
-  auto& secondParameter()
+  auto& secondParameter() const
   requires(sizeof...(ParameterArgs) > 1)
   {
     return nthParameter<1>();
@@ -337,7 +337,7 @@ public:
    * \return auto& Reference to the n-th parameter value.
    */
   template <int n>
-  auto& nthParameter()
+  auto& nthParameter() const
   requires(sizeof...(ParameterArgs) >= n)
   {
     return std::get<n>(args_).get();
@@ -350,7 +350,7 @@ public:
    * \return auto The new NonLinearOperator.
    */
   template <int... Derivatives>
-  auto subOperator() {
+  auto subOperator() const {
     auto derivatives = derivatives_;
     auto fs = functions([&derivatives]() -> decltype(auto) { return std::get<Derivatives>(derivatives); }()...);
     Ikarus::NonLinearOperator<Impl::Functions<std::tuple_element_t<Derivatives, decltype(derivatives_)>...>,
