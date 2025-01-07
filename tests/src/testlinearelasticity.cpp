@@ -67,6 +67,7 @@ int main(int argc, char** argv) {
       checkCalculateAtFunctorFactory<linearStress>(linearStressResultsOfSquare),
       checkCalculateAtFunctorFactory<linearStress, false>(linearStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress>(linearStressResultsOfSquare),
+      checkResultFunctionFunctorFactory<linearStress, PolarStress>(linearPolarStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, VonMises>(linearVonMisesResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, HydrostaticStress>(linearHydrostaticStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, Triaxiality>(linearTriaxialityStressResultsOfSquare),

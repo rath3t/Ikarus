@@ -62,6 +62,26 @@ inline auto linear3dPlaneStrainStressResultsOfSquare = []<typename NOP, typename
   return std::make_tuple(feRequirements, expectedStress, Ikarus::utils::referenceElementVertexPositions(fe));
 };
 
+inline auto linearPolarStressResultsOfSquare = []<typename NOP, typename FE>(NOP& nonLinearOperator, FE& fe) {
+  static_assert(isPlaneStress<typename FE::Material>);
+
+  constexpr int vertices   = 4;
+  constexpr int quantities = 3;
+
+  Eigen::Matrix<double, vertices, quantities> expectedStress{
+      {2197.80219780,  659.34065934,   -0.00000000},
+      { 329.67032967, 1098.90109890,  384.61538462},
+      { 329.67032967, 1098.90109890, -384.61538462},
+      {            0,             0,             0},
+  };
+
+  auto& displacement = nonLinearOperator.firstParameter();
+  displacement << 0, 0, 1, 1, 1, 1, 1, 1;
+
+  auto feRequirements = typename FE::Requirement().insertGlobalSolution(displacement);
+  return std::make_tuple(feRequirements, expectedStress, Ikarus::utils::referenceElementVertexPositions(fe));
+};
+
 inline auto linearVonMisesResultsOfSquare = []<typename NOP, typename FE>(NOP& nonLinearOperator, FE& fe) {
   constexpr int vertices   = 4;
   constexpr int quantities = 1;

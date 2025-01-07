@@ -26,23 +26,23 @@ struct VonMises
 {
   /**
    * \brief Calculate the result quantity (von Mises stress)
-   * \param resultArray EigenMatrix containing the stress state in Voigt notation
+   * \param resultArray EigenVector containing the stress state in Voigt notation
    * \param comp component of result (not used here)
    * \tparam R Type of the matrix
    * \return von Mises stress
    */
   template <typename R>
   double operator()(const R& resultArray, [[maybe_unused]] const int comp) const {
-    const auto s_x = resultArray(0, 0);
-    const auto s_y = resultArray(1, 0);
+    const auto s_x = resultArray[0];
+    const auto s_y = resultArray[1];
     if constexpr (R::CompileTimeTraits::RowsAtCompileTime == 3) {
-      const auto s_xy = resultArray(2, 0);
+      const auto s_xy = resultArray[2];
       return std::sqrt(Dune::power(s_x, 2) + Dune::power(s_y, 2) - s_x * s_y + 3 * Dune::power(s_xy, 2));
     } else {
-      const auto s_z  = resultArray(2, 0);
-      const auto s_yz = resultArray(3, 0);
-      const auto s_xz = resultArray(4, 0);
-      const auto s_xy = resultArray(5, 0);
+      const auto s_z  = resultArray[2];
+      const auto s_yz = resultArray[3];
+      const auto s_xz = resultArray[4];
+      const auto s_xy = resultArray[5];
 
       return std::sqrt(Dune::power(s_x, 2) + Dune::power(s_y, 2) + Dune::power(s_z, 2) - s_x * s_y - s_x * s_z -
                        s_y * s_z + 3 * (Dune::power(s_xy, 2) + Dune::power(s_xz, 2) + Dune::power(s_yz, 2)));
@@ -72,7 +72,7 @@ struct HydrostaticStress
 {
   /**
    * \brief Calculate the result quantity (von Mises stress)
-   * \param resultArray EigenMatrix containing the stress state in Voigt notation
+   * \param resultArray EigenVector containing the stress state in Voigt notation
    * \param comp component of result (not used here)
    * \tparam R Type of the matrix
    * \return Hydrostatic stress
@@ -86,13 +86,13 @@ struct HydrostaticStress
   }
 
   /**
-   * \brief Get the name of the result type (VonMises)
+   * \brief Get the name of the result type
    * \return String representing the name
    */
   constexpr static std::string name() { return "HydrostaticStress"; }
 
   /**
-   * \brief Get the number of components in the result (always 1 for VonMises)
+   * \brief Get the number of components in the result (always 1 for HydrostaticStress)
    * \return Number of components
    */
   constexpr static int ncomps() { return 1; }
@@ -111,7 +111,7 @@ struct PrincipalStress
 {
   /**
    * \brief Calculate the result quantity (principal stress)
-   * \param resultArray EigenMatrix containing the stress state in Voigt notation
+   * \param resultArray EigenVector containing the stress state in Voigt notation
    * \param comp component of result
    * \return principal stress
    */
@@ -144,7 +144,7 @@ struct Triaxiality
 {
   /**
    * \brief Calculate the result quantity (von Mises stress)
-   * \param resultArray EigenMatrix containing the stress state in Voigt notation
+   * \param resultArray EigenVector containing the stress state in Voigt notation
    * \param comp component of result (not used here)
    * \tparam R Type of the matrix
    * \return Triaxiality stress
@@ -156,13 +156,13 @@ struct Triaxiality
     return sigm / sigeq;
   }
   /**
-   * \brief Get the name of the result type (PrincipalStress)
+   * \brief Get the name of the result type
    * \return String representing the name
    */
   constexpr static std::string name() { return "Triaxiality"; }
 
   /**
-   * \brief Get the number of components in the result
+   * \brief Get the number of components in the result  (always 1 for Triaxiality)
    * \return Number of components
    */
   constexpr static int ncomps() { return 1; }
@@ -187,7 +187,7 @@ struct PlaneStrainWrapper
   /**
    * \brief Calculate the result quantity by calculating the missing stress in z-direction and forwarding the result to
    * a resultevalutor
-   * \param resultArray EigenMatrix containing the stress state in Voigt notation
+   * \param resultArray EigenVector containing the stress state in Voigt notation
    * \param comp component of result
    * \tparam R Type of the matrix
    * \return stress quantity
@@ -226,7 +226,7 @@ PlaneStrainWrapper(ResultEvaluator&&, double) -> PlaneStrainWrapper<ResultEvalua
 /**
  * \brief Identity resultevalutor. Returns the results as is. Can for example be used with PlaneStrainWrapper.
  *
- * \tparam RT the requested result typed
+ * \tparam RT the requested result type
  * \tparam ncomps_ the amount of results in resultArray
  */
 template <template <typename, int, int> class RT, int ncomps_>
@@ -242,6 +242,57 @@ struct IdentityEvaluator
   constexpr static int ncomps() { return ncomps_; }
 
   constexpr static std::string name() { return toString<RT>(); }
+};
+
+/**
+ * \brief Struct for calculating the 2d polar stress. This assumes cubed geometry.
+ * \ingroup resultevaluators
+ */
+struct PolarStress
+{
+  /**
+   * \brief Calculate the result quantity (von Mises stress)
+   * \param resultArray EigenVector containing the stress state in Voigt notation
+   * \param comp component of result
+   * \tparam R Type of the matrix
+   * \return von Mises stress
+   */
+  template <typename R>
+  double operator()(const R& resultArray, const auto& pos, const int comp) const {
+    static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "PolarStress is only valid for 2D.");
+
+    // Offset to center the cordinate system in the reference geometry
+    auto center = Dune::ReferenceElements<double, 2>::cube().geometry<0>(0).center();
+    auto theta  = std::atan2(pos[1] - center[1], pos[0] - center[0]);
+
+    const auto s_x  = resultArray[0];
+    const auto s_y  = resultArray[1];
+    const auto s_xy = resultArray[2];
+
+    auto hpl   = 0.5 * (s_x + s_y);
+    auto hmi   = 0.5 * (s_x - s_y);
+    auto cos2t = std::cos(2 * theta);
+    auto sin2t = std::sin(2 * theta);
+
+    Dune::FieldVector<double, 3> sigmaPolar;
+    sigmaPolar[0] = hpl + hmi * cos2t + s_xy * sin2t;
+    sigmaPolar[1] = hpl - hmi * cos2t - s_xy * sin2t;
+    sigmaPolar[2] = -hmi * sin2t + s_xy * cos2t;
+
+    return sigmaPolar[comp];
+  }
+
+  /**
+   * \brief Get the name of the result type
+   * \return String representing the name
+   */
+  constexpr static std::string name() { return "PolarStress"; }
+
+  /**
+   * \brief Get the number of components in the result
+   * \return Number of components
+   */
+  constexpr static int ncomps() { return 3; }
 };
 
 } // namespace Ikarus::ResultEvaluators

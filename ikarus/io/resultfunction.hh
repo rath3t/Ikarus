@@ -137,9 +137,12 @@ private:
   double evaluateComponent(int eleID, const Dune::FieldVector<ctype, griddim>& local, int comp) const {
     auto result = finiteElements().at(eleID).template calculateAt<RT>(requirement(), local).asVec();
 
-    if constexpr (!std::is_same_v<UserFunction, Impl::DefaultUserFunction>)
-      return userFunction_(result, comp);
-    else
+    if constexpr (!std::is_same_v<UserFunction, Impl::DefaultUserFunction>) {
+      if constexpr (requires { userFunction_(result, local, comp); })
+        return userFunction_(result, local, comp);
+      else
+        return userFunction_(result, comp);
+    } else
       return result(comp);
   }
 
