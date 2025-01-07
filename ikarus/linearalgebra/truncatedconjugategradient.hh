@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2011-2014 Copyright (C) Gael Guennebaud <gael.guennebaud@inria.fr>
 // SPDX-License-Identifier: MPL-2.0
 // Modifications:
-// SPDX-FileCopyrightText: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+// SPDX-FileCopyrightText: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**

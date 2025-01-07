@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+# SPDX-FileCopyrightText: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 # SPDX-License-Identifier: CC0-1.0
 [build-system]
 requires = ['setuptools', 'matplotlib', 'wheel', 'scikit-build', 'cmake', 'ninja', 'requests', 'dune-common@git+https://gitlab.dune-project.org/core/dune-common.git', 'dune-grid@git+https://gitlab.dune-project.org/core/dune-grid.git', 'dune-geometry@git+https://gitlab.dune-project.org/core/dune-geometry.git', 'dune-localfunctions@git+https://gitlab.dune-project.org/core/dune-localfunctions.git', 'dune-functions@git+https://gitlab.dune-project.org/staging/dune-functions.git', 'dune-istl@git+https://gitlab.dune-project.org/core/dune-istl.git']
