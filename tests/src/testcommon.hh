@@ -307,6 +307,7 @@ template <template <typename, int, int> class resType, typename ResultEvaluator>
   Dune::TestSuite t("Result Function Test" + Dune::className(fe));
 
   using FiniteElement = std::remove_reference_t<decltype(fe)>;
+  auto mat            = fe.material();
   auto& element       = fe.gridElement();
   auto gridView       = fe.localView().globalBasis().gridView();
   std::vector<FiniteElement> fes{fe};
@@ -320,10 +321,10 @@ template <template <typename, int, int> class resType, typename ResultEvaluator>
   sparseAssembler->bind(Ikarus::DBCOption::Full);
 
   auto vtkResultFunction = [&]() {
-    if constexpr (Ikarus::traits::isSpecialization<Ikarus::ResultEvaluators::PlaneStrainWrapper,
+    if constexpr (Ikarus::traits::isSpecialization<Ikarus::ResultEvaluators::VanishingMaterialsWrapper,
                                                    ResultEvaluator>::value)
       return Ikarus::makeResultVtkFunction<resType, ResultEvaluator>(sparseAssembler,
-                                                                     typename ResultEvaluator::Underlying{}, 0.3);
+                                                                     typename ResultEvaluator::Underlying{}, mat);
     else
       return Ikarus::makeResultVtkFunction<resType, ResultEvaluator>(sparseAssembler);
   }();
@@ -338,8 +339,8 @@ template <template <typename, int, int> class resType, typename ResultEvaluator>
   }
 
   if (ResultEvaluator::name() == "Triaxiality") {
-    clearNaNs(computedResults);
-    clearNaNs(expectedResult);
+    replaceNaNWithZero(computedResults);
+    replaceNaNWithZero(expectedResult);
   }
 
   const bool isResultCorrect = isApproxSame(computedResults, expectedResult, 1e-8);

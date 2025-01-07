@@ -67,7 +67,7 @@ inline auto testLocation(std::source_location loc = std::source_location::curren
 }
 
 template <typename Derived>
-void clearNaNs(Eigen::MatrixBase<Derived>& val) {
+void replaceNaNWithZero(Eigen::MatrixBase<Derived>& val) {
   for (auto& x : val.reshaped()) {
     if (std::isnan(x)) {
       x = 0.0;

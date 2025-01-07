@@ -73,20 +73,21 @@ int main(int argc, char** argv) {
       checkResultFunctionFunctorFactory<linearStress, Triaxiality>(linearTriaxialityStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, PrincipalStress<2>>(linearPrincipalStressResultsOfSquare)));
 
+  using PlaneStrainMat = decltype(linearElasticFuncPlaneStrain({500, 0.3}))::Material;
   t.subTest(testFEElement(
       firstOrderLagrangePrePower2Basis, "LinearElastic", unDistorted, Dune::ReferenceElements<double, 2>::cube(),
       linearElasticFuncPlaneStrain, skills(), AffordanceCollections::elastoStatics,
       checkCalculateAtFunctorFactory<linearStress>(linearStressResultsOfSquare),
       checkCalculateAtFunctorFactory<linearStress, false>(linearStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress>(linearStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, PlaneStrainWrapper<IdentityEvaluator<linearStress, 6>>>(
+      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<IdentityEvaluator<linearStress, 6>, PlaneStrainMat>>(
           linear3dPlaneStrainStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, PlaneStrainWrapper<VonMises>>(linearVonMisesResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, PlaneStrainWrapper<HydrostaticStress>>(
+      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<VonMises, PlaneStrainMat>>(linearVonMisesResultsOfSquare),
+      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<HydrostaticStress, PlaneStrainMat>>(
           linearHydrostaticStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, PlaneStrainWrapper<Triaxiality>>(
+      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<Triaxiality, PlaneStrainMat>>(
           linearTriaxialityStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, PlaneStrainWrapper<PrincipalStress<3>>>(
+      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<PrincipalStress<3>, PlaneStrainMat>>(
           linearPrincipalStressResultsOfSquare)));
 
   // Test simplex 2D

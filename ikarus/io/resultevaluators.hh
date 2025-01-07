@@ -12,6 +12,7 @@
 
 #include <dune/common/math.hh>
 
+#include <ikarus/finiteelements/mechanics/materials/vanishingstrain.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::ResultEvaluators {
@@ -169,20 +170,21 @@ struct Triaxiality
 };
 
 /**
- * \brief Wrapper to obtain stress results for the plane strain case. It takes a resultevaluator as template argument.
+ * \brief Wrapper to obtain stress results for vanishing materials. It takes a resultevaluator as template argument.
+ * For now this works only for plane strain case.
  * If you just want to obtain the 3d stresses without using a resultevaluator use IdentityEvaluator<RT, 6>.
  *
  * \tparam RE Type of the underlying resultevalutor
  */
-template <typename RE>
-struct PlaneStrainWrapper
+template <typename RE, typename MAT>
+struct VanishingMaterialsWrapper
 {
   using Underlying = RE;
 
   template <typename RE_>
-  PlaneStrainWrapper(RE_&& resultEvaluator, double nu)
+  VanishingMaterialsWrapper(RE_&& resultEvaluator, const MAT& mat)
       : underlying_(std::forward<RE>(resultEvaluator)),
-        nu_(nu) {}
+        mat_(mat) {}
 
   /**
    * \brief Calculate the result quantity by calculating the missing stress in z-direction and forwarding the result to
@@ -194,14 +196,18 @@ struct PlaneStrainWrapper
    */
   template <typename R>
   double operator()(const R& resultArray, const int comp) const {
-    static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "PlaneStrainWrapper is only valid for 2D.");
-    auto sigZ                     = nu_ * (resultArray[0] + resultArray[1]);
-    auto enlargedResultArray      = Eigen::Vector<double, 6>::Zero().eval();
-    enlargedResultArray.head<2>() = resultArray.template head<2>();
-    enlargedResultArray[2]        = sigZ;
-    enlargedResultArray[5]        = resultArray[2];
+    if constexpr (traits::isSpecializationNonTypeAndTypes<VanishingStrain, MAT>::value) {
+      static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "VanishingMaterialsWrapper is only valid for 2D.");
+      auto nu                       = convertLameConstants(mat_.materialParameters()).toPoissonsRatio();
+      auto sigZ                     = nu * (resultArray[0] + resultArray[1]);
+      auto enlargedResultArray      = Eigen::Vector<double, 6>::Zero().eval();
+      enlargedResultArray.head<2>() = resultArray.template head<2>();
+      enlargedResultArray[2]        = sigZ;
+      enlargedResultArray[5]        = resultArray[2];
 
-    return underlying_(enlargedResultArray, comp);
+      return underlying_(enlargedResultArray, comp);
+    } else
+      static_assert(Dune::AlwaysFalse<MAT>::value, "Material Type is not supported.");
   }
   /**
    * \brief Get the name of the result type
@@ -217,11 +223,11 @@ struct PlaneStrainWrapper
 
 private:
   Underlying underlying_;
-  double nu_;
+  MAT mat_;
 };
 
-template <typename ResultEvaluator>
-PlaneStrainWrapper(ResultEvaluator&&, double) -> PlaneStrainWrapper<ResultEvaluator>;
+template <typename ResultEvaluator, typename MAT>
+VanishingMaterialsWrapper(ResultEvaluator&&, MAT&&) -> VanishingMaterialsWrapper<ResultEvaluator, MAT>;
 
 /**
  * \brief Identity resultevalutor. Returns the results as is. Can for example be used with PlaneStrainWrapper.

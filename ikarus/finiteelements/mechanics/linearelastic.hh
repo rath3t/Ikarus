@@ -158,6 +158,14 @@ public:
   [[nodiscard]] size_t numberOfNodes() const { return numberOfNodes_; }
   [[nodiscard]] int order() const { return order_; }
 
+  template <typename ScalarType = double>
+  decltype(auto) material() const {
+    if constexpr (Concepts::AutodiffScalar<ScalarType>)
+      return mat_.template rebind<ScalarType>();
+    else
+      return mat_;
+  }
+
 public:
   /**
    * \brief Calculates a requested result at a specific local position.
