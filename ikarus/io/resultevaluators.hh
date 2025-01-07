@@ -261,7 +261,7 @@ struct PolarStress
   double operator()(const R& resultArray, const auto& pos, const int comp) const {
     static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "PolarStress is only valid for 2D.");
 
-    // Offset to center the cordinate system in the reference geometry
+    // Offset to center the coordinate system in the reference geometry
     auto center = Dune::ReferenceElements<double, 2>::cube().geometry<0>(0).center();
     auto theta  = std::atan2(pos[1] - center[1], pos[0] - center[0]);
 
