@@ -74,6 +74,7 @@ static auto NonLinearKLShellLoadControlTR() {
   const double E         = 1000;
   const double nu        = 0.0;
   const double thickness = 0.1;
+  double density         = 100;
   auto basis             = Ikarus::makeBasis(gridView, power<3>(nurbs(), FlatInterleaved()));
   auto vL                = [thickness]([[maybe_unused]] auto& globalCoord, auto& lamb) {
     Eigen::Vector3d fext;
@@ -82,7 +83,8 @@ static auto NonLinearKLShellLoadControlTR() {
     return fext;
   };
 
-  auto sk = skills(kirchhoffLoveShell({.youngs_modulus = E, .nu = nu, .thickness = thickness}), volumeLoad<3>(vL));
+  auto sk = skills(kirchhoffLoveShell({.youngs_modulus = E, .nu = nu, .thickness = thickness, .density = density}),
+                   volumeLoad<3>(vL));
 
   using FEType = decltype(Ikarus::makeFE(basis, sk));
   std::vector<FEType> fes;
@@ -151,6 +153,17 @@ static auto NonLinearKLShellLoadControlTR() {
   t.check(Dune::FloatCmp::eq(0.2087577577946809, maxDisp, 1e-6))
       << std::setprecision(16) << "The maximum displacement is " << maxDisp << "but it should be " << 0.2087577577946809
       << ". The difference is " << 0.2087577577946809 - maxDisp;
+
+  Eigen::MatrixXd M;
+  auto& fe = fes.front();
+  M.setZero(fe.size(), fe.size());
+  fe.calculateMatrixImpl<double>(req, MatrixAffordance::linearMass, M);
+
+  // All entries of diagonal should be greater than zero
+  t.check((M.diagonal().array() > 0).all());
+  // All entries should be positive
+  t.check((M.array() >= 0).all());
+
   return t;
 }
 

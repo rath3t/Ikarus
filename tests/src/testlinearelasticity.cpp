@@ -50,11 +50,11 @@ int main(int argc, char** argv) {
   t.subTest(testFEElement(firstOrderLagrangePrePower2Basis, "LinearElastic", randomlyDistorted,
                           Dune::ReferenceElements<double, 2>::cube(), linearElasticFuncPlaneStress, Ikarus::skills(),
                           Ikarus::AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
-                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor, singleElementTestFunctor));
   t.subTest(testFEElement(secondOrderLagrangePrePower2Basis, "LinearElastic", randomlyDistorted,
                           Dune::ReferenceElements<double, 2>::cube(), linearElasticFuncPlaneStress, Ikarus::skills(),
                           Ikarus::AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
-                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor, singleElementTestFunctor));
 
   // Plane stress
   t.subTest(testFEElement(
@@ -85,11 +85,11 @@ int main(int argc, char** argv) {
   t.subTest(testFEElement(firstOrderLagrangePrePower2Basis, "LinearElastic", randomlyDistorted,
                           Dune::ReferenceElements<double, 2>::simplex(), linearElasticFuncPlaneStress, Ikarus::skills(),
                           Ikarus::AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
-                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor, singleElementTestFunctor));
   t.subTest(testFEElement(secondOrderLagrangePrePower2Basis, "LinearElastic", randomlyDistorted,
                           Dune::ReferenceElements<double, 2>::simplex(), linearElasticFuncPlaneStress, Ikarus::skills(),
                           Ikarus::AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
-                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor, singleElementTestFunctor));
 
   t.subTest(testFEElement(
       firstOrderLagrangePrePower2Basis, "LinearElastic", unDistorted, Dune::ReferenceElements<double, 2>::simplex(),
@@ -105,15 +105,15 @@ int main(int argc, char** argv) {
   t.subTest(testFEElement(firstOrderLagrangePrePower3Basis, "LinearElastic", randomlyDistorted,
                           Dune::ReferenceElements<double, 3>::cube(), linearElasticFunc3D, Ikarus::skills(),
                           Ikarus::AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
-                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor, singleElementTestFunctor));
   t.subTest(testFEElement(secondOrderLagrangePrePower3Basis, "LinearElastic", randomlyDistorted,
                           Dune::ReferenceElements<double, 3>::cube(), linearElasticFunc3D, Ikarus::skills(),
                           Ikarus::AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
-                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor, singleElementTestFunctor));
   t.subTest(testFEElement(secondOrderLagrangePrePower3BasisBlocked, "LinearElastic", randomlyDistorted,
                           Dune::ReferenceElements<double, 3>::cube(), linearElasticFunc3D, Ikarus::skills(),
                           Ikarus::AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
-                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor, singleElementTestFunctor));
 
   t.subTest(testFEElement(
       firstOrderLagrangePrePower3Basis, "LinearElastic", unDistorted, Dune::ReferenceElements<double, 3>::cube(),
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
   t.subTest(testFEElement(firstOrderLagrangePrePower3Basis, "LinearElastic", randomlyDistorted,
                           Dune::ReferenceElements<double, 3>::simplex(), linearElasticFunc3D, Ikarus::skills(),
                           Ikarus::AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
-                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor, singleElementTestFunctor));
 
   t.subTest(testFEElement(
       firstOrderLagrangePrePower3Basis, "LinearElastic", unDistorted, Dune::ReferenceElements<double, 3>::simplex(),

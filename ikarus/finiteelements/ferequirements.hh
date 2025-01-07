@@ -59,7 +59,7 @@ namespace Ikarus {
             geometricstiffness,
             stiffnessdiffBucklingVector,
             microMagneticHessian,
-            mass
+            linearMass
       );
 
   /**
@@ -170,7 +170,7 @@ inline constexpr VectorAffordance forces = VectorAffordance::forces;
 
 inline constexpr MatrixAffordance stiffness                   = MatrixAffordance::stiffness;
 inline constexpr MatrixAffordance stiffnessdiffBucklingVector = MatrixAffordance::stiffnessdiffBucklingVector;
-inline constexpr MatrixAffordance mass                        = MatrixAffordance::mass;
+inline constexpr MatrixAffordance mass                        = MatrixAffordance::linearMass;
 inline constexpr ScalarAffordance potentialEnergy             = ScalarAffordance::mechanicalPotentialEnergy;
 
 auto vectorAffordance(MatrixAffordance affordanceM) {
@@ -203,7 +203,10 @@ auto scalarAffordance(VectorAffordance affordanceV) {
 namespace AffordanceCollections {
   inline constexpr AffordanceCollection elastoStatics(ScalarAffordance::mechanicalPotentialEnergy,
                                                       VectorAffordance::forces, MatrixAffordance::stiffness);
-}
+  inline constexpr Ikarus::AffordanceCollection modalAnalysis(Ikarus::ScalarAffordance::noAffordance,
+                                                              Ikarus::VectorAffordance::noAffordance,
+                                                              Ikarus::MatrixAffordance::linearMass);
+} // namespace AffordanceCollections
 
 namespace Impl {
   template <typename T>

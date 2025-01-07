@@ -101,11 +101,12 @@ def neumannBoundaryLoad(boundaryPatch, f):
     )
 
 
-def nonLinearElastic(mat):
+def nonLinearElastic(mat, density: float = 1.0):
     """
     @brief Creates a non-linear elastic pre-element.
 
     @param mat: The material.
+    @param density: The density of the element (defaults to 1.0).
 
     @return: The registered non-linear elastic pre-element function.
     """
@@ -113,36 +114,40 @@ def nonLinearElastic(mat):
 
     element_type = f"Ikarus::NonLinearElasticPre<{mat.cppTypeName}>"
     includes += mat._includes
-    return registerPreElement("NonLinearElasticPre", includes, element_type, mat)
+    return registerPreElement(
+        "NonLinearElasticPre", includes, element_type, mat, density
+    )
 
 
-def linearElastic(mat):
+def linearElastic(mat, density: float = 1.0):
     """
     @brief Creates a linear elastic pre-element.
 
     @param mat: The material.
+    @param density: The density of the element (defaults to 1.0).
 
     @return: The registered linear elastic pre-element function.
     """
     includes = ["ikarus/finiteelements/mechanics/linearelastic.hh"]
     element_type = f"Ikarus::LinearElasticPre<{mat.cppTypeName}>"
     includes += mat._includes
-    return registerPreElement("LinearElasticPre", includes, element_type, mat)
+    return registerPreElement("LinearElasticPre", includes, element_type, mat, density)
 
 
-def truss(youngs_modulus, cross_section):
+def truss(youngs_modulus, cross_section, density: float = 1.0):
     """
     @brief Creates a truss pre-element.
 
     @param youngs_modulus: Young's modulus.
     @param cross_section: Cross-section area.
+    @param density: The density of the truss (defaults to 1.0).
 
     @return: The registered truss pre-element function.
     """
     includes = ["ikarus/finiteelements/mechanics/truss.hh"]
     element_type = "Ikarus::TrussPre"
     return registerPreElement(
-        "TrussPre", includes, element_type, youngs_modulus, cross_section
+        "TrussPre", includes, element_type, youngs_modulus, cross_section, density
     )
 
 
@@ -161,20 +166,27 @@ def eas(numberofparameters):
     )
 
 
-def kirchhoffLoveShell(youngs_modulus: float, nu, thickness):
+def kirchhoffLoveShell(youngs_modulus: float, nu, thickness, density: float = 1.0):
     """
     @brief Creates a Kirchhoff Love shell pre-element.
 
     @param youngs_modulus: Young's modulus.
     @param nu: Poisson's ratio.
     @param thickness: The thickness of the shell.
+    @param density: The density of the shell (defaults to 1.0).
 
     @return: The registered Kirchhoff Love shell pre-element function.
     """
     includes = ["ikarus/finiteelements/mechanics/kirchhoffloveshell.hh"]
     element_type = "Ikarus::KirchhoffLoveShellPre"
     return registerPreElement(
-        "KirchhoffLoveShellPre", includes, element_type, youngs_modulus, nu, thickness
+        "KirchhoffLoveShellPre",
+        includes,
+        element_type,
+        youngs_modulus,
+        nu,
+        thickness,
+        density,
     )
 
 

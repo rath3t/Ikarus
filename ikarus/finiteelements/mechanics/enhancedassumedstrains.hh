@@ -162,7 +162,7 @@ protected:
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
     easApplicabilityCheck();
-    if (isDisplacementBased())
+    if (isDisplacementBased() or affordance != MatrixAffordance::stiffness)
       return;
 
     decltype(auto) LMat = [this]() -> decltype(auto) {

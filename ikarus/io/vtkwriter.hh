@@ -157,9 +157,10 @@ public:
    *
    * \tparam Container Type of the container used by the gridfunction. This can be deduced for power basis and
    * scalarbasis, otherwise define a Dune::FieldVector<ctype, dim> yourself \n
-   * This only works properly with scalar, power and scalar subspacebasis at the moment. If you need more granular
+   * \remark This only works properly with scalar (i.e. \f$ w \f$ in a KL plate), power and scalar subspacebasis (i.e.
+   \f$ u_x \f$ as subspace basis of \f$ u \f$) at the moment. If you need more granular
    * control over your output format, create the gridFunction yourself and add it with `writer.addPointData(gridFuntion,
-   * fieldInfo)` manually
+   * fieldInfo)` manually.
    \param vals Coefficient vector to be interpolated.
    \param basis The underlying basis, can be a subspacebasis
    \param name Name of the field.

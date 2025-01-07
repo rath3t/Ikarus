@@ -156,6 +156,10 @@ inline auto checkFEByAutoDiffFunctor = [](auto& nonLinOp, auto& fe, auto& req, a
   return checkFEByAutoDiff(nonLinOp, fe, req, affordance);
 };
 
+inline auto singleElementTestFunctor = [](auto& nonLinOp, auto& fe, auto& req, auto& affordance) {
+  return checkSingleElement(nonLinOp, fe, req, affordance);
+};
+
 template <template <typename, int, int> class RT, bool voigt = true>
 auto checkCalculateAtFunctorFactory(const auto& resultCollectionFunction) {
   return [&](auto& nonLinOp, auto& fe, [[maybe_unused]] auto& req, [[maybe_unused]] auto& affordance) {

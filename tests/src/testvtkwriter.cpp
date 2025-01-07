@@ -50,11 +50,11 @@ auto vtkWriterTest() {
 
   DummyProblem<Grid> testCase{};
 
-  auto& gridView       = testCase.gridView();
-  auto sparseAssembler = testCase.sparseAssembler();
-  auto& req            = testCase.requirement();
-  auto& basis          = testCase.basis();
-  auto& D_Glob         = req.globalSolution();
+  auto& gridView        = testCase.gridView();
+  auto& sparseAssembler = testCase.sparseAssembler();
+  auto& req             = testCase.requirement();
+  auto& basis           = testCase.basis();
+  auto D_Glob           = req.globalSolution();
 
   // Tests
   Dune::Vtk::DiscontinuousDataCollector dc{gridView};

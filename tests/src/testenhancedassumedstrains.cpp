@@ -46,12 +46,12 @@ int main(int argc, char** argv) {
   t.subTest(testFEElement(firstOrderLagrangePrePower2Basis, "EAS", randomlyDistorted,
                           Dune::ReferenceElements<double, 2>::cube(), linearElasticFuncPlaneStress,
                           Ikarus::skills(Ikarus::eas()), Ikarus::AffordanceCollections::elastoStatics,
-                          checkJacobianFunctor));
+                          checkJacobianFunctor, singleElementTestFunctor));
 
   t.subTest(testFEElement(firstOrderLagrangePrePower3Basis, "EAS", randomlyDistorted,
                           Dune::ReferenceElements<double, 3>::cube(), linearElasticFunc3D,
                           Ikarus::skills(Ikarus::eas()), Ikarus::AffordanceCollections::elastoStatics,
-                          checkJacobianFunctor));
+                          checkJacobianFunctor, singleElementTestFunctor));
 
   // Plane Stress
   t.subTest(testFEElement(

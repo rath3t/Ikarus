@@ -357,10 +357,26 @@ namespace Concepts {
   /**
    * \concept EigenMatrix
    * \brief Concept defining the requirements for Eigen matrices. This also includes Eigen vectors
-   * \tparam M Type representing an Eigen vector.
+   * \tparam M Type representing an Eigen matrix.
    */
   template <typename M>
   concept EigenMatrix = traits::isSpecializationTypeAndNonTypes<Eigen::Matrix, M>::value;
+
+  /**
+   * \concept SparseEigenMatrix
+   * \brief Concept defining the requirements for sparse Eigen matrices.
+   * \tparam M Type representing a sparse Eigen matrix.
+   */
+  template <typename M>
+  concept SparseEigenMatrix = traits::isSpecializationTypeNonTypeAndType<Eigen::SparseMatrix, M>::value;
+
+  /**
+   * \concept DenseOrSparseEigenMatrix
+   * \brief Concept defining the requirements for sparse or dense Eigen matrices.
+   * \tparam M Type representing a dense or sparse Eigen matrix.
+   */
+  template <typename M>
+  concept DenseOrSparseEigenMatrix = SparseEigenMatrix<M> or EigenMatrix<M>;
 
 #define MAKE_EIGEN_FIXED_VECTOR_CONCEPT(Size) \
   template <typename V>                       \
@@ -606,6 +622,22 @@ namespace Concepts {
   */
   template <typename T>
   concept AutodiffScalar = Impl::is_dual<T>::value;
+
+  /**
+   * \brief Concept representing an eigenvalue solver interface
+   *
+   * \concept EigenValueSolver
+   * A type ES satisfies EigenValueSolver if it provides the necessary member functions and type
+   */
+  template <typename ES>
+  concept EigenValueSolver = requires(ES es) {
+    typename ES::MatrixType;
+    typename ES::ScalarType;
+    { es.compute() } -> std::same_as<bool>;
+    { es.eigenvalues() } -> std::convertible_to<Eigen::VectorX<typename ES::ScalarType>>;
+    { es.eigenvectors() } -> std::convertible_to<Eigen::MatrixX<typename ES::ScalarType>>;
+    { es.nev() } -> std::convertible_to<int>;
+  };
 
 } // namespace Concepts
 } // namespace Ikarus

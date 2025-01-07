@@ -95,6 +95,12 @@ public:
   const auto& dirichletValues() const { return Dune::resolveRef(dirichletValues_); }
 
   /**
+   * \brief Returns the basis object
+   * \return Reference to the basis
+   */
+  const auto& basis() const { return Dune::resolveRef(dirichletValues_.basis()); }
+
+  /**
    * \brief Returns the gridView object.
    * \return Reference to the gridView object.
    */

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 from dune.common.hashit import hashIt
-from ikarus.generator import MySimpleGenerator
+from ikarus.generator import MySimpleGenerator, MySimpleGeneratorColMaj
 
 
 def boundaryPatch(gridView, booleanVector):
@@ -56,3 +56,30 @@ def globalIndexFromGlobalPosition(basis, pos):
     pos = FieldVector(pos)
 
     return run("callGlobalIndexFromGlobalPosition", StringIO(runCode), basis, pos)
+
+
+def modalAnalysis(fes, dirichletValues):
+    """
+    @brief Creates a modal analysis object for the given finite elements and Dirichlet values.
+
+    @param fes: The list of finite elements.
+    @param dirichletValues: The Dirichlet values.
+
+    @return: The created modal analysis object .
+    """
+    element_type = f"Ikarus::Dynamics::ModalAnalysis<std::vector<{fes[0].cppTypeName}>,{dirichletValues.cppTypeName}>"
+    generator = MySimpleGeneratorColMaj("ModalAnalysis", "Ikarus::Python")
+
+    includes = []
+    includes += ["ikarus/utils/modalanalysis/modalanalysis.hh"]
+    includes += fes[0].cppIncludes  # include header of finite element
+    includes += dirichletValues.cppIncludes
+    includes += ["ikarus/python/utils/registermodalanalysis.hh"]
+    moduleName = "ModalAnalysis_" + hashIt(element_type)
+    module = generator.load(
+        includes=includes,
+        typeName=element_type,
+        moduleName=moduleName,
+        # holder="std::shared_ptr",
+    )
+    return module.ModalAnalysis(fes, dirichletValues)

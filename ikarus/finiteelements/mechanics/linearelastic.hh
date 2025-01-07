@@ -21,6 +21,7 @@
   #include <ikarus/finiteelements/fehelper.hh>
   #include <ikarus/finiteelements/ferequirements.hh>
   #include <ikarus/finiteelements/feresulttypes.hh>
+  #include <ikarus/finiteelements/mechanics/massmatrix.hh>
   #include <ikarus/finiteelements/mechanics/materials.hh>
   #include <ikarus/finiteelements/physicshelper.hh>
 
@@ -38,6 +39,7 @@ struct LinearElasticPre
 {
   using Material = MAT;
   MAT material;
+  double density;
 
   template <typename PreFE, typename FE>
   using Skill = LinearElastic<PreFE, FE, LinearElasticPre>;
@@ -75,7 +77,8 @@ public:
    * \param pre The pre fe
    */
   explicit LinearElastic(const Pre& pre)
-      : mat_{pre.material} {}
+      : mat_{pre.material},
+        density_{pre.density} {}
 
 protected:
   /**
@@ -191,6 +194,7 @@ private:
   std::shared_ptr<const Geometry> geo_;
   Dune::CachedLocalBasis<std::remove_cvref_t<LocalBasisType>> localBasis_;
   Material mat_;
+  double density_;
   size_t numberOfNodes_{0};
   int order_{};
 
@@ -199,6 +203,10 @@ protected:
   void calculateMatrixImpl(
       const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+    if (affordance == MatrixAffordance::linearMass) {
+      calculateMassImpl<ScalarType>(par, affordance, K);
+      return;
+    }
     const auto eps = strainFunction(par, dx);
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
@@ -213,6 +221,16 @@ protected:
           K.template block<myDim, myDim>(i * myDim, j * myDim) += bopI.transpose() * C * bopJ * intElement;
         }
       }
+    }
+  }
+
+  template <typename ScalarType>
+  void calculateMassImpl(const Requirement& par, const MatrixAffordance& affordance,
+                         typename Traits::template MatrixType<> M) const {
+    for (const auto& [gpIndex, gp] : localBasis_.viewOverIntegrationPoints()) {
+      const auto intElement = geo_->integrationElement(gp.position()) * gp.weight();
+      const auto& N         = localBasis_.evaluateFunction(gpIndex);
+      evaluateKroneckerProduct<myDim>(intElement, N, density_, M);
     }
   }
 
@@ -261,12 +279,13 @@ protected:
 /**
  * \brief A helper function to create a linear elastic pre finite element.
  * \tparam MAT Type of the material.
- * \param mat Material parameters for the non-linear elastic element.
+ * \param mat Material parameters for the linear elastic element.
+ * \param density Density of linear elastic element (defaults to 1.0)
  * \return A linear elastic pre finite element.
  */
 template <typename MAT>
-auto linearElastic(const MAT& mat) {
-  LinearElasticPre<MAT> pre(mat);
+auto linearElastic(const MAT& mat, double density = 1.0) {
+  LinearElasticPre<MAT> pre(mat, density);
 
   return pre;
 }

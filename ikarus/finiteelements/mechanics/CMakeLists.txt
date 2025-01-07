@@ -14,5 +14,6 @@ install(
         loads.hh
         easvariants.hh
         truss.hh
+        massmatrix.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics
 )

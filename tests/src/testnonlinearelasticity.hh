@@ -235,6 +235,20 @@ auto GreenLagrangeStrainTest(const Material& mat) {
       << KLE << "\n Diff:\n"
       << K - KLE;
 
+  Eigen::MatrixXd M, MLE;
+  M.setZero(nDOF, nDOF);
+  MLE.setZero(nDOF, nDOF);
+
+  calculateMatrix(fe, req, Ikarus::MatrixAffordance::linearMass, M);
+  calculateMatrix(feLE, reqLE, Ikarus::MatrixAffordance::linearMass, MLE);
+
+  t.check(isApproxSame(M, MLE, tol),
+          "Mismatch between linear and non-linear mass matrix with gridDim = " + std::to_string(gridDim))
+      << "\n"
+      << M << "\nand \n"
+      << MLE << "\n Diff:\n"
+      << M - MLE;
+
   return t;
 }
 

@@ -414,6 +414,30 @@ template <typename NonLinearOperator, typename FiniteElement,
   return t;
 }
 
+template <typename NonLinearOperator, typename FiniteElement,
+          typename FERequirementType = typename FiniteElement::FERequirementType, typename AffordanceColl>
+[[nodiscard]] auto checkSingleElement(NonLinearOperator&, FiniteElement& fe, FERequirementType req,
+                                      AffordanceColl affordance, const std::string& messageIfFailed = "") {
+  Dune::TestSuite t("Single element test" + Dune::className(fe), Dune::TestSuite::AlwaysThrow);
+  auto& basis = fe.localView().globalBasis();
+  auto nDOF   = basis.size();
+
+  const double tol = 1e-10;
+
+  Eigen::MatrixXd M;
+  M.setZero(nDOF, nDOF);
+  fe.template calculateMatrixImpl<double>(req, Ikarus::MatrixAffordance::linearMass, M);
+
+  // All entries of diagonal should be greater than zero
+  t.check((M.diagonal().array() > 0).all()) << testLocation();
+  // All row-sums should be positive
+  t.check((M.rowwise().sum().array() > -1e-8).all()) << testLocation();
+  // Matrix should be symmetric
+  t.check(M.isApprox(M.transpose())) << testLocation();
+
+  return t;
+}
+
 template <typename NonLinearOperator>
 void resetNonLinearOperatorParametersToZero(NonLinearOperator& nonLinOp) {
   nonLinOp.firstParameter().setZero();

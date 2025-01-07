@@ -57,11 +57,12 @@ static auto vonMisesTrussTest() {
   auto basis = Ikarus::makeBasis(gridView, power<2>(lagrange<1>()));
 
   /// Create finite elements
-  constexpr double E   = 30000;
-  constexpr double A   = 0.1;
-  constexpr double tol = 1e-10;
-  auto sk              = skills(truss(E, A));
-  using FEType         = decltype(makeFE(basis, sk));
+  constexpr double E    = 30000;
+  constexpr double A    = 0.1;
+  constexpr double dens = 1;
+  constexpr double tol  = 1e-10;
+  auto sk               = skills(truss(E, A, dens));
+  using FEType          = decltype(makeFE(basis, sk));
   std::vector<FEType> fes;
   for (auto&& ge : elements(gridView)) {
     fes.emplace_back(makeFE(basis, sk));
@@ -110,6 +111,17 @@ static auto vonMisesTrussTest() {
   t.check(isApproxSame(k0, ke0, tol), "(k0 is not equal to ke0 for geometrically linear case.") << "Expected:\n"
                                                                                                 << k0 << "\nActual:\n"
                                                                                                 << ke0;
+  // Test mass matrix
+  Eigen::MatrixXd me0;
+  me0.setZero(4, 4);
+  calculateMatrix(fes[0], req, MatrixAffordance::linearMass, me0);
+  Eigen::Matrix<double, 4, 4> mBar;
+  mBar.setZero();
+  mBar(0, 0) = mBar(2, 2) = 2.0;
+  mBar(0, 2) = mBar(2, 0) = 1.0;
+  mBar *= (dens * A * L0 / 6.0);
+  const auto m0 = (Q.transpose() * mBar * Q);
+  t.check(isApproxSame(m0, me0, tol), "(m0 is not equal to me0") << "Expected:\n" << m0 << "\nActual:\n" << me0;
 
   /// Choose linear solver
   auto linSolver = LinearSolver(SolverTypeTag::d_LDLT);

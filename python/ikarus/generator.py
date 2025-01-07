@@ -19,3 +19,19 @@ def decoratePre(pre):
 myAttributes = vars(SimpleGenerator).copy()
 myAttributes["pre"] = decoratePre(myAttributes["pre"])
 MySimpleGenerator = type("MySimpleGenerator", (object,), myAttributes)
+
+
+def decoratePreColMaj(pre):
+    def wrappedPre(*args, **kwargs):
+        preamble = pre(*args, **kwargs)
+        newPreamble = ""
+        newPreamble += "#define DUNE_LOCALFEFUNCTIONS_USE_EIGEN 1\n"
+        newPreamble += preamble
+        return newPreamble
+
+    return wrappedPre
+
+
+myAttributesColMaj = vars(SimpleGenerator).copy()
+myAttributesColMaj["pre"] = decoratePreColMaj(myAttributesColMaj["pre"])
+MySimpleGeneratorColMaj = type("MySimpleGeneratorColMaj", (object,), myAttributesColMaj)

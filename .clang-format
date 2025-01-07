@@ -94,6 +94,9 @@ IncludeCategories:
   - Regex: '^(<|")autodiff/'
     Priority: 6
     SortPriority: 6
+  - Regex: '^(<|")Spectra/'
+    Priority: 7
+    SortPriority: 7
   - Regex:           '<([A-Za-z0-9.\/-_])+>'
     Priority:        2
     SortPriority: 2

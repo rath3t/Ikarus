@@ -120,8 +120,8 @@ void SparseFlatAssembler<B, FEC>::assembleRawMatrixImpl(const FERequirement& feR
 
 template <typename B, typename FEC>
 typename SparseFlatAssembler<B, FEC>::MatrixType& SparseFlatAssembler<B, FEC>::getRawMatrixImpl(
-    const FERequirement& feRequirements, MatrixAffordance affordance) {
-  if (not sparsePreProcessorRaw_) {
+    const FERequirement& feRequirements, MatrixAffordance affordance, bool resetOccupationPattern) {
+  if (not sparsePreProcessorRaw_ or resetOccupationPattern) {
     preProcessSparseMatrix(spMatRaw_);
     sparsePreProcessorRaw_ = true;
   }
@@ -132,8 +132,8 @@ typename SparseFlatAssembler<B, FEC>::MatrixType& SparseFlatAssembler<B, FEC>::g
 
 template <typename B, typename FEC>
 typename SparseFlatAssembler<B, FEC>::MatrixType& SparseFlatAssembler<B, FEC>::getMatrixImpl(
-    const FERequirement& feRequirements, MatrixAffordance affordance) {
-  if (not sparsePreProcessor_) {
+    const FERequirement& feRequirements, MatrixAffordance affordance, bool resetOccupationPattern) {
+  if (not sparsePreProcessor_ or resetOccupationPattern) {
     preProcessSparseMatrix(spMat_);
     sparsePreProcessor_ = true;
   }
@@ -152,8 +152,8 @@ typename SparseFlatAssembler<B, FEC>::MatrixType& SparseFlatAssembler<B, FEC>::g
 
 template <typename B, typename FEC>
 typename SparseFlatAssembler<B, FEC>::MatrixType& SparseFlatAssembler<B, FEC>::getReducedMatrixImpl(
-    const FERequirement& feRequirements, MatrixAffordance affordance) {
-  if (not sparsePreProcessorReduced_) {
+    const FERequirement& feRequirements, MatrixAffordance affordance, bool resetOccupationPattern) {
+  if (not sparsePreProcessorReduced_ or resetOccupationPattern) {
     preProcessSparseMatrixReduced(spMatReduced_);
     sparsePreProcessorReduced_ = true;
   }

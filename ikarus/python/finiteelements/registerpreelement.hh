@@ -19,7 +19,7 @@ namespace Ikarus::Python {
 template <class NonLinearElasticPre, class... options>
 void registerNonLinearElasticPre(pybind11::handle scope, pybind11::class_<NonLinearElasticPre, options...> cls) {
   using Material = typename NonLinearElasticPre::Material;
-  cls.def(pybind11::init([](const Material& mat) { return new NonLinearElasticPre(mat); }));
+  cls.def(pybind11::init([](const Material& mat, double density) { return new NonLinearElasticPre(mat, density); }));
 }
 
 /**
@@ -34,7 +34,7 @@ void registerNonLinearElasticPre(pybind11::handle scope, pybind11::class_<NonLin
 template <class LinearElasticPre, class... options>
 void registerLinearElasticPre(pybind11::handle scope, pybind11::class_<LinearElasticPre, options...> cls) {
   using Material = typename LinearElasticPre::Material;
-  cls.def(pybind11::init([](const Material& mat) { return new LinearElasticPre(mat); }));
+  cls.def(pybind11::init([](const Material& mat, double density) { return new LinearElasticPre(mat, density); }));
 }
 
 /**
@@ -48,7 +48,7 @@ void registerLinearElasticPre(pybind11::handle scope, pybind11::class_<LinearEla
  */
 template <class TrussPre, class... options>
 void registerTrussPre(pybind11::handle scope, pybind11::class_<TrussPre, options...> cls) {
-  cls.def(pybind11::init([](double emod, double area) { return new TrussPre({emod, area}); }));
+  cls.def(pybind11::init([](double emod, double area, double density) { return new TrussPre({emod, area, density}); }));
 }
 
 /**
@@ -63,7 +63,7 @@ void registerTrussPre(pybind11::handle scope, pybind11::class_<TrussPre, options
 template <class KirchhoffLoveShellPre, class... options>
 void registerKirchhoffLoveShellPre(pybind11::handle scope, pybind11::class_<KirchhoffLoveShellPre, options...> cls) {
   cls.def(pybind11::init(
-      [](const double& E, const double& nu, const double& h) { return new KirchhoffLoveShellPre({E, nu}, h); }));
+      [](double E, double nu, double h, double density) { return new KirchhoffLoveShellPre({E, nu}, h, density); }));
 }
 
 /**

@@ -125,13 +125,18 @@ public:
   using typename Base::VectorType;
   using typename MatrixAssembler<SparseFlatAssembler, FEC, DV, Eigen::SparseMatrix<double>>::MatrixType;
 
+  static constexpr bool isSparse = true;
+
 private:
   void assembleRawMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance, MatrixType& assemblyMat);
 
 protected:
-  MatrixType& getRawMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance);
-  MatrixType& getMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance);
-  MatrixType& getReducedMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance);
+  MatrixType& getRawMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance,
+                               bool resetOccupationPattern = false);
+  MatrixType& getMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance,
+                            bool resetOccupationPattern = false);
+  MatrixType& getReducedMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance,
+                                   bool resetOccupationPattern = false);
 
 private:
   /** Calculates the non-zero entries in the full sparse matrix and passes them to the underlying Eigen sparse matrix.
@@ -204,6 +209,8 @@ public:
   using typename Base::ScalarType;
   using typename Base::VectorType;
   using typename MatrixAssembler<DenseFlatAssembler, FEC, DV, Eigen::MatrixXd>::MatrixType;
+
+  static constexpr bool isSparse = false;
 
 private:
   void assembleRawMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance, MatrixType& assemblyMat);
