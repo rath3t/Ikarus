@@ -168,6 +168,12 @@ struct Triaxiality
   constexpr static int ncomps() { return 1; }
 };
 
+/**
+ * \brief Wrapper to obtain stress results for the plane strain case. It takes a resultevaluator as template argument.
+ * If you just want to obtain the 3d stresses without using a resultevaluator use IdentityEvaluator<RT, 6>.
+ *
+ * \tparam RE Type of the underlying resultevalutor
+ */
 template <typename RE>
 struct PlaneStrainWrapper
 {
@@ -178,6 +184,14 @@ struct PlaneStrainWrapper
       : underlying_(std::forward<RE>(resultEvaluator)),
         nu_(nu) {}
 
+  /**
+   * \brief Calculate the result quantity by calculating the missing stress in z-direction and forwarding the result to
+   * a resultevalutor
+   * \param resultArray EigenMatrix containing the stress state in Voigt notation
+   * \param comp component of result
+   * \tparam R Type of the matrix
+   * \return stress quantity
+   */
   template <typename R>
   double operator()(const R& resultArray, const int comp) const {
     static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "PlaneStrainWrapper is only valid for 2D.");
@@ -190,7 +204,7 @@ struct PlaneStrainWrapper
     return underlying_(enlargedResultArray, comp);
   }
   /**
-   * \brief Get the name of the result type (PrincipalStress)
+   * \brief Get the name of the result type
    * \return String representing the name
    */
   constexpr static std::string name() { return Underlying::name(); }
@@ -208,5 +222,26 @@ private:
 
 template <typename ResultEvaluator>
 PlaneStrainWrapper(ResultEvaluator&&, double) -> PlaneStrainWrapper<ResultEvaluator>;
+
+/**
+ * \brief Identity resultevalutor. Returns the results as is. Can for example be used with PlaneStrainWrapper.
+ *
+ * \tparam RT the requested result typed
+ * \tparam ncomps_ the amount of results in resultArray
+ */
+template <template <typename, int, int> class RT, int ncomps_>
+struct IdentityEvaluator
+{
+  template <typename R>
+  double operator()(const R& resultArray, const int comp) const {
+    static_assert(R::CompileTimeTraits::RowsAtCompileTime >= ncomps_,
+                  "Components in resultArray have to be at least as many as ncomps_.");
+    return resultArray[comp];
+  }
+
+  constexpr static int ncomps() { return ncomps_; }
+
+  constexpr static std::string name() { return toString<RT>(); }
+};
 
 } // namespace Ikarus::ResultEvaluators

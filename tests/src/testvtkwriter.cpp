@@ -101,7 +101,7 @@ auto vtkWriterTest() {
   t.check(stressDataCell.numComponents() == 3)
       << testLocation() << "Num components should be 3, but is " << stressDataCell.numComponents();
   t.check(stressDataCell.dataType() == Dune::Vtk::DataTypes::FLOAT64)
-      << testLocation() << "Precision is should be float64";
+      << testLocation() << "Precision should be float64";
 
   // Writing out as a vector does always seem to yield 3 (or potentially more) entries
   auto displacementData = reader.getPointData("displacement");

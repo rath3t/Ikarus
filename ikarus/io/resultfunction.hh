@@ -100,7 +100,7 @@ public:
    * \return String representing the name of the result type
    */
   [[nodiscard]] constexpr std::string name() const override {
-    if constexpr (requires { userFunction_.name(); })
+    if constexpr (!std::is_same_v<UserFunction, Impl::DefaultUserFunction> and requires { userFunction_.name(); })
       return userFunction_.name();
     else
       return toString<RT>();
@@ -117,12 +117,14 @@ public:
   Dune::VTK::Precision precision() const override { return prec_; }
 
   /**
-   * \brief Constructor for ResultFunction.
+   * \brief Construct a new Result Function object
    *
+   * \tparam Args Type of additional arguments passed to the user function
    * \param assembler shared pointer to the underlying assembler (provides the finite elements and the requested
    * results)
    * \param prec (optional) specify the used precision (only has an effect when using resultfunciton with
    * Dune::VTK::VTKWriter)
+   * \param args additional arguments passed to the constructor of the user function
    */
   template <typename... Args>
   ResultFunction(std::shared_ptr<Assembler> assembler, Dune::VTK::Precision prec = Dune::VTK::Precision::float64,
@@ -159,9 +161,12 @@ private:
  *
  * \param assembler shared pointer to the underlying assembler (provides the finite elements and the requested results)
  * \tparam AS type of the assembler
- * \param prec (optional) specify the used precision
  * \tparam RT requested result type
  * \tparam UserFunction Type of the user-defined function for custom result evaluation (default is DefaultUserFunction)
+ * \tparam Args Type of additional arguments passed to the user function
+ * \param assembler shared pointer to the underlying assembler (provides the finite elements and the requested results)
+ * \param prec (optional) specify the used precision
+ * \param args additional arguments passed to the constructor of the user function
  */
 template <template <typename, int, int> class RT, typename UserFunction = Impl::DefaultUserFunction,
           Concepts::FlatAssembler AS, typename... Args>
@@ -179,11 +184,13 @@ auto makeResultFunction(std::shared_ptr<AS> assembler, Dune::VTK::Precision prec
  * auto localResultFunction = localFunction(vtkResultFunction);
  * localResultFunction.bind(element);
  * \endcode
- * \param assembler shared pointer to the underlying assembler (provides the finite elements and the requested results)
  * \tparam AS  type of the assembler
  * \tparam RT requested result type
  * \tparam UserFunction Type of the user-defined function for custom result evaluation (default is
  * DefaultUserFunction)
+ * \tparam Args Type of additional arguments passed to the user function
+ * \param assembler shared pointer to the underlying assembler (provides the finite elements and the requested results)
+ * \param args additional arguments passed to the constructor of the user function
  */
 template <template <typename, int, int> class RT, typename UserFunction = Impl::DefaultUserFunction,
           Concepts::FlatAssembler AS, typename... Args>
