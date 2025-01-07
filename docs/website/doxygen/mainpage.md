@@ -1,7 +1,7 @@
 # Introduction
 
 <!--
-SPDX-FileCopyrightText: 2021-2024 The Ikarus Developers mueller@ibb.uni-stuttgart.de
+SPDX-FileCopyrightText: 2021-2025 The Ikarus Developers mueller@ibb.uni-stuttgart.de
 SPDX-License-Identifier: LGPL-3.0-or-later
 
 The content of the file is partly adapted from https://git.iws.uni-stuttgart.de/dumux-repositories/dumux/-/blob/master/README.md?ref_type=heads.
