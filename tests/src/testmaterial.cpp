@@ -16,36 +16,8 @@
 #include <ikarus/utils/nonlinearoperator.hh>
 
 using namespace Ikarus;
+using namespace Ikarus::Materials;
 using Dune::TestSuite;
-
-template <StrainTags strainTag>
-double transformStrainAccordingToStrain(auto& e) {
-  double strainDerivativeFactor = 1;
-
-  if (strainTag == StrainTags::greenLagrangian or strainTag == StrainTags::linear) {
-    e = ((e.transpose() + e + 3 * Eigen::Matrix3d::Identity()) / 10).eval();
-    e /= e.array().maxCoeff();
-    auto C = (2 * e + Eigen::Matrix3d::Identity()).eval();
-    Eigen::EigenSolver<Eigen::Matrix3d> esC(C);
-    e                      = 0.5 * (C / esC.eigenvalues().real().maxCoeff() - Eigen::Matrix3d::Identity());
-    strainDerivativeFactor = 1;
-  } else if (strainTag == StrainTags::rightCauchyGreenTensor) {
-    e = (e.transpose() + e).eval();
-    Eigen::EigenSolver<Eigen::Matrix3d> esC(e);
-    e += (-esC.eigenvalues().real().minCoeff() + 1) * Eigen::Matrix3d::Identity();
-    esC.compute(e);
-    e /= esC.eigenvalues().real().maxCoeff();
-
-    assert(esC.eigenvalues().real().minCoeff() > 0 &&
-           " The smallest eigenvalue is negative this is unsuitable for the tests");
-
-    strainDerivativeFactor = 0.5;
-  } else if (strainTag == StrainTags::deformationGradient) {
-    e = (e + 3 * Eigen::Matrix3d::Identity()).eval(); // create positive definite matrix
-    e = e.sqrt();
-  }
-  return strainDerivativeFactor;
-}
 
 template <StrainTags strainTag, typename MaterialImpl>
 auto testMaterialWithStrain(const MaterialImpl& mat, const double tol = 1e-13) {
@@ -137,12 +109,10 @@ auto testMaterial(Material mat) {
   TestSuite t("testMaterial");
   if constexpr (std::is_same_v<Material, LinearElasticity> or
                 std::is_same_v<Material,
-                               Ikarus::VanishingStress<std::array<Ikarus::Impl::MatrixIndexPair, 1>({{{2, 2}}}),
-                                                       Ikarus::LinearElasticity>>) {
+                               VanishingStress<std::array<MatrixIndexPair, 1>({{{2, 2}}}), LinearElasticity>>) {
     t.subTest(testMaterialWithStrain<StrainTags::linear>(mat));
-  } else if constexpr (std::is_same_v<Material,
-                                      Ikarus::VanishingStress<std::array<Ikarus::Impl::MatrixIndexPair, 1>({{{2, 2}}}),
-                                                              Ikarus::StVenantKirchhoff>>) {
+  } else if constexpr (std::is_same_v<Material, VanishingStress<std::array<MatrixIndexPair, 1>({{{2, 2}}}),
+                                                                Ikarus::Materials::StVenantKirchhoff>>) {
     t.subTest(testMaterialWithStrain<StrainTags::greenLagrangian>(mat));
   } else {
     if constexpr (Material::isReduced) {
@@ -267,21 +237,19 @@ int main(int argc, char** argv) {
   auto le = LinearElasticity(matPar);
   t.subTest(testMaterial(le));
 
-  auto leRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(le, 1e-12);
+  auto leRed = makeVanishingStress<MatrixIndexPair{2, 2}>(le, 1e-12);
   t.subTest(testMaterial(leRed));
 
-  auto svkRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(svk, 1e-12);
+  auto svkRed = makeVanishingStress<MatrixIndexPair{2, 2}>(svk, 1e-12);
   t.subTest(testMaterial(svkRed));
 
-  auto nhRed = makeVanishingStress<Impl::MatrixIndexPair{2, 2}>(nh, 1e-12);
+  auto nhRed = makeVanishingStress<MatrixIndexPair{2, 2}>(nh, 1e-12);
   t.subTest(testMaterial(nhRed));
 
-  auto nhRed2 = makeVanishingStress<Impl::MatrixIndexPair{1, 1}, Impl::MatrixIndexPair{2, 2}>(nh, 1e-12);
+  auto nhRed2 = makeVanishingStress<MatrixIndexPair{1, 1}, MatrixIndexPair{2, 2}>(nh, 1e-12);
   t.subTest(testMaterial(nhRed2));
 
-  auto nhRed3 =
-      makeVanishingStress<Impl::MatrixIndexPair{2, 1}, Impl::MatrixIndexPair{2, 0}, Impl::MatrixIndexPair{2, 2}>(nh,
-                                                                                                                 1e-12);
+  auto nhRed3 = makeVanishingStress<MatrixIndexPair{2, 1}, MatrixIndexPair{2, 0}, MatrixIndexPair{2, 2}>(nh, 1e-12);
   t.subTest(testMaterial(nhRed3));
 
   auto nhRed4 = shellMaterial(nh, 1e-12);
@@ -302,12 +270,40 @@ int main(int argc, char** argv) {
   auto linPlaneStrain = planeStrain(le);
   t.subTest(testMaterialWithStrain<StrainTags::linear>(linPlaneStrain));
 
-  auto nhRed8 = makeVanishingStrain<Impl::MatrixIndexPair{1, 1}, Impl::MatrixIndexPair{2, 2}>(nh);
+  auto nhRed8 = makeVanishingStrain<MatrixIndexPair{1, 1}, MatrixIndexPair{2, 2}>(nh);
   t.subTest(testMaterial(nhRed8));
 
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::linear, LinearElasticity>());
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::greenLagrangian, StVenantKirchhoff>());
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::rightCauchyGreenTensor, NeoHooke>());
+
+  // Hyperelasticity
+  auto K      = convertLameConstants(matPar).toBulkModulus();
+  auto mu     = matPar.mu;
+  auto lambda = matPar.lambda;
+
+  // Material parameters (example values)
+  std::array<double, 1> mu_og    = {mu};
+  std::array<double, 1> alpha_og = {2.0};
+
+  std::array<double, 3> mu_og2    = {2.0 * mu / 3.0, mu / 6.0, mu / 6.0};
+  std::array<double, 3> alpha_og2 = {1.23, 0.59, 0.18};
+
+  auto ogden     = makeOgden<1, PrincipalStretchTag::total>(mu_og, alpha_og, lambda, VF3{});
+  auto ogden2    = makeOgden<3, PrincipalStretchTag::total>(mu_og2, alpha_og2, lambda, VF2{});
+  auto ogdenDev  = makeOgden<1, PrincipalStretchTag::deviatoric>(mu_og, alpha_og, K, VF3{});
+  auto ogdenDev2 = makeOgden<3, PrincipalStretchTag::deviatoric>(mu_og2, alpha_og2, K, VF2{});
+
+  t.subTest(testMaterial(ogden));
+  t.subTest(testMaterial(ogden2));
+  t.subTest(testMaterial(ogdenDev));
+  t.subTest(testMaterial(ogdenDev2));
+
+  auto psOgden  = planeStrain(ogden);
+  auto pstOgden = planeStress(ogden2);
+
+  t.subTest(testMaterial(psOgden));
+  t.subTest(testMaterial(pstOgden));
 
   return t.exit();
 }

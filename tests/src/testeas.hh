@@ -3,10 +3,7 @@
 
 #pragma once
 
-#include "checkfebyautodiff.hh"
 #include "testcommon.hh"
-
-#include <variant>
 
 #include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
 

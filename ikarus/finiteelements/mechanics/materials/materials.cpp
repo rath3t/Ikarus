@@ -6,14 +6,14 @@
  * \brief Explicit instantiations for material templates.
  */
 
+#include <ikarus/finiteelements/mechanics/materials/hyperelastic/neohooke.hh>
 #include <ikarus/finiteelements/mechanics/materials/linearelasticity.hh>
-#include <ikarus/finiteelements/mechanics/materials/neohooke.hh>
 #include <ikarus/finiteelements/mechanics/materials/svk.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 template struct LinearElasticityT<double>;
 template struct NeoHookeT<double>;
 template struct StVenantKirchhoffT<double>;
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials

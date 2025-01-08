@@ -9,24 +9,23 @@
 
 #pragma once
 
-#include "svk.hh"
-
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/svk.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of the Linear Elasticity material model.
  * \ingroup materials
  *   The energy is computed as
- *  \f[ \psi(\Bvep) = \frac{\lambda}{2} (\tr \Bvep)^2   +\mu \tr (\Bvep^2) ,\f]
+ *  \f[ \psi(\Bvep) = \frac{\la}{2} (\tr \Bvep)^2   +\mu \tr (\Bvep^2) ,\f]
  *  where \f$ \Bvep \f$ denotes the linear strain tensor.
  *
  *  The second Piola-Kirchhoff stresses are computed as
- *     \f[ \BS(\Bvep) =\fracpt{\psi(\Bvep)}{\Bvep} = \lambda \tr \Bvep \BI  +2 \mu \Bvep,\f]
+ *     \f[ \BS(\Bvep) =\fracpt{\psi(\Bvep)}{\Bvep} = \la \tr \Bvep \BI  +2 \mu \Bvep,\f]
  *
  * and the material tangent moduli are computed as
- *      \f[ \BBC(\Bvep) =\fracpt{^2\psi(\Bvep)}{\Bvep^2} =  \lambda \tr \Bvep \CI  +2 \mu \CI^{\mathrm{sym}},\f]
+ *      \f[ \BBC(\Bvep) =\fracpt{^2\psi(\Bvep)}{\Bvep^2} =  \la \tr \Bvep \CI  +2 \mu \CI^{\mathrm{sym}},\f]
  *      where \f$ \CI_{IJKL} =  \de_{IJ}\de_{KL}\f$ and \f$ \CI_{IJKL}^\mathrm{sym} =  \frac{1}{2}(\de_{IK}\de_{JL}+
  * \de_{IL}\de_{JK})\f$.
  * \tparam ST The scalar type used in the material.
@@ -37,11 +36,12 @@ struct LinearElasticityT : Material<LinearElasticityT<ST>>
   using ScalarType = ST;
   using Base       = StVenantKirchhoffT<ScalarType>;
 
-  using field_type                    = ScalarType;
-  static constexpr int worldDimension = 3;
-  using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
-  using StressMatrix                  = StrainMatrix;
-  using MaterialParameters            = typename Base::MaterialParameters;
+  using field_type         = ScalarType;
+  static constexpr int dim = Base::dim;
+  using StrainMatrix       = typename Base::StrainMatrix;
+  using StressMatrix       = StrainMatrix;
+
+  using MaterialParameters = typename Base::MaterialParameters;
 
   static constexpr auto strainTag              = StrainTags::linear;
   static constexpr auto stressTag              = StressTags::linear;
@@ -128,4 +128,4 @@ private:
  */
 using LinearElasticity = LinearElasticityT<double>;
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials

@@ -31,4 +31,12 @@ MAKE_ENUM(StressTags, linear, PK2, PK1, Cauchy, Kirchhoff);
  * \brief A strongly typed enum class representing the type of the computed tangent moduli
  */
 MAKE_ENUM(TangentModuliTags, Material, Spatial, TwoPoint);
+
+/**
+ *
+ * \ingroup StretchTag
+ * \brief A strongly typed enum class representing the type of the the principal strechts used in hyperelastic materials
+ */
+MAKE_ENUM(PrincipalStretchTag, total, deviatoric);
+
 } // namespace Ikarus

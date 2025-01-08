@@ -29,12 +29,12 @@ struct DummyProblem
                                                   Dune::Functions::LagrangePreBasis<GridView, 1>, 2ul>;
   using Basis    = Ikarus::BasisHandler<PreBasis>;
 
-  using Material = typename Ikarus::VanishingStress<std::array<Ikarus::Impl::MatrixIndexPair, 3ul>{
-                                                        {Ikarus::Impl::MatrixIndexPair{2ul, 1ul},
-                                                         Ikarus::Impl::MatrixIndexPair{2ul, 0ul},
-                                                         Ikarus::Impl::MatrixIndexPair{2ul, 2ul}}
+  using Material = typename Ikarus::Materials::VanishingStress<std::array<Ikarus::Materials::MatrixIndexPair, 3ul>{
+                                                                   {Ikarus::Materials::MatrixIndexPair{2ul, 1ul},
+                                                                    Ikarus::Materials::MatrixIndexPair{2ul, 0ul},
+                                                                    Ikarus::Materials::MatrixIndexPair{2ul, 2ul}}
   },
-                                                    Ikarus::LinearElasticityT<double>>;
+                                                               Ikarus::Materials::LinearElasticityT<double>>;
   using LinearElastic =
       Ikarus::FE<Ikarus::PreFE<Basis>, Ikarus::LinearElasticPre<Material>::Skill, Ikarus::VolumeLoadPre<2>::Skill>;
 
@@ -67,10 +67,11 @@ struct DummyProblem
                 if (std::abs(intersection.geometry().center()[1]) < 1e-8)
                   dirichletFlags[localView.index(localIndex)] = true;
               });
-          auto vL = []([[maybe_unused]] auto& globalCoord, auto& lamb) { return Eigen::Vector2d{0, -1}; };
-          auto linMat =
-              Ikarus::LinearElasticity(Ikarus::toLamesFirstParameterAndShearModulus({.emodul = 100, .nu = 0.2}));
-          auto skills_ = Ikarus::skills(Ikarus::linearElastic(Ikarus::planeStress(linMat)), Ikarus::volumeLoad<2>(vL));
+          auto vL     = []([[maybe_unused]] auto& globalCoord, auto& lamb) { return Eigen::Vector2d{0, -1}; };
+          auto linMat = Ikarus::Materials::LinearElasticity(
+              Ikarus::toLamesFirstParameterAndShearModulus({.emodul = 100, .nu = 0.2}));
+          auto skills_ =
+              Ikarus::skills(Ikarus::linearElastic(Ikarus::Materials::planeStress(linMat)), Ikarus::volumeLoad<2>(vL));
           std::vector<LinearElastic> fes;
 
           for (auto&& element : elements(gridView_)) {

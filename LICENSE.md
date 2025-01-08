@@ -1,6 +1,6 @@
 # Copyright holders
 
-- 2021-2024 Alexander Müller
+- 2021-2025 Alexander Müller
 - 2022-2024 Tarun Kumar Mitruka Vinod Kumar Mitruka
 - 2022      Tobias Willmann
 - 2023-2024 Henrik Jakob

@@ -31,8 +31,6 @@ struct EigenBase;
 }
 
 namespace Ikarus {
-template <auto matrixIndexPair, typename MaterialImpl>
-struct VanishingStress;
 
 template <typename Derived>
 auto transpose(const Eigen::EigenBase<Derived>& A);
@@ -449,8 +447,8 @@ namespace Concepts {
    * \details A type satisfies the IsMaterial concept if it meets one of the following conditions:
    *
    * 1. The material is a specialization of the specified template `MaterialToCheck`.
-   * 2. The material is a specialization of `VanishingStress` with an underlying type that is a specialization of the
-   * specified template `MaterialToCheck`.
+   * 2. The material is a specialization of `VanishingStress` or `VanishingStrain` (i.e. reduced) with an underlying
+   * type that is a specialization of the specified template `MaterialToCheck`.
    *
    */
   template <template <typename...> class MaterialToCheck, typename Material>

@@ -4,42 +4,45 @@
 /**
  * \file neohooke.hh
  * \brief Implementation of the NeoHooke material model.
- * \ingroup  materials
+ * \ingroup materials
  */
 
 #pragma once
 
 #include <ikarus/finiteelements/mechanics/materials/interface.hh>
+#include <ikarus/finiteelements/mechanics/materials/materialhelpers.hh>
 #include <ikarus/utils/tensorutils.hh>
 
-namespace Ikarus {
+namespace Ikarus::Materials {
 
 /**
  * \brief Implementation of the Neo-Hookean material model.
 * \ingroup materials
 *  The energy is computed as
-*  \f[ \psi(\BC) = \frac{\mu}{2} (\tr \BC-3- 2 \log \sqrt{\det \BC}) + \frac{\lambda}{2} (\log \sqrt{\det \BC})^2 ,\f]
+*  \f[ \psi(\BC) = \frac{\mu}{2} (\tr \BC-3- 2 \log \sqrt{\det \BC}) + \frac{\la}{2} (\log \sqrt{\det \BC})^2 ,\f]
 * where \f$ \BC \f$ denotes the right Cauchy-Green strain tensor.
 *
 *  The second Piola-Kirchhoff stresses are computed as
-*      \f[ \BS(\BC) =\fracpt{\psi(\BC)}{\BC} = \mu (\BI-\BC^{-1}) + \lambda \log \sqrt{\det \BC}  \BC^{-1},\f]
+*      \f[ \BS(\BC) =\fracpt{\psi(\BC)}{\BC} = \mu (\BI-\BC^{-1}) + \la \log \sqrt{\det \BC}  \BC^{-1},\f]
 *
 * and the material tangent moduli are computed as
-*      \f[ \BBC(\BC) =\fracpt{^2\psi(\BC)}{\BC^2} =  \lambda \BC^{-1} \otimes  \BC^{-1} + 2 (\mu- \lambda \log
+*      \f[ \BBC(\BC) =\fracpt{^2\psi(\BC)}{\BC^2} =  \la \BC^{-1} \otimes  \BC^{-1} + 2 (\mu- \la \log
 \sqrt{\det \BC} ) \CI,\f]
 *      where \f$ \CI_{IJKL} =  \frac{1}{2}({(\BC^{-1})}^{IK}{(\BC^{-1})}^{JL}+{(\BC^{-1})}^{IL} {(\BC^{-1})}^{JK}).\f$
 *
 *  \remark See \cite bonet2008nonlinear, Section 6.4.3 for a discussion of this material
- * \tparam ST The scalar type for the strains and stresses,....
+ *\tparam ST The underlying scalar type.
  */
 template <typename ST>
 struct NeoHookeT : public Material<NeoHookeT<ST>>
 {
-  using ScalarType                    = ST;
-  static constexpr int worldDimension = 3;
-  using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
-  using StressMatrix                  = StrainMatrix;
-  using MaterialParameters            = LamesFirstParameterAndShearModulus;
+  using ScalarType         = ST;
+  static constexpr int dim = 3;
+  using StrainMatrix       = Eigen::Matrix<ScalarType, dim, dim>;
+  using StressMatrix       = StrainMatrix;
+  using MaterialTensor     = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>>;
+
+  using MaterialParameters = LamesFirstParameterAndShearModulus;
 
   static constexpr auto strainTag              = StrainTags::rightCauchyGreenTensor;
   static constexpr auto stressTag              = StressTags::PK2;
@@ -77,7 +80,7 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
     if constexpr (!Concepts::EigenVector<Derived>) {
       const auto traceC = C.trace();
       const auto detC   = C.determinant();
-      checkPositiveDetC(detC);
+      Impl::checkPositiveDet(detC);
       const auto logdetF = log(sqrt(detC));
       return materialParameter_.mu / 2.0 * (traceC - 3 - 2 * logdetF) +
              materialParameter_.lambda / 2.0 * logdetF * logdetF;
@@ -94,12 +97,12 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
    * \return StressMatrix The stresses.
    */
   template <bool voigt, typename Derived>
-  auto stressesImpl(const Eigen::MatrixBase<Derived>& C) const {
+  StressMatrix stressesImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
       if constexpr (!Concepts::EigenVector<Derived>) {
         const auto detC = C.determinant();
-        checkPositiveDetC(detC);
+        Impl::checkPositiveDet(detC);
         const auto logdetF = log(sqrt(detC));
         const auto invC    = C.inverse().eval();
         return (materialParameter_.mu * (StrainMatrix::Identity() - invC) + materialParameter_.lambda * logdetF * invC)
@@ -116,23 +119,22 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
    * \tparam voigt A boolean indicating whether to return tangent moduli in Voigt notation.
    * \tparam Derived The derived type of the input matrix.
    * \param C The right Cauchy-Green tensor.
-   * \return Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> The tangent moduli.
+   * \return MaterialTensor The tangent moduli.
    */
   template <bool voigt, typename Derived>
-  auto tangentModuliImpl(const Eigen::MatrixBase<Derived>& C) const {
+  MaterialTensor tangentModuliImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
       const auto invC = C.inverse().eval();
       const auto detC = C.determinant();
-      checkPositiveDetC(detC);
+      Impl::checkPositiveDet(detC);
       const auto logdetF = log(sqrt(detC));
       const auto CTinv   = tensorView(invC, std::array<Eigen::Index, 2>({3, 3}));
-      static_assert(Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3>>::NumIndices == 2);
-      Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli =
-          (materialParameter_.lambda * dyadic(CTinv, CTinv) +
-           2 * (materialParameter_.mu - materialParameter_.lambda * logdetF) *
-               symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3}))
-              .eval();
+
+      MaterialTensor moduli = (materialParameter_.lambda * dyadic(CTinv, CTinv) +
+                               2 * (materialParameter_.mu - materialParameter_.lambda * logdetF) *
+                                   symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3}))
+                                  .eval();
       return moduli;
     } else
       static_assert(voigt == false, "NeoHooke does not support returning tangent moduli in Voigt notation");
@@ -150,13 +152,6 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
 
 private:
   MaterialParameters materialParameter_;
-
-  void checkPositiveDetC(ScalarType detC) const {
-    if (Dune::FloatCmp::le(static_cast<double>(detC), 0.0, 1e-10))
-      DUNE_THROW(Dune::InvalidStateException,
-                 "Determinant of right Cauchy Green tensor C must be greater than zero. detC = " +
-                     std::to_string(static_cast<double>(detC)));
-  }
 };
 
 /**
@@ -164,4 +159,4 @@ private:
  */
 using NeoHooke = NeoHookeT<double>;
 
-} // namespace Ikarus
+} // namespace Ikarus::Materials

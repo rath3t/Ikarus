@@ -130,7 +130,7 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
 
   std::cout << std::setprecision(20) << nonLinOp.value() << std::endl;
   std::cout << "Maxdisp: " << maxDisp << std::endl;
-  if constexpr (std::is_same_v<Material, Ikarus::StVenantKirchhoff>) {
+  if constexpr (std::is_same_v<Material, Materials::StVenantKirchhoff>) {
     t.check(Dune::FloatCmp::eq(energyExpected, nonLinOp.value()), "energyExpected == nonLinOp.value()")
         << "energyExpected: " << energyExpected << "\nnonLinOp.value(): " << nonLinOp.value();
 
@@ -198,16 +198,16 @@ auto GreenLagrangeStrainTest(const Material& mat) {
   auto element = gridView.template begin<0>();
   auto nDOF    = basis.flat().size();
 
-  auto fe     = makeFE(basis, skills(nonLinearElastic(mat)));
+  auto fe     = makeFE(basis, skills(Ikarus::nonLinearElastic(mat)));
   auto linMat = [&]() {
-    auto linMat = Ikarus::LinearElasticity{mat.materialParameters()};
+    auto linMat = Ikarus::Materials::LinearElasticity{mat.materialParameters()};
     if constexpr (gridDim == 3)
       return linMat;
     else {
       if constexpr (isPlaneStress<Material>)
-        return Ikarus::planeStress(linMat);
+        return Ikarus::Materials::planeStress(linMat);
       else
-        return Ikarus::planeStrain(linMat);
+        return Ikarus::Materials::planeStrain(linMat);
     }
   }();
   auto feLE = makeFE(basis, skills(Ikarus::linearElastic(linMat)));
