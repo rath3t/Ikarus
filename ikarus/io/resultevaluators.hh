@@ -93,7 +93,7 @@ struct HydrostaticStress
   constexpr static std::string name() { return "HydrostaticStress"; }
 
   /**
-   * \brief Get the number of components in the result (always 1 for HydrostaticStress)
+   * \brief Get the number of components in the result (always 1 for hydrostatic stress)
    * \return Number of components
    */
   constexpr static int ncomps() { return 1; }
@@ -144,7 +144,7 @@ struct PrincipalStress
 struct Triaxiality
 {
   /**
-   * \brief Calculate the result quantity (Triaxiality stress)
+   * \brief Calculate the result quantity (triaxiality stress)
    * \param resultArray EigenVector containing the stress state in Voigt notation
    * \param comp component of result (not used here)
    * \tparam R Type of the matrix
@@ -262,17 +262,12 @@ struct IdentityEvaluator
 };
 
 /**
- * \brief Struct for calculating the 2d polar stress. This assumes cubed geometry. You can define an offset to where the
- * origin of the coordinate is defined. Per default it is the center of the standard 2d cube reference geometry {0.5,
- * 0.5}.
+ * \brief Struct for calculating the 2d polar stress. The center of the coordinate system is chosen to be the center of
+ * the corresponding reference geometry.
   \ingroup resultevaluators
  */
 struct PolarStress
 {
-  PolarStress() = default;
-  PolarStress(const Dune::FieldVector<double, 2>& offset)
-      : offset_(offset) {}
-
   /**
    * \brief Calculate the result quantity (von Mises stress)
    * \param resultArray EigenVector containing the stress state in Voigt notation
@@ -281,11 +276,12 @@ struct PolarStress
    * \return von Mises stress
    */
   template <typename R>
-  double operator()(const R& resultArray, const auto& pos, const int comp) const {
+  double operator()(const R& resultArray, const auto& pos, const auto& fe, const int comp) const {
     static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "PolarStress is only valid for 2D.");
 
     // Offset to center the coordinate system in the reference geometry
-    auto theta = std::atan2(pos[1] - offset_[1], pos[0] - offset_[0]);
+    Dune::FieldVector<double, 2> offset = Dune::referenceElement(fe.geometry()).template geometry<0>(0).center();
+    auto theta                          = std::atan2(pos[1] - offset[1], pos[0] - offset[0]);
 
     const auto s_x  = resultArray[0];
     const auto s_y  = resultArray[1];
@@ -296,12 +292,16 @@ struct PolarStress
     auto cos2t = std::cos(2 * theta);
     auto sin2t = std::sin(2 * theta);
 
-    Dune::FieldVector<double, 3> sigmaPolar;
-    sigmaPolar[0] = hpl + hmi * cos2t + s_xy * sin2t;
-    sigmaPolar[1] = hpl - hmi * cos2t - s_xy * sin2t;
-    sigmaPolar[2] = -hmi * sin2t + s_xy * cos2t;
-
-    return sigmaPolar[comp];
+    switch (comp) {
+      case 0:
+        return hpl + hmi * cos2t + s_xy * sin2t;
+      case 1:
+        return hpl - hmi * cos2t - s_xy * sin2t;
+      case 2:
+        return -hmi * sin2t + s_xy * cos2t;
+      default:
+        DUNE_THROW(Dune::RangeError, "PolarStress: Comp out of range.");
+    }
   }
 
   /**
@@ -315,9 +315,6 @@ struct PolarStress
    * \return Number of components
    */
   constexpr static int ncomps() { return 3; }
-
-private:
-  Dune::FieldVector<double, 2> offset_ = Dune::ReferenceElements<double, 2>::cube().geometry<0>(0).center();
 };
 
 } // namespace Ikarus::ResultEvaluators
