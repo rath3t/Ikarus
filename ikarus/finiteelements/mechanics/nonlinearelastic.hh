@@ -193,7 +193,7 @@ public:
     else
       return mat_;
   }
-  
+
 public:
   /**
    * \brief Calculates a requested result at a specific local position.

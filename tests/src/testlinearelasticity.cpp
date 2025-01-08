@@ -82,7 +82,8 @@ int main(int argc, char** argv) {
       checkResultFunctionFunctorFactory<linearStress>(linearStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<IdentityEvaluator<6>, PlaneStrainMat>>(
           linear3dPlaneStrainStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<VonMises, PlaneStrainMat>>(linearVonMisesResultsOfSquare),
+      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<VonMises, PlaneStrainMat>>(
+          linearVonMisesResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<HydrostaticStress, PlaneStrainMat>>(
           linearHydrostaticStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<Triaxiality, PlaneStrainMat>>(
