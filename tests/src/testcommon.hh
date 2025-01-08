@@ -338,10 +338,11 @@ template <template <typename, int, int> class resType, typename ResultEvaluator>
     ++i;
   }
 
-  if (ResultEvaluator::name() == "Triaxiality") {
-    replaceNaNWithZero(computedResults);
-    replaceNaNWithZero(expectedResult);
-  }
+  if constexpr (requires { ResultEvaluator::name(); })
+    if (ResultEvaluator::name() == "Triaxiality") {
+      replaceNaNWithZero(computedResults);
+      replaceNaNWithZero(expectedResult);
+    }
 
   const bool isResultCorrect = isApproxSame(computedResults, expectedResult, 1e-8);
   t.check(isResultCorrect) << "Computed Result for " << Ikarus::toString<resType>()

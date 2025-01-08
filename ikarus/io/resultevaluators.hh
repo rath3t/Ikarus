@@ -12,7 +12,7 @@
 
 #include <dune/common/math.hh>
 
-#include <ikarus/finiteelements/mechanics/materials/vanishingstrain.hh>
+#include <ikarus/finiteelements/mechanics/materials.hh>
 #include <ikarus/utils/tensorutils.hh>
 
 namespace Ikarus::ResultEvaluators {
@@ -64,15 +64,15 @@ struct VonMises
 };
 
 /**
- * \brief Struct for calculating von Mises stress
+ * \brief Struct for calculating von hydrostatic stress
  * \ingroup resultevaluators
- * \details The VonMises struct provides a function call operator to calculate von Mises stress.
+ * \details The HydrostaticStress struct provides a function call operator to calculate von hydrostatic stress.
  * In 2D, this assumes a plane stress state
  */
 struct HydrostaticStress
 {
   /**
-   * \brief Calculate the result quantity (von Mises stress)
+   * \brief Calculate the result quantity (hydrostatic stress)
    * \param resultArray EigenVector containing the stress state in Voigt notation
    * \param comp component of result (not used here)
    * \tparam R Type of the matrix
@@ -136,15 +136,15 @@ struct PrincipalStress
 };
 
 /**
- * \brief Struct for calculating Triaxiality stresses
+ * \brief Struct for calculating triaxiality stresses
  * \ingroup resultevaluators
- * \details The VonMises struct provides a function call operator to calculate von Mises stress.
+ * \details The Triaxiality struct provides a function call operator to calculate von triaxiality stress.
  * In 2D, this assumes a plane stress state
  */
 struct Triaxiality
 {
   /**
-   * \brief Calculate the result quantity (von Mises stress)
+   * \brief Calculate the result quantity (Triaxiality stress)
    * \param resultArray EigenVector containing the stress state in Voigt notation
    * \param comp component of result (not used here)
    * \tparam R Type of the matrix
@@ -171,8 +171,8 @@ struct Triaxiality
 
 /**
  * \brief Wrapper to obtain stress results for vanishing materials. It takes a resultevaluator as template argument.
- * For now this works only for plane strain case.
- * If you just want to obtain the 3d stresses without using a resultevaluator use IdentityEvaluator<RT, 6>.
+ * For now this works only for plane strain and plane stress case with SVK or LinearElasticity material.
+ * If you just want to obtain the 3d stresses without using a resultevaluator use IdentityEvaluator<6>.
  *
  * \tparam RE Type of the underlying resultevalutor
  */
@@ -184,7 +184,11 @@ struct VanishingMaterialsWrapper
   template <typename RE_>
   VanishingMaterialsWrapper(RE_&& resultEvaluator, const MAT& mat)
       : underlying_(std::forward<RE>(resultEvaluator)),
-        mat_(mat) {}
+        mat_(mat) {
+    static_assert(MAT::isReduced && (traits::isSpecialization<StVenantKirchhoffT, typename MAT::Underlying>::value ||
+                                     traits::isSpecialization<LinearElasticityT, typename MAT::Underlying>::value),
+                  "VanishingMaterialsWrapper only supports SVK and LinearElasticity material");
+  }
 
   /**
    * \brief Calculate the result quantity by calculating the missing stress in z-direction and forwarding the result to
@@ -196,24 +200,33 @@ struct VanishingMaterialsWrapper
    */
   template <typename R>
   double operator()(const R& resultArray, const int comp) const {
+    static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "VanishingMaterialsWrapper is only valid for 2D.");
+
+    auto enlargedResultArray      = Eigen::Vector<double, 6>::Zero().eval();
+    enlargedResultArray.head<2>() = resultArray.template head<2>();
+    enlargedResultArray[5]        = resultArray[2];
     if constexpr (traits::isSpecializationNonTypeAndTypes<VanishingStrain, MAT>::value) {
-      static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "VanishingMaterialsWrapper is only valid for 2D.");
-      auto nu                       = convertLameConstants(mat_.materialParameters()).toPoissonsRatio();
-      auto sigZ                     = nu * (resultArray[0] + resultArray[1]);
-      auto enlargedResultArray      = Eigen::Vector<double, 6>::Zero().eval();
-      enlargedResultArray.head<2>() = resultArray.template head<2>();
-      enlargedResultArray[2]        = sigZ;
-      enlargedResultArray[5]        = resultArray[2];
+      auto nu                = convertLameConstants(mat_.materialParameters()).toPoissonsRatio();
+      auto sigZ              = nu * (resultArray[0] + resultArray[1]);
+      enlargedResultArray[2] = sigZ;
 
       return underlying_(enlargedResultArray, comp);
+    } else if constexpr (traits::isSpecializationNonTypeAndTypes<VanishingStress, MAT>::value) {
+      return underlying_(enlargedResultArray, comp);
     } else
-      static_assert(Dune::AlwaysFalse<MAT>::value, "Material Type is not supported.");
+      static_assert(Dune::AlwaysFalse<MAT>::value, "Vanishing Material is not supported.");
   }
   /**
    * \brief Get the name of the result type
    * \return String representing the name
    */
-  constexpr static std::string name() { return Underlying::name(); }
+  constexpr static std::string name()
+  requires requires {
+    { Underlying::name() };
+  }
+  {
+    return Underlying::name();
+  }
 
   /**
    * \brief Get the number of components in the result
@@ -235,7 +248,7 @@ VanishingMaterialsWrapper(ResultEvaluator&&, MAT&&) -> VanishingMaterialsWrapper
  * \tparam RT the requested result type
  * \tparam ncomps_ the amount of results in resultArray
  */
-template <template <typename, int, int> class RT, int ncomps_>
+template <int ncomps_>
 struct IdentityEvaluator
 {
   template <typename R>
@@ -246,16 +259,20 @@ struct IdentityEvaluator
   }
 
   constexpr static int ncomps() { return ncomps_; }
-
-  constexpr static std::string name() { return toString<RT>(); }
 };
 
 /**
- * \brief Struct for calculating the 2d polar stress. This assumes cubed geometry.
- * \ingroup resultevaluators
+ * \brief Struct for calculating the 2d polar stress. This assumes cubed geometry. You can define an offset to where the
+ * origin of the coordinate is defined. Per default it is the center of the standard 2d cube reference geometry {0.5,
+ * 0.5}.
+  \ingroup resultevaluators
  */
 struct PolarStress
 {
+  PolarStress() = default;
+  PolarStress(const Dune::FieldVector<double, 2>& offset)
+      : offset_(offset) {}
+
   /**
    * \brief Calculate the result quantity (von Mises stress)
    * \param resultArray EigenVector containing the stress state in Voigt notation
@@ -268,8 +285,7 @@ struct PolarStress
     static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "PolarStress is only valid for 2D.");
 
     // Offset to center the coordinate system in the reference geometry
-    auto center = Dune::ReferenceElements<double, 2>::cube().geometry<0>(0).center();
-    auto theta  = std::atan2(pos[1] - center[1], pos[0] - center[0]);
+    auto theta = std::atan2(pos[1] - offset_[1], pos[0] - offset_[0]);
 
     const auto s_x  = resultArray[0];
     const auto s_y  = resultArray[1];
@@ -299,6 +315,9 @@ struct PolarStress
    * \return Number of components
    */
   constexpr static int ncomps() { return 3; }
+
+private:
+  Dune::FieldVector<double, 2> offset_ = Dune::ReferenceElements<double, 2>::cube().geometry<0>(0).center();
 };
 
 } // namespace Ikarus::ResultEvaluators

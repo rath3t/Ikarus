@@ -22,7 +22,6 @@ namespace Ikarus {
 namespace Impl {
   struct DefaultUserFunction
   {
-    constexpr static std::string name() { return "DefaultUserFunction"; }
   };
 } // namespace Impl
 
@@ -100,7 +99,7 @@ public:
    * \return String representing the name of the result type
    */
   [[nodiscard]] constexpr std::string name() const override {
-    if constexpr (!std::is_same_v<UserFunction, Impl::DefaultUserFunction> and requires { userFunction_.name(); })
+    if constexpr (requires { userFunction_.name(); })
       return userFunction_.name();
     else
       return toString<RT>();
@@ -166,7 +165,7 @@ private:
  * \tparam AS type of the assembler
  * \tparam RT requested result type
  * \tparam UserFunction Type of the user-defined function for custom result evaluation (default is DefaultUserFunction)
- * \tparam Args Type of additional arguments passed to the user function
+ * \tparam Args type of additional arguments passed to the user function
  * \param assembler shared pointer to the underlying assembler (provides the finite elements and the requested results)
  * \param prec (optional) specify the used precision
  * \param args additional arguments passed to the constructor of the user function
@@ -187,11 +186,11 @@ auto makeResultFunction(std::shared_ptr<AS> assembler, Dune::VTK::Precision prec
  * auto localResultFunction = localFunction(vtkResultFunction);
  * localResultFunction.bind(element);
  * \endcode
- * \tparam AS  type of the assembler
+ * \tparam AS type of the assembler
  * \tparam RT requested result type
  * \tparam UserFunction Type of the user-defined function for custom result evaluation (default is
  * DefaultUserFunction)
- * \tparam Args Type of additional arguments passed to the user function
+ * \tparam Args type of additional arguments passed to the user function
  * \param assembler shared pointer to the underlying assembler (provides the finite elements and the requested results)
  * \param args additional arguments passed to the constructor of the user function
  */
