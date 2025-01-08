@@ -73,7 +73,7 @@ struct Deviatoric
    * \brief Returns the principal PK2 stresses obtained from the first derivative of the deviatoric function.
    *
    * \param lambda the principal stretches.
-   * \return StressMatrix the stresses in Cartesian coordinate system.
+   * \return StressMatrix the stresses in pincipal strains coordinate system.
    */
   StressMatrix stresses(const PrincipalStretches& lambda) const {
     checkDuplicates(lambda);
@@ -90,7 +90,7 @@ struct Deviatoric
    * \brief Returns the material tangent modulus obtained from the second derivative of the deviatoric function.
    *
    * \param lambda the principal stretches.
-   * \return MaterialTensor the tangentModuli in Cartesian coordinate system.
+   * \return MaterialTensor the tangentModuli in pincipal strains coordinate system.
    */
   MaterialTensor tangentModuli(const PrincipalStretches& lambda) const {
     checkDuplicates(lambda);

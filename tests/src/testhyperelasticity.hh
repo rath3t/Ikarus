@@ -236,7 +236,7 @@ auto testMaterialResults() {
 
   auto ogdenTotal = Ogden<3, PrincipalStretchTag::total>(mu_og, alpha_og);
   auto ogdenDevi  = Ogden<3, PrincipalStretchTag::deviatoric>(mu_og, alpha_og);
- 
+
   auto checkForDeformationType = [&]<DeformationType def>() {
     t.subTest(testMaterialResult<def>(ogdenTotal));
     t.subTest(testMaterialResult<def>(ogdenDevi));
@@ -247,6 +247,6 @@ auto testMaterialResults() {
   checkForDeformationType.operator()<DeformationType::BiaxialTensile>();
   checkForDeformationType.operator()<DeformationType::PureShear>();
   checkForDeformationType.operator()<DeformationType::Random>();
-  
+
   return t;
 }

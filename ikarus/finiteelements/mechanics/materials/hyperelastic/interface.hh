@@ -100,8 +100,8 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   ScalarType storedEnergyImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
 
-    const auto& lambdas = principalStretches(C, Eigen::EigenvaluesOnly).first;
-    auto J              = detF(lambdas);
+    const auto lambdas = principalStretches(C, Eigen::EigenvaluesOnly).first;
+    auto J             = detF(lambdas);
 
     return dev_.storedEnergy(lambdas) + vol_.storedEnergy(J);
   }
@@ -117,11 +117,11 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   StressMatrix stressesImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
-      const auto& [lambdas, N] = principalStretches(C);
-      auto J                   = detF(lambdas);
+      const auto [lambdas, N] = principalStretches(C);
+      auto J                  = detF(lambdas);
 
-      const auto& Sdev = transformDeviatoricStresses(dev_.stresses(lambdas), N);
-      const auto& Svol = transformVolumetricStresses(vol_.firstDerivative(J), C, J);
+      const auto Sdev = transformDeviatoricStresses(dev_.stresses(lambdas), N);
+      const auto Svol = transformVolumetricStresses(vol_.firstDerivative(J), C, J);
 
       return Sdev + Svol;
     } else
@@ -139,11 +139,11 @@ struct Hyperelastic : public Material<Hyperelastic<DEV, VOL>>
   MaterialTensor tangentModuliImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
-      const auto& [lambdas, N] = principalStretches(C);
-      auto J                   = detF(lambdas);
+      const auto [lambdas, N] = principalStretches(C);
+      auto J                  = detF(lambdas);
 
-      const auto& moduliDev = transformDeviatoricTangentModuli(dev_.tangentModuli(lambdas), N);
-      const auto& moduliVol = transformVolumetricTangentModuli(vol_.firstDerivative(J), vol_.secondDerivative(J), C, J);
+      const auto moduliDev = transformDeviatoricTangentModuli(dev_.tangentModuli(lambdas), N);
+      const auto moduliVol = transformVolumetricTangentModuli(vol_.firstDerivative(J), vol_.secondDerivative(J), C, J);
 
       return moduliDev + moduliVol;
     } else
@@ -170,11 +170,7 @@ private:
 
   StressMatrix transformDeviatoricStresses(const typename DEV::StressMatrix& principalStress,
                                            const Eigen::Matrix<ScalarType, 3, 3>& N) const {
-    auto S = StressMatrix::Zero().eval();
-    for (auto i : Dune::range(3))
-      S += principalStress[i] * dyadic<ScalarType, 3, false>(N.col(i).eval(), N.col(i).eval());
-
-    return S;
+    return N * principalStress.asDiagonal() * N.transpose();
   }
 
   StressMatrix transformVolumetricStresses(const ScalarType& Uprime, const auto& C, ScalarType J) const {

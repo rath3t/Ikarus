@@ -3,8 +3,7 @@
 
 # install headers
 install(
-  FILES interface.hh
-        ogden.hh
+  FILES interface.hh ogden.hh
   DESTINATION
     ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/materials/hyperelastic/deviatoric
 )
