@@ -51,7 +51,7 @@ struct VonMises
   }
 
   /**
-   * \brief Get the name of the result type (VonMises)
+   * \brief Get the name of the result type
    * \return String representing the name
    */
   constexpr static std::string name() { return "VonMises"; }
@@ -64,9 +64,9 @@ struct VonMises
 };
 
 /**
- * \brief Struct for calculating von hydrostatic stress
+ * \brief Struct for calculating hydrostatic stress
  * \ingroup resultevaluators
- * \details The HydrostaticStress struct provides a function call operator to calculate von hydrostatic stress.
+ * \details The HydrostaticStress struct provides a function call operator to calculate hydrostatic stress.
  * In 2D, this assumes a plane stress state
  */
 struct HydrostaticStress
@@ -123,7 +123,7 @@ struct PrincipalStress
   }
 
   /**
-   * \brief Get the name of the result type (PrincipalStress)
+   * \brief Get the name of the result type
    * \return String representing the name
    */
   constexpr static std::string name() { return "PrincipalStress"; }
@@ -136,22 +136,22 @@ struct PrincipalStress
 };
 
 /**
- * \brief Struct for calculating triaxiality stresses
+ * \brief Struct for calculating stress triaxiality
  * \ingroup resultevaluators
- * \details The Triaxiality struct provides a function call operator to calculate von triaxiality stress.
+ * \details The Triaxiality struct provides a function call operator to calculate stress triaxiality.
  * In 2D, this assumes a plane stress state
  */
 struct Triaxiality
 {
   /**
-   * \brief Calculate the result quantity (triaxiality stress)
+   * \brief Calculate the result quantity (stress triaxiality)
    * \param resultArray EigenVector containing the stress state in Voigt notation
    * \param comp component of result (not used here)
    * \tparam R Type of the matrix
    * \return Triaxiality stress
    */
   template <typename R>
-  double operator()(const R& resultArray, const int comp) const {
+  double operator()(const R& resultArray, [[maybe_unused]] const int comp) const {
     auto sigeq = VonMises{}(resultArray, 0);
     auto sigm  = HydrostaticStress{}(resultArray, 0);
     return sigm / sigeq;
@@ -163,7 +163,7 @@ struct Triaxiality
   constexpr static std::string name() { return "Triaxiality"; }
 
   /**
-   * \brief Get the number of components in the result  (always 1 for Triaxiality)
+   * \brief Get the number of components in the result  (always 1 for stress triaxiality)
    * \return Number of components
    */
   constexpr static int ncomps() { return 1; }

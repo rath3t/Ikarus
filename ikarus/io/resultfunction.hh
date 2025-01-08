@@ -109,7 +109,7 @@ public:
    * \brief Get the precision used for this result
    * \details
    * This function is part of the Dune::VTKFunction interface.
-   * This has no affect when the ResultFunction is used as part of a the dune-vtk module
+   * This has no affect when the ResultFunction is used with the dune-vtk module
    *
    * \return Precision (i.e. float64 or float32)
    */
@@ -153,7 +153,6 @@ private:
   std::shared_ptr<Assembler> assembler_;
 
   Dune::VTK::Precision prec_;
-  [[no_unique_address]] std::string name_{};
   UserFunction userFunction_;
 };
 
