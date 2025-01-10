@@ -52,7 +52,7 @@ struct LinearElasticPre
  * \tparam FE The type of the finite element.
  */
 template <typename PreFE, typename FE, typename PRE>
-class LinearElastic : public ResultTypeBase<ResultTypes::linearStress>
+class LinearElastic : public ResultTypeBase<ResultTypes::linearStress, ResultTypes::linearStressFull>
 {
 public:
   using Traits       = PreFE::Traits;
@@ -182,12 +182,17 @@ public:
   auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<1>) const {
     using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
+
+    const auto eps = strainFunction(req);
+    auto epsVoigt  = eps.evaluate(local, Dune::on(Dune::DerivativeDirections::gridElement));
+
     if constexpr (isSameResultType<RT, ResultTypes::linearStress>) {
-      const auto eps = strainFunction(req);
       const auto C   = materialTangent();
-      auto epsVoigt  = eps.evaluate(local, Dune::on(Dune::DerivativeDirections::gridElement));
 
       return RTWrapper{(C * epsVoigt).eval()};
+    } else if constexpr (isSameResultType<RT, ResultTypes::linearStressFull>) {
+      auto mat  = Material::Underlying(mat_.materialParameters());
+      return RTWrapper{mat.template stresses<StrainTags::linear>(enlargeIfReduced<Material>(epsVoigt))};
     }
   }
 
