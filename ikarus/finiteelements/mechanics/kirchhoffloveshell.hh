@@ -234,9 +234,6 @@ protected:
     return kin;
   }
 
-  void updateStateImpl(const Requirement& /* par */,
-                       typename Traits::template VectorTypeConst<> /* correction */) const {}
-
   template <typename ST>
   void calculateMatrixImpl(
       const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<ST> K,

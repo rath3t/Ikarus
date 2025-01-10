@@ -375,8 +375,6 @@ protected:
       fIntFunction(EVoigt, gpIndex, gp);
     }
   }
-  void updateStateImpl(const Requirement& /* par */,
-                       typename Traits::template VectorTypeConst<> /* correction */) const {}
 };
 
 /**

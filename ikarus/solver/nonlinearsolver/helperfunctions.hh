@@ -25,7 +25,7 @@ void updateStates(std::shared_ptr<Assembler>& assembler,
   auto fes = assembler->finiteElements();
   auto req = assembler->requirement();
   for (auto& fe : fes)
-    updateState(fe, req, correction);
+    fe.updateState(req, correction);
 }
 
 template <typename Assembler>

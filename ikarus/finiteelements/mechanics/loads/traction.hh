@@ -143,9 +143,6 @@ protected:
       const Requirement&, MatrixAffordance, typename Traits::template MatrixType<>,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& = std::nullopt) const {}
 
-  void updateStateImpl(const Requirement& /* par */,
-                       typename Traits::template VectorTypeConst<> /* correction */) const {}
-
 private:
   std::function<Eigen::Vector<double, worldDim>(const Dune::FieldVector<double, worldDim>&, const double&)>
       neumannBoundaryLoad_;

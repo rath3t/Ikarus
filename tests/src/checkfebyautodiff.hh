@@ -35,7 +35,7 @@ auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis,
 
     fe.bind(element);
 
-    updateState(fe, req, d); // here d = correction vector (DeltaD)
+    fe.updateState(req, d); // here d = correction vector (DeltaD)
     req.insertGlobalSolution(d).insertParameter(lambda);
 
     const std::string feClassName = Dune::className(fe);

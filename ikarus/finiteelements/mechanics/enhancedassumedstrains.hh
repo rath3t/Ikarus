@@ -169,7 +169,8 @@ protected:
    * \param correction The correction in displacement (DeltaD) vector passed based on which the internal state variable
    * alpha is to be updated.
    */
-  void updateStateImpl(const Requirement& par, typename Traits::template VectorTypeConst<> correction) const {
+  void updateStateImpl(const Requirement& par,
+                       const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
     using ScalarType = Traits::ctype;
     easApplicabilityCheck();
     if (isDisplacementBased())
@@ -184,7 +185,7 @@ protected:
       constexpr int enhancedStrainSize = EAST::enhancedStrainSize;
       Eigen::Matrix<double, enhancedStrainSize, enhancedStrainSize> D;
       calculateDAndLMatrix(easFunction, par, D, LMat);
-      const decltype(alpha_) updateAlpha = D.inverse() * (Rtilde + (LMat * localdx).eval());
+      const auto updateAlpha = (D.inverse() * (Rtilde + (LMat * localdx))).eval();
       this->alpha_ -= updateAlpha;
     };
 

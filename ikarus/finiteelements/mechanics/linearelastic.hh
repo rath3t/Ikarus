@@ -312,9 +312,6 @@ public:
   }
 
 protected:
-  void updateStateImpl(const Requirement& /* par */,
-                       typename Traits::template VectorTypeConst<> /* correction */) const {}
-
   template <typename ScalarType>
   void calculateMatrixImpl(const Requirement& par, const MatrixAffordance& affordance,
                            typename Traits::template MatrixType<> K,

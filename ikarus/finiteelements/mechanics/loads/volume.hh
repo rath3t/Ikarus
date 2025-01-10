@@ -111,9 +111,6 @@ protected:
       const Requirement& par, MatrixAffordance, typename Traits::template MatrixType<> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const {}
 
-  void updateStateImpl(const Requirement& /* par */,
-                       typename Traits::template VectorTypeConst<> /* correction */) const {}
-
 private:
   std::function<Eigen::Vector<double, worldDim>(const Dune::FieldVector<double, worldDim>&, const double&)> volumeLoad_;
   //> CRTP

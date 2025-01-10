@@ -208,7 +208,7 @@ public:
     } else
       return value_;
   }
-  explicit ResultWrapper() { value_.setZero(); }
+  explicit ResultWrapper() = default;
   explicit ResultWrapper(StoredType&& value) { this->value_ = std::move(value); }
   explicit ResultWrapper(const StoredType& value) { this->value_ = value; }
   ResultWrapper& operator=(const StoredType& value) {
@@ -221,7 +221,7 @@ public:
   }
 
 private:
-  StoredType value_{};
+  StoredType value_{StoredType::Zero(rowsAtCompileTime, colsAtCompileTime)};
 };
 
 namespace Impl {
