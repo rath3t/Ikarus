@@ -55,18 +55,24 @@ namespace Impl {
      */
     template <typename F>
     void operator()(F&& f) const {
-      std::visit(
-          [&]<typename EAST>(const EAST& easFunction) {
-            if constexpr (EAST::enhancedStrainSize != 0)
-              f(easFunction);
-          },
-          var_);
+      std::visit([&]<typename EAST>(const EAST& easFunction) { f(easFunction); }, var_);
     }
 
+    /**
+     * \brief A helper function to get the number of EAS parameters.
+     * \return Number of EAS parameters.
+     */
     auto numberOfEASParameters() const {
       return std::visit([]<typename EAST>(const EAST&) -> int { return EAST::enhancedStrainSize; }, var_);
     }
+
+    /**
+     * \brief A helper function to identify if the formulation is purely displacement-based, i.e., number of EAS
+     * parameters is zero.
+     * \return A bool indicating if the formulation is displacement-based or not.
+     */
     bool isDisplacmentBased() const { return numberOfEASParameters() == 0; }
+
     void setEASType(int numberOfEASParameters) {
       numberOfEASParameters_ = numberOfEASParameters;
       if (geometry_)

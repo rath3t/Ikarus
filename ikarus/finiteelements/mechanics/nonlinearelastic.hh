@@ -188,6 +188,22 @@ public:
   [[nodiscard]] int order() const { return order_; }
 
   /**
+   * \brief Get a lambda function that evaluates the requested result type for a given strain (in Voigt notation).
+   * \tparam RT The type representing the requested result.
+   * \return A lambda function that evaluates the requested result type for a given strain (in Voigt notation).
+   */
+  template <template <typename, int, int> class RT>
+  requires(supportsResultType<RT>())
+  auto resultFunction() const {
+    return [&]<int strainDim>(const Eigen::Vector<double, strainDim>& strainInVoigt) {
+      using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
+      if constexpr (isSameResultType<RT, ResultTypes::PK2Stress>) {
+        return RTWrapper{stress<double>(strainInVoigt)};
+      }
+    };
+  }
+
+  /**
    * \brief Calculates a requested result at a specific local position.
    *
    * \param req The Requirement object holding the global solution.
@@ -200,18 +216,15 @@ public:
   requires(supportsResultType<RT>())
   auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<1>) const {
+    if constexpr (hasEAS)
+      return;
+    const auto rFunction = resultFunction<RT>();
     using namespace Dune::DerivativeDirections;
+    const auto uFunction = displacementFunction(req);
+    const auto H         = uFunction.evaluateDerivative(local, Dune::wrt(spatialAll), Dune::on(gridElement));
+    const auto E         = (0.5 * (H.transpose() + H + H.transpose() * H)).eval();
 
-    using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
-    if (usesEASSkill())
-      return RTWrapper{};
-    if constexpr (isSameResultType<RT, ResultTypes::PK2Stress>) {
-      const auto uFunction = displacementFunction(req);
-      const auto H         = uFunction.evaluateDerivative(local, Dune::wrt(spatialAll), Dune::on(gridElement));
-      const auto E         = (0.5 * (H.transpose() + H + H.transpose() * H)).eval();
-
-      return RTWrapper{mat_.template stresses<StrainTags::greenLagrangian>(toVoigt(E))};
-    }
+    return rFunction(toVoigt(E));
   }
 
 private:
@@ -230,13 +243,6 @@ private:
       return mat_.template rebind<ScalarType>();
     else
       return mat_;
-  }
-
-  bool usesEASSkill() const {
-    if constexpr (hasEAS)
-      return underlying().numberOfEASParameters() != 0;
-    else
-      return false;
   }
 
 public:
@@ -298,6 +304,29 @@ public:
     };
   }
 
+  /**
+   * \brief Get a lambda function that evaluates the internal energy at a given integration point and its index.
+   *
+   * \tparam ScalarType The scalar type for the material and strain.
+   * \param par The Requirement object.
+   * \param dx Optional displacement vector.
+   * \return A lambda function that returns the intenral energy at a given integration point and its index.
+   */
+  template <typename ScalarType>
+  auto energyFunction(const Requirement& par, const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
+    return [&]() -> ScalarType {
+      using namespace Dune::DerivativeDirections;
+      using namespace Dune;
+      ScalarType energy = 0.0;
+      const auto eps    = strainFunction(par, dx);
+      for (const auto& [gpIndex, gp] : eps.viewOverIntegrationPoints()) {
+        const auto EVoigt = eps.evaluate(gpIndex, on(gridElement));
+        energy += internalEnergy(EVoigt) * geo_->integrationElement(gp.position()) * gp.weight();
+      }
+      return energy;
+    };
+  }
+
 protected:
   /**
    * \brief Calculate the matrix associated with the given Requirement.
@@ -310,7 +339,7 @@ protected:
   void calculateMatrixImpl(const Requirement& par, const MatrixAffordance& affordance,
                            typename Traits::template MatrixType<> K,
                            const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
-    if (usesEASSkill())
+    if constexpr (hasEAS)
       return;
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
@@ -326,28 +355,16 @@ protected:
   template <typename ScalarType>
   auto calculateScalarImpl(const Requirement& par, ScalarAffordance affordance,
                            const VectorXOptRef<ScalarType>& dx = std::nullopt) const -> ScalarType {
-    ScalarType energy = 0.0;
-    if (usesEASSkill())
-      return energy;
-    using namespace Dune::DerivativeDirections;
-    using namespace Dune;
-
-    const auto eps     = strainFunction(par, dx);
-    const auto& lambda = par.parameter();
-
-    for (const auto& [gpIndex, gp] : eps.viewOverIntegrationPoints()) {
-      const auto EVoigt = (eps.evaluate(gpIndex, on(gridElement))).eval();
-      energy += internalEnergy(EVoigt) * geo_->integrationElement(gp.position()) * gp.weight();
-    }
-
-    return energy;
+    if constexpr (hasEAS)
+      return ScalarType{0.0};
+    return energyFunction(par, dx)();
   }
 
   template <typename ScalarType>
   void calculateVectorImpl(const Requirement& par, VectorAffordance affordance,
                            typename Traits::template VectorType<ScalarType> force,
                            const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
-    if (usesEASSkill())
+    if constexpr (hasEAS)
       return;
     using namespace Dune::DerivativeDirections;
     using namespace Dune;

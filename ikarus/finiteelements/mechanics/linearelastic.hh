@@ -188,12 +188,26 @@ public:
   [[nodiscard]] int order() const { return order_; }
 
   /**
+   * \brief Get a lambda function that evaluates the requested result type for a given strain (in Voigt notation).
+   * \tparam RT The type representing the requested result.
+   * \return A lambda function that evaluates the requested result type for a given strain (in Voigt notation).
+   */
+  template <template <typename, int, int> class RT>
+  requires(supportsResultType<RT>())
+  auto resultFunction() const {
+    return [&]<int strainDim>(const Eigen::Vector<double, strainDim>& strainInVoigt) {
+      using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
+      if constexpr (isSameResultType<RT, ResultTypes::linearStress>) {
+        return RTWrapper{stress(strainInVoigt)};
+      }
+    };
+  }
+
+  /**
    * \brief Calculates a requested result at a specific local position.
-   *
    * \param req The Requirement object holding the global solution.
    * \param local Local position vector.
-   * \tparam RT The requested result type
-   * \return calculated result
+   * \return Calculated result.
    *
    * \tparam RT The type representing the requested result.
    */
@@ -201,14 +215,12 @@ public:
   requires(supportsResultType<RT>())
   auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<1>) const {
-    using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
-    if (usesEASSkill())
-      return RTWrapper{};
-    if constexpr (isSameResultType<RT, ResultTypes::linearStress>) {
-      const auto eps = strainFunction(req);
-      auto epsVoigt  = eps.evaluate(local, Dune::on(Dune::DerivativeDirections::gridElement));
-      return RTWrapper{stress(epsVoigt)};
-    }
+    if constexpr (hasEAS)
+      return;
+    const auto rFunction = resultFunction<RT>();
+    const auto eps       = strainFunction(req);
+    auto epsVoigt        = eps.evaluate(local, Dune::on(Dune::DerivativeDirections::gridElement));
+    return rFunction(epsVoigt);
   }
 
 private:
@@ -228,13 +240,6 @@ private:
       return mat_.template rebind<ScalarType>();
     else
       return mat_;
-  }
-
-  bool usesEASSkill() const {
-    if constexpr (hasEAS)
-      return underlying().numberOfEASParameters() != 0;
-    else
-      return false;
   }
 
 public:
@@ -294,12 +299,35 @@ public:
     };
   }
 
+  /**
+   * \brief Get a lambda function that evaluates the internal energy at a given integration point and its index.
+   *
+   * \tparam ScalarType The scalar type for the material and strain.
+   * \param par The Requirement object.
+   * \param dx Optional displacement vector.
+   * \return A lambda function that returns the intenral energy at a given integration point and its index.
+   */
+  template <typename ScalarType>
+  auto energyFunction(const Requirement& par, const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
+    return [&]() -> ScalarType {
+      using namespace Dune::DerivativeDirections;
+      using namespace Dune;
+      ScalarType energy = 0.0;
+      const auto eps    = strainFunction(par, dx);
+      for (const auto& [gpIndex, gp] : eps.viewOverIntegrationPoints()) {
+        const auto epsVoigt = eps.evaluate(gpIndex, on(gridElement));
+        energy += internalEnergy(epsVoigt) * geo_->integrationElement(gp.position()) * gp.weight();
+      }
+      return energy;
+    };
+  }
+
 protected:
   template <typename ScalarType>
   void calculateMatrixImpl(const Requirement& par, const MatrixAffordance& affordance,
                            typename Traits::template MatrixType<> K,
                            const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
-    if (usesEASSkill())
+    if constexpr (hasEAS)
       return;
     const auto eps       = strainFunction(par, dx);
     const auto kFunction = stiffnessMatrixFunction<ScalarType>(par, K, dx);
@@ -315,27 +343,16 @@ protected:
   template <typename ScalarType>
   auto calculateScalarImpl(const Requirement& par, ScalarAffordance affordance,
                            const VectorXOptRef<ScalarType>& dx = std::nullopt) const -> ScalarType {
-    ScalarType energy = 0.0;
-    if (usesEASSkill())
-      return energy;
-    const auto uFunction = displacementFunction(par, dx);
-    const auto eps       = strainFunction(par, dx);
-    const auto& lambda   = par.parameter();
-    using namespace Dune::DerivativeDirections;
-    using namespace Dune;
-
-    for (const auto& [gpIndex, gp] : eps.viewOverIntegrationPoints()) {
-      const auto epsVoigt = eps.evaluate(gpIndex, on(gridElement));
-      energy += internalEnergy(epsVoigt) * geo_->integrationElement(gp.position()) * gp.weight();
-    }
-    return energy;
+    if constexpr (hasEAS)
+      return ScalarType{0.0};
+    return energyFunction(par, dx)();
   }
 
   template <typename ScalarType>
   void calculateVectorImpl(const Requirement& par, VectorAffordance affordance,
                            typename Traits::template VectorType<ScalarType> force,
                            const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
-    if (usesEASSkill())
+    if constexpr (hasEAS)
       return;
     const auto eps          = strainFunction(par, dx);
     const auto fIntFunction = internalForcesFunction<ScalarType>(par, force, dx);
