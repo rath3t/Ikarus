@@ -100,7 +100,7 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
  * \ingroup solvers
  */
 template <typename NLO, typename LS, typename UF>
-class NewtonRaphson : public IObservable<NonLinearSolverMessages,  std::remove_cvref_t<typename NLO::ValueType>>
+class NewtonRaphson : public IObservable<NonLinearSolverMessages, std::remove_cvref_t<typename NLO::ValueType>>
 {
 public:
   using Settings = NRSettings;
@@ -110,7 +110,6 @@ public:
 
   ///< Type representing the parameter vector of the nonlinear operator.
   using ValueType = typename NLO::template ParameterValue<0>;
-  
 
   using UpdateFunction    = UF;  ///< Type representing the update function.
   using NonLinearOperator = NLO; ///< Type of the non-linear operator
@@ -183,9 +182,7 @@ public:
         dNorm       = norm(correction_);
       }
       // updateStates(nonLinearOperator().assembler(), correction_);
-      // static_assert(std::same_as<std::remove_cvref_t<decltype(x)>, Eigen::Matrix<double, 1, 1, 0>>, "");
-      // static_assert(std::same_as<std::remove_cvref_t<decltype(correction_)>, Eigen::Matrix<double, 1, 1, 0>>, "");
-      this->template notify<typename ValueType::Scalar>(NonLinearSolverMessages::CORRECTION_UPDATED, x);
+      this->template notify<typename ValueType::Scalar>(NonLinearSolverMessages::CORRECTION_UPDATED, x, correction_);
       updateFunction_(x, correction_);
       this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
       this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);

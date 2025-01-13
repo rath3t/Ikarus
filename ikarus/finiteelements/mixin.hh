@@ -274,9 +274,9 @@ public:
    * \param correction A correction vector (for example, the displacement increment) based on which the state variables
    * are to be updated.
    */
-  void updateState(ControlMessages message, const Requirement& par,
+  void updateState(NonLinearSolverMessages message, const Requirement& par,
                    const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
-    (invokeUpdateState<Skills<PreFE, typename PreFE::template FE<Skills...>>>(par, correction), ...);
+    (invokeUpdateState<Skills<PreFE, typename PreFE::template FE<Skills...>>>(message, par, correction), ...);
   }
 
 protected:
