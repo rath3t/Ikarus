@@ -12,6 +12,8 @@ template <typename Material>
 constexpr bool isPlaneStress =
     (Ikarus::traits::isSpecializationNonTypeAndTypes<Ikarus::VanishingStress, Material>::value);
 
+auto NaN() { return std::numeric_limits<double>::signaling_NaN(); }
+
 inline auto linearStressResultsOfSquare = []<typename NOP, typename FE>(NOP& nonLinearOperator, FE& fe) {
   constexpr int vertices   = 4;
   constexpr int quantities = 3;
@@ -122,10 +124,8 @@ inline auto linearTriaxialityStressResultsOfSquare = []<typename NOP, typename F
 
   const auto expectedStress =
       isPlaneStress<typename FE::Material>
-          ? Eigen::Matrix<double, vertices, quantities>{0.73130714, 0.60416124, 0.60416124,
-                                                        std::numeric_limits<double>::signaling_NaN()}
-          : Eigen::Matrix<double, vertices, quantities>{1.08333333, 0.81892302, 0.81892302,
-                                                        std::numeric_limits<double>::signaling_NaN()};
+          ? Eigen::Matrix<double, vertices, quantities>{0.73130714, 0.60416124, 0.60416124, NaN()}
+          : Eigen::Matrix<double, vertices, quantities>{1.08333333, 0.81892302, 0.81892302, NaN()};
 
   auto& displacement = nonLinearOperator.firstParameter();
   displacement << 0, 0, 1, 1, 1, 1, 1, 1;
@@ -201,6 +201,36 @@ inline auto linearVonMisesResultsOfCube = []<typename NOP, typename FE>(NOP& non
   return std::make_tuple(feRequirements, expectedStress, Ikarus::utils::referenceElementVertexPositions(fe));
 };
 
+inline auto linearTriaxialityResultsOfCube = []<typename NOP, typename FE>(NOP& nonLinearOperator, FE& fe) {
+  constexpr int vertices   = 8;
+  constexpr int quantities = 1;
+
+  const Eigen::Matrix<double, vertices, quantities> expectedStress{0.68516016, NaN(), -0.40946151, -0.68516016,
+                                                                   NaN(),      NaN(), -0.68516016, NaN()};
+
+  auto& displacement = nonLinearOperator.firstParameter();
+  displacement << 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+
+  auto feRequirements = typename FE::Requirement().insertGlobalSolution(displacement);
+
+  return std::make_tuple(feRequirements, expectedStress, Ikarus::utils::referenceElementVertexPositions(fe));
+};
+
+inline auto linearHydrostaticStressResultsOfCube = []<typename NOP, typename FE>(NOP& nonLinearOperator, FE& fe) {
+  constexpr int vertices   = 8;
+  constexpr int quantities = 1;
+
+  const Eigen::Matrix<double, vertices, quantities> expectedStress{833.33333333,  0, -833.33333333, -833.33333333, 0, 0,
+                                                                   -833.33333333, 0};
+
+  auto& displacement = nonLinearOperator.firstParameter();
+  displacement << 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+
+  auto feRequirements = typename FE::Requirement().insertGlobalSolution(displacement);
+
+  return std::make_tuple(feRequirements, expectedStress, Ikarus::utils::referenceElementVertexPositions(fe));
+};
+
 inline auto linearPrincipalStressResultsOfCube = []<typename NOP, typename FE>(NOP& nonLinearOperator, FE& fe) {
   constexpr int vertices   = 8;
   constexpr int quantities = 3;
@@ -233,6 +263,26 @@ inline auto linearStressResultsOfTriangle = []<typename NOP, typename FE>(NOP& n
     expectedStress.rowwise() = Eigen::Matrix<double, 1, quantities>{2197.80219780, 659.34065934, 384.61538462};
   else
     expectedStress.rowwise() = Eigen::Matrix<double, 1, quantities>{2692.30769231, 1153.84615385, 384.61538462};
+
+  auto& displacement = nonLinearOperator.firstParameter();
+  displacement << 0, 0, 2, 0, 1, 0;
+
+  auto feRequirements = typename FE::Requirement().insertGlobalSolution(displacement);
+
+  return std::make_tuple(feRequirements, expectedStress, Ikarus::utils::referenceElementVertexPositions(fe));
+};
+
+inline auto linearPolarStressResultsOfTriangle = []<typename NOP, typename FE>(NOP& nonLinearOperator, FE& fe) {
+  static_assert(isPlaneStress<typename FE::Material>);
+
+  constexpr int vertices   = 3;
+  constexpr int quantities = 3;
+
+  Eigen::Matrix<double, vertices, quantities> expectedStress{
+      {1813.18681319, 1043.95604396, -769.23076923},
+      {1582.41758242, 1274.72527473,  846.15384615},
+      { 659.34065934, 2197.80219780,  384.61538462}
+  };
 
   auto& displacement = nonLinearOperator.firstParameter();
   displacement << 0, 0, 2, 0, 1, 0;

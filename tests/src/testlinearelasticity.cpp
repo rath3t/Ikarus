@@ -88,7 +88,9 @@ int main(int argc, char** argv) {
       firstOrderLagrangePrePower2Basis, "LinearElastic", unDistorted, Dune::ReferenceElements<double, 2>::cube(),
       linearElasticFuncPlaneStrain, skills(), AffordanceCollections::elastoStatics,
       checkCalculateAtFunctorFactory<linearStress>(linearStressResultsOfSquare),
+      checkCalculateAtFunctorFactory<linearStressFull>(linear3dPlaneStrainStressResultsOfSquare),
       checkCalculateAtFunctorFactory<linearStress, false>(linearStressResultsOfSquare),
+      // checkCalculateAtFunctorFactory<linearStressFull, false>(linear3dPlaneStrainStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress>(linearStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStressFull>(linear3dPlaneStrainStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStressFull, VonMises>(linearVonMisesResultsOfSquare),
@@ -109,7 +111,9 @@ int main(int argc, char** argv) {
   t.subTest(testFEElement(firstOrderLagrangePrePower2Basis, "LinearElastic", unDistorted,
                           Dune::ReferenceElements<double, 2>::simplex(), linearElasticFuncPlaneStress, skills(),
                           AffordanceCollections::elastoStatics,
-                          checkCalculateAtFunctorFactory<linearStress>(linearStressResultsOfTriangle)));
+                          checkCalculateAtFunctorFactory<linearStress>(linearStressResultsOfTriangle),
+                          checkResultFunctionFunctorFactory<linearStress, PolarStress>(
+                              linearPolarStressResultsOfTriangle, Dune::FieldVector<double, 2>{1.0 / 3, 1.0 / 3})));
 
   t.subTest(testFEElement(firstOrderLagrangePrePower2Basis, "LinearElastic", unDistorted,
                           Dune::ReferenceElements<double, 2>::simplex(), linearElasticFuncPlaneStrain, skills(),
@@ -136,6 +140,8 @@ int main(int argc, char** argv) {
       checkCalculateAtFunctorFactory<linearStress>(linearStressResultsOfCube),
       checkResultFunctionFunctorFactory<linearStress>(linearStressResultsOfCube),
       checkResultFunctionFunctorFactory<linearStress, VonMises>(linearVonMisesResultsOfCube),
+      checkResultFunctionFunctorFactory<linearStress, HydrostaticStress>(linearHydrostaticStressResultsOfCube),
+      checkResultFunctionFunctorFactory<linearStress, Triaxiality>(linearTriaxialityResultsOfCube),
       checkResultFunctionFunctorFactory<linearStress, PrincipalStress<3>>(linearPrincipalStressResultsOfCube)));
 
   // Test simplex 3D
