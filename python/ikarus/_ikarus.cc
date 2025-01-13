@@ -99,7 +99,7 @@ PYBIND11_MODULE(_ikarus, m) {
   registerScalarWrapper<std::reference_wrapper<double>>(m, "ScalarRef",
                                                         "ScalarWrapper<std::reference_wrapper<double>>");
 
-  addMaterialsSubModule(m);
+  addBindingsToMaterials();
 
   addBindingsToUtils();
   addBindingsToIO();

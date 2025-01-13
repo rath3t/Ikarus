@@ -5,6 +5,7 @@ add_subdirectory(assembler)
 add_subdirectory(finite_elements)
 add_subdirectory(utils)
 add_subdirectory(io)
+add_subdirectory(materials)
 
 add_python_targets(ikarus __init__ dirichlet_values basis generator)
 

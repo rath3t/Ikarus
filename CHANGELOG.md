@@ -56,6 +56,7 @@ SPDX-License-Identifier: LGPL-3.0-or-later
 - Add an About Ikarus page in the documentation ([#291](https://github.com/ikarus-project/ikarus/pull/291))
 - Add new class `Vtk::Writer`, which implements some convenience methods over the existing `dune-vtk` module ([#309](https://github.com/ikarus-project/ikarus/pull/309))
 - Add `VanishingStrain` material (useful for example for plane strain case), also refactor the constructor of `LinearElastic` to take any linear material law ([#317](https://github.com/ikarus-project/ikarus/pull/317))
+- Add wrapper classes for small strain and finite strain materials from the Muesli material library ([#337](https://github.com/ikarus-project/ikarus/pull/337))
 
 ## Release v0.4 (Ganymede)
 

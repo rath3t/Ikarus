@@ -122,18 +122,23 @@ struct NeoHookeT : public Material<NeoHookeT<ST>>
   auto tangentModuliImpl(const Eigen::MatrixBase<Derived>& C) const {
     static_assert(Concepts::EigenMatrixOrVoigtNotation3<Derived>);
     if constexpr (!voigt) {
-      const auto invC = C.inverse().eval();
-      const auto detC = C.determinant();
-      checkPositiveDetC(detC);
-      const auto logdetF = log(sqrt(detC));
-      const auto CTinv   = tensorView(invC, std::array<Eigen::Index, 2>({3, 3}));
-      static_assert(Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3>>::NumIndices == 2);
-      Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli =
-          (materialParameter_.lambda * dyadic(CTinv, CTinv) +
-           2 * (materialParameter_.mu - materialParameter_.lambda * logdetF) *
-               symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3}))
-              .eval();
-      return moduli;
+      if constexpr (!Concepts::EigenVector<Derived>) {
+        const auto invC = C.inverse().eval();
+        const auto detC = C.determinant();
+        checkPositiveDetC(detC);
+        const auto logdetF = log(sqrt(detC));
+        const auto CTinv   = tensorView(invC, std::array<Eigen::Index, 2>({3, 3}));
+        static_assert(Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3>>::NumIndices == 2);
+        Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<3, 3, 3, 3>> moduli =
+            (materialParameter_.lambda * dyadic(CTinv, CTinv) +
+             2 * (materialParameter_.mu - materialParameter_.lambda * logdetF) *
+                 symTwoSlots(fourthOrderIKJL(invC, invC), {2, 3}))
+                .eval();
+        return moduli;
+      } else
+        static_assert(!Concepts::EigenVector<Derived>,
+                      "NeoHooke can only be called with a matrix and not a vector in Voigt notation");
+
     } else
       static_assert(voigt == false, "NeoHooke does not support returning tangent moduli in Voigt notation");
   }
