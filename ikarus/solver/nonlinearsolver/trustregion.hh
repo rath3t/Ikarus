@@ -166,7 +166,7 @@ struct Stats
 * \tparam UF Type of the update function
 */
 template <typename NLO, PreConditioner preConditioner, typename UF>
-class TrustRegion : public IObservable<NonLinearSolverMessages>
+class TrustRegion : public IObservable<NonLinearSolverMessages, typename NLO::DerivativeType, typename NLO::ValueType>
 {
 public:
   using Settings  = TRSettings;                               ///< Type of the settings for the TrustRegion solver
@@ -378,7 +378,7 @@ public:
 
       info_.randomPredictionString = "";
 
-      updateStates(nonLinearOperator().assembler(), eta_);
+      this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, eta_);
       if (info_.acceptProposal) {
         stats_.energy = stats_.energyProposal;
         nonLinearOperator_.updateAll();

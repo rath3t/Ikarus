@@ -100,8 +100,7 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
  * \ingroup solvers
  */
 template <typename NLO, typename LS, typename UF>
-class NewtonRaphson
-    : public IObservable<NonLinearSolverMessages, typename NLO::DerivativeType, typename NLO::ValueType>
+class NewtonRaphson : public IObservable<NonLinearSolverMessages, typename NLO::DerivativeType, typename NLO::ValueType>
 {
 public:
   using Settings = NRSettings;
@@ -182,14 +181,8 @@ public:
         correction_ = -linearSolver_(rx, Ax);
         dNorm       = norm(correction_);
       }
-      // updateStates(nonLinearOperator().assembler(), correction_);
-      // this->template notify<std::remove_cvref_t<ValueType>>(NonLinearSolverMessages::CORRECTION_UPDATED, x,
-      // correction_); 
+
       this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, correction_);
-      // std::cout << "ValueType" << Dune::className<typename NonLinearOperator::ValueType>() << std::endl;
-      // std::cout << "DerivativeType" << Dune::className<typename NonLinearOperator::DerivativeType>() << std::endl;
-      // std::cout << "FunctionReturnType" << Dune::className<typename NonLinearOperator::template FunctionReturnType<0>>() << std::endl;
-      // std::cout << "x" << Dune::className(x) << std::endl;
 
       updateFunction_(x, correction_);
       this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
