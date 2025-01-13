@@ -73,7 +73,7 @@ auto cantileverBeamTest(const MAT& reducedMat) {
       dirichletFlags[localView.index(localIndex)] = true;
   });
 
-  using SparseAssembler = SparseFlatAssembler<decltype(fes), decltype(dirichletValues)>;
+  using SparseAssembler = DenseFlatAssembler<decltype(fes), decltype(dirichletValues)>;
   SparseAssembler sparseFlatAssembler(fes, dirichletValues);
   auto sparseAssemblerAM = makeAssemblerManipulator(sparseFlatAssembler);
 
@@ -112,7 +112,7 @@ auto cantileverBeamTest(const MAT& reducedMat) {
   vtkWriter->setFieldInfo("Displacement", Dune::VTK::FieldInfo::Type::vector, 2);
   auto nr = createNonlinearSolver(nrConfig, nonOp);
   auto lc = LoadControl(nr, 20, {0, 1});
-  nr->subscribeAll(nonLinearSolverObserver);
+  nr->subscribeAll(nonLinearSolverObserver);  
   lc.subscribeAll({pathFollowingObserver, vtkWriter});
 
   const auto controlInfo = lc.run();

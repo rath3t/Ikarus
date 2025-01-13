@@ -100,7 +100,7 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
  * \ingroup solvers
  */
 template <typename NLO, typename LS, typename UF>
-class NewtonRaphson : public IObservable<NonLinearSolverMessages>
+class NewtonRaphson : public IObservable<NonLinearSolverMessages, typename NLO::DerivativeType, typename NLO::ValueType>
 {
 public:
   using Settings = NRSettings;
@@ -181,7 +181,9 @@ public:
         correction_ = -linearSolver_(rx, Ax);
         dNorm       = norm(correction_);
       }
-      updateStates(nonLinearOperator().assembler(), correction_);
+
+      this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, correction_);
+
       updateFunction_(x, correction_);
       this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
       this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);

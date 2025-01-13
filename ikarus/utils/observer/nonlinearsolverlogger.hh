@@ -17,7 +17,7 @@ namespace Ikarus {
  * This class inherits from the IObserver class and provides specific
  * implementations for updating based on NonLinearSolverMessages.
  */
-class NonLinearSolverLogger : public IObserver<NonLinearSolverMessages>
+class NonLinearSolverLogger : public IObserver<NonLinearSolverMessages, Eigen::VectorXd, Eigen::VectorXd>
 {
 public:
   /**

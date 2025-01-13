@@ -19,6 +19,7 @@
   #include <ikarus/finiteelements/mechanics/easvariants.hh>
   #include <ikarus/finiteelements/mechanics/materials/tags.hh>
   #include <ikarus/utils/concepts.hh>
+  #include <ikarus/utils/observer/observermessages.hh>
 
 namespace Ikarus {
 
@@ -50,7 +51,7 @@ struct EnhancedAssumedStrainsPre
  * \tparam ES The strain tag that is enhanced.
  */
 template <typename PreFE, typename FE, StrainTags ES>
-class EnhancedAssumedStrains
+class EnhancedAssumedStrains : public FEOberserverBase<NonLinearSolverMessages::CORRECTION_UPDATED>
 {
 public:
   using Traits = PreFE::Traits;
@@ -168,7 +169,7 @@ protected:
    * \param correction The correction in displacement (DeltaD) vector passed based on which the internal state variable
    * alpha is to be updated.
    */
-  void updateStateImpl(const Requirement& par,
+  void updateStateImpl(NonLinearSolverMessages message, const Requirement& par,
                        const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
     using ScalarType = Traits::ctype;
     easApplicabilityCheck();

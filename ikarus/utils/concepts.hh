@@ -607,6 +607,14 @@ namespace Concepts {
   template <typename T>
   concept AutodiffScalar = Impl::is_dual<T>::value;
 
+  /**
+  \concept FloatingPointOrAutoDiffScalar
+  \brief Concept to check if the underlying scalar type is a dual type or floating point type.
+  \tparam T The scalar type to be checked if it is a dual type or floating point type.
+  */
+  template <typename T>
+  concept FloatingPointOrAutoDiffScalar = AutodiffScalar<T> or std::floating_point<T>;
+
   namespace Formulations {
     /**
       \concept TotalLagrangian

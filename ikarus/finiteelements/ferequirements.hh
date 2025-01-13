@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <iosfwd>
-#include <map>
-#include <set>
-#include <vector>
+// #include <iosfwd>
+// #include <map>
+// #include <set>
+// #include <vector>
 
 #include <dune/common/exceptions.hh>
 
@@ -20,6 +20,7 @@
 
 #include <ikarus/finiteelements/feresulttypes.hh>
 #include <ikarus/utils/makeenum.hh>
+#include <ikarus/utils/observer/observermessages.hh>
 
 namespace Ikarus {
 // clang-format off
@@ -357,6 +358,15 @@ private:
 
 public:
   using type = FERequirements<sol, para, typeEigen, PM>;
+};
+
+template <NonLinearSolverMessages... Messages>
+struct FEOberserverBase
+{
+  constexpr bool wantsToObserve(NonLinearSolverMessages message) const {
+    return ((message == Messages) || ...); // Fold expression over ||
+  }
+
 };
 
 } // namespace Ikarus
