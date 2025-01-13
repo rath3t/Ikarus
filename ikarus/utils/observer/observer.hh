@@ -154,28 +154,28 @@ public:
    * \param message The message type to subscribe to.
    * \param observer The observer to be subscribed.
    */
-  void subscribe(MessageType message, std::shared_ptr<IObserver<MessageType, VectorType>> observer);
+  void subscribe(MessageType message, std::shared_ptr<IObserver<MessageType, VectorType, VectorType2>> observer);
   /**
    * \brief Subscribe an observer to receive notifications for all message types.
    * \param observer The observer to be subscribed.
    */
-  void subscribeAll(std::shared_ptr<IObserver<MessageType, VectorType>> observer);
+  void subscribeAll(std::shared_ptr<IObserver<MessageType, VectorType, VectorType2>> observer);
   /**
    * \brief Subscribe multiple observers to receive notifications for all message types.
    * \param observers List of observers to be subscribed.
    */
-  void subscribeAll(std::initializer_list<std::shared_ptr<IObserver<MessageType, VectorType>>> observers);
+  void subscribeAll(std::initializer_list<std::shared_ptr<IObserver<MessageType, VectorType, VectorType2>>> observers);
   /**
    * \brief Unsubscribe an observer from receiving notifications for a specific message type.
    * \param message The message type to unsubscribe from.
    * \param observer The observer to be unsubscribed.
    */
-  void unSubscribe(MessageType message, std::shared_ptr<IObserver<MessageType, VectorType>> observer);
+  void unSubscribe(MessageType message, std::shared_ptr<IObserver<MessageType, VectorType, VectorType2>> observer);
   /**
    * \brief Unsubscribe an observer from receiving notifications for all message types.
    * \param observer The observer to be unsubscribed.
    */
-  void unSubscribeAll(std::shared_ptr<IObserver<MessageType, VectorType>> observer);
+  void unSubscribeAll(std::shared_ptr<IObserver<MessageType, VectorType, VectorType2>> observer);
   /**
    * \brief Notify observers about a specific message type.
    * \param message The message type to notify about.
@@ -248,33 +248,33 @@ private:
 };
 
 template <typename MT, typename VT, typename VT2>
-void IObservable<MT, VT, VT2>::subscribe(MT message, std::shared_ptr<IObserver<MT, VT>> observer) {
+void IObservable<MT, VT, VT2>::subscribe(MT message, std::shared_ptr<IObserver<MT, VT, VT2>> observer) {
   observers_[message];
   auto&& vectorOfObserversOfASpecificMessage = observers_[message];
   vectorOfObserversOfASpecificMessage.push_back(observer);
 }
 
 template <typename MT, typename VT, typename VT2>
-void IObservable<MT, VT, VT2>::subscribeAll(std::shared_ptr<IObserver<MT, VT>> observer) {
+void IObservable<MT, VT, VT2>::subscribeAll(std::shared_ptr<IObserver<MT, VT, VT2>> observer) {
   for (auto& msg : messages_)
     subscribe(msg, observer);
 }
 
 template <typename MT, typename VT, typename VT2>
-void IObservable<MT, VT, VT2>::subscribeAll(std::initializer_list<std::shared_ptr<IObserver<MT, VT>>> observers) {
+void IObservable<MT, VT, VT2>::subscribeAll(std::initializer_list<std::shared_ptr<IObserver<MT, VT, VT2>>> observers) {
   for (auto& observer : observers)
     for (auto& msg : messages_)
       subscribe(msg, observer);
 }
 
 template <typename MT, typename VT, typename VT2>
-void IObservable<MT, VT, VT2>::unSubscribe(MT message, std::shared_ptr<IObserver<MT, VT>> observer) {
+void IObservable<MT, VT, VT2>::unSubscribe(MT message, std::shared_ptr<IObserver<MT, VT, VT2>> observer) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   std::ranges::remove_if(vectorOfObserversOfASpecificMessage, [&observer](auto&& obs) { return obs == observer; });
 }
 
 template <typename MT, typename VT, typename VT2>
-void IObservable<MT, VT, VT2>::unSubscribeAll(std::shared_ptr<IObserver<MT, VT>> observer) {
+void IObservable<MT, VT, VT2>::unSubscribeAll(std::shared_ptr<IObserver<MT, VT, VT2>> observer) {
   for (auto& msg : messages_)
     unSubscribe(msg, observer);
 }
