@@ -14,6 +14,7 @@
 
 #include <ikarus/utils/concepts.hh>
 #include <ikarus/utils/makeenum.hh>
+
 namespace Ikarus {
 
 /**
@@ -22,7 +23,7 @@ namespace Ikarus {
  * \ingroup observer
  * \tparam MT The type of message that the observer can handle.
  */
-template <typename MT, typename VectorType = Eigen::VectorX<double>>
+template <typename MT, typename VectorType = Eigen::VectorX<double>, typename VectorType2 = Eigen::VectorX<double>>
 class IObserver
 {
 public:
@@ -107,7 +108,7 @@ public:
    * \param vec The VectorType representing the solution associated with the message.
    * \param vec The VectorType representing the correction associated with the message.
    */
-  void update(MessageType message, const VectorType& vec, const VectorType& dx) {
+  void update(MessageType message, const VectorType& vec, const VectorType2& dx) {
     checkMessageType(message);
     updateImpl(message, vec, dx);
   }
@@ -121,7 +122,7 @@ protected:
   virtual void updateImpl([[maybe_unused]] MessageType message, [[maybe_unused]] int val1, double val2) {};
   virtual void updateImpl([[maybe_unused]] MessageType message, [[maybe_unused]] const VectorType& vec) {}
   virtual void updateImpl([[maybe_unused]] MessageType message, [[maybe_unused]] const VectorType& vec,
-                          [[maybe_unused]] const VectorType& dx) {}
+                          [[maybe_unused]] const VectorType2& dx) {}
 
 private:
   void checkMessageType(MessageType message) {
@@ -138,7 +139,8 @@ private:
  * \tparam MessageType The type of message that the observable can handle.
  * \ingroup observer
  */
-template <typename MessageType, typename VectorType = Eigen::VectorX<double>>
+template <typename MessageType, typename VectorType = Eigen::VectorX<double>,
+          typename VectorType2 = Eigen::VectorX<double>>
 class IObservable
 {
 public:
@@ -235,104 +237,102 @@ public:
    * \param vec The Eigen::VectorX to be sent with the notification.
    * \param dx Another Eigen::VectorX to be sent with the notification.
    */
-  template <Concepts::FloatingPointOrAutoDiffScalar ScalarType>
-  void notify(MessageType message, const Eigen::VectorX<ScalarType>& vec, const Eigen::VectorX<ScalarType>& dx);
+  // template <Concepts::FloatingPointOrAutoDiffScalar ScalarType>
+  void notify(MessageType message, const VectorType& vec, const VectorType2& dx);
 
 private:
-  using ObserverVector = std::vector<std::shared_ptr<IObserver<MessageType, VectorType>>>;
+  using ObserverVector = std::vector<std::shared_ptr<IObserver<MessageType, VectorType, VectorType2>>>;
   using ObserverMap    = std::map<MessageType, ObserverVector>;
   ObserverMap observers_;
   std::vector<MessageType> messages_;
 };
 
-template <typename MT, typename VT>
-void IObservable<MT, VT>::subscribe(MT message, std::shared_ptr<IObserver<MT, VT>> observer) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::subscribe(MT message, std::shared_ptr<IObserver<MT, VT>> observer) {
   observers_[message];
   auto&& vectorOfObserversOfASpecificMessage = observers_[message];
   vectorOfObserversOfASpecificMessage.push_back(observer);
 }
 
-template <typename MT, typename VT>
-void IObservable<MT, VT>::subscribeAll(std::shared_ptr<IObserver<MT, VT>> observer) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::subscribeAll(std::shared_ptr<IObserver<MT, VT>> observer) {
   for (auto& msg : messages_)
     subscribe(msg, observer);
 }
 
-template <typename MT, typename VectorType>
-void IObservable<MT, VectorType>::subscribeAll(
-    std::initializer_list<std::shared_ptr<IObserver<MT, VectorType>>> observers) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::subscribeAll(std::initializer_list<std::shared_ptr<IObserver<MT, VT>>> observers) {
   for (auto& observer : observers)
     for (auto& msg : messages_)
       subscribe(msg, observer);
 }
 
-template <typename MT, typename VT>
-void IObservable<MT, VT>::unSubscribe(MT message, std::shared_ptr<IObserver<MT, VT>> observer) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::unSubscribe(MT message, std::shared_ptr<IObserver<MT, VT>> observer) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   std::ranges::remove_if(vectorOfObserversOfASpecificMessage, [&observer](auto&& obs) { return obs == observer; });
 }
 
-template <typename MT, typename VT>
-void IObservable<MT, VT>::unSubscribeAll(std::shared_ptr<IObserver<MT, VT>> observer) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::unSubscribeAll(std::shared_ptr<IObserver<MT, VT>> observer) {
   for (auto& msg : messages_)
     unSubscribe(msg, observer);
 }
 
-template <typename MT, typename VT>
-void IObservable<MT, VT>::notify(MT message) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::notify(MT message) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   for (auto&& obs : vectorOfObserversOfASpecificMessage)
     obs->update(message);
 }
 
-template <typename MT, typename VT>
+template <typename MT, typename VT, typename VT2>
 template <std::floating_point ScalarType>
-void IObservable<MT, VT>::notify(MT message, ScalarType val) {
+void IObservable<MT, VT, VT2>::notify(MT message, ScalarType val) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   for (auto&& obs : vectorOfObserversOfASpecificMessage)
     obs->update(message, val);
 }
 
-template <typename MT, typename VT>
-void IObservable<MT, VT>::notify(MT message, int val) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::notify(MT message, int val) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   for (auto&& obs : vectorOfObserversOfASpecificMessage)
     obs->update(message, val);
 }
 
-template <typename MT, typename VT>
-void IObservable<MT, VT>::notify(MT message, const std::string& val) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::notify(MT message, const std::string& val) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   for (auto&& obs : vectorOfObserversOfASpecificMessage)
     obs->update(message, val);
 }
 
-template <typename MT, typename VT>
-void IObservable<MT, VT>::notify(MT message, int val1, double val2) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::notify(MT message, int val1, double val2) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   for (auto&& obs : vectorOfObserversOfASpecificMessage)
     obs->update(message, val1, val2);
 }
 
-template <typename MT, typename VT>
-void IObservable<MT, VT>::notify(MT message, int val1, const std::string& val2) {
+template <typename MT, typename VT, typename VT2>
+void IObservable<MT, VT, VT2>::notify(MT message, int val1, const std::string& val2) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   for (auto&& obs : vectorOfObserversOfASpecificMessage)
     obs->update(message, val1, val2);
 }
 
-template <typename MT, typename VT>
+template <typename MT, typename VT, typename VT2>
 template <Concepts::FloatingPointOrAutoDiffScalar ScalarType>
-void IObservable<MT, VT>::notify(MT message, const Eigen::VectorX<ScalarType>& vec) {
+void IObservable<MT, VT, VT2>::notify(MT message, const Eigen::VectorX<ScalarType>& vec) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   for (auto&& obs : vectorOfObserversOfASpecificMessage)
     obs->update(message, vec);
 }
 
-template <typename MT, typename VT>
-template <Concepts::FloatingPointOrAutoDiffScalar ScalarType>
-void IObservable<MT, VT>::notify(MT message, const Eigen::VectorX<ScalarType>& vec,
-                                 const Eigen::VectorX<ScalarType>& dx) {
+template <typename MT, typename VT1, typename VT2>
+// template <Concepts::FloatingPointOrAutoDiffScalar ScalarType>
+void IObservable<MT, VT1, VT2>::notify(MT message, const VT1& vec, const VT2& dx) {
   auto vectorOfObserversOfASpecificMessage = observers_[message];
   for (auto&& obs : vectorOfObserversOfASpecificMessage)
     obs->update(message, vec, dx);
