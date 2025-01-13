@@ -3,7 +3,10 @@
 
 #pragma once
 
+#include <dune/common/fvector.hh>
 #include <dune/python/pybind11/pybind11.h>
+
+#include <Eigen/Core>
 
 namespace Ikarus::Python {
 

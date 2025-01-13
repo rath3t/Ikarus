@@ -9,6 +9,8 @@
 
 #include <dune/common/float_cmp.hh>
 
+#include <Eigen/Core>
+
 namespace Eigen {
 template <typename Derived>
 struct EigenBase;
@@ -36,6 +38,15 @@ void checkScalars(TestSuiteType& t, const ScalarType val, const ScalarType expec
   if constexpr (std::is_integral_v<ScalarType>)
     t.check(val == expectedVal) << std::setprecision(16) << "Incorrect Scalar. Expected:\t" << expectedVal
                                 << " Actual:\t" << val << messageIfFailed;
+}
+
+template <typename TestSuiteType, int rows, int cols>
+requires(rows == cols)
+void checkSymmetricMatrix(TestSuiteType& t, const Eigen::Matrix<double, rows, cols>& mat, double tol,
+                          const std::string& matrixName = "") {
+  t.check(isApproxSame(mat, mat.transpose(), tol), "Matrix " + matrixName + " is not symmetric.\n")
+      << "Matrix " + matrixName + " is \n"
+      << mat;
 }
 
 template <typename TestSuiteType, typename ScalarType>

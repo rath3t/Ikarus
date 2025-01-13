@@ -270,7 +270,7 @@ template <template <typename, int, int> class RT, bool vectorizedResult = true>
 [[nodiscard]] auto checkCalculateAt(auto& /*nonLinearOperator*/, auto& fe, const auto& feRequirements,
                                     const auto& expectedResult, const auto& evaluationPositions,
                                     const std::string& messageIfFailed = "") {
-  Dune::TestSuite t("Test of the calulateAt function for " + Dune::className(fe), Dune::TestSuite::AlwaysThrow);
+  Dune::TestSuite t("Test of the calulateAt function for " + Dune::className(fe));
 
   using FiniteElement = std::remove_cvref_t<decltype(fe)>;
   Eigen::MatrixXd computedResults(expectedResult.rows(), expectedResult.cols());

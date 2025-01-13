@@ -3,6 +3,7 @@
 
 from dune.common.hashit import hashIt
 from ikarus.generator import MySimpleGenerator
+from ikarus import materials
 
 
 def registerPreElement(name, includes, element_type, *args):
@@ -146,7 +147,7 @@ def truss(youngs_modulus, cross_section):
     )
 
 
-def eas(numberofparameters):
+def eas(numberofparameters, strainTag=materials.StrainTags.linear):
     """
     @brief Creates an enhanced assumed strains pre-element.
 
@@ -155,7 +156,8 @@ def eas(numberofparameters):
     @return: The registered enhanced assumed strains pre-element function.
     """
     includes = ["ikarus/finiteelements/mechanics/enhancedassumedstrains.hh"]
-    element_type = "Ikarus::EnhancedAssumedStrainsPre"
+    formatted_strainTag = "Ikarus::" + str(strainTag).replace(".", "::")
+    element_type = f"Ikarus::EnhancedAssumedStrainsPre<{formatted_strainTag}>"
     return registerPreElement(
         "EnhancedAssumedStrainsPre", includes, element_type, numberofparameters
     )

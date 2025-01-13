@@ -607,5 +607,27 @@ namespace Concepts {
   template <typename T>
   concept AutodiffScalar = Impl::is_dual<T>::value;
 
+  namespace Formulations {
+    /**
+      \concept TotalLagrangian
+      \brief Concept to check if the underlying strain and stress tag correspond to a total Lagrangian formulation.
+      \tparam T1 The underlying strain tag.
+      \tparam T2 The underlying stress tag.
+      */
+    template <StrainTags T1, StressTags T2>
+    concept TotalLagrangian = (T1 == StrainTags::linear and T2 == StressTags::linear) or
+                              (T1 == StrainTags::greenLagrangian and T2 == StressTags::PK2);
+
+    /**
+      \concept TwoPoint
+      \brief Concept to check if the underlying strain and stress tag correspond to a two point formulation.
+      \tparam T1 The underlying strain tag.
+      \tparam T2 The underlying stress tag.
+      */
+    template <StrainTags T1, StressTags T2>
+    concept TwoPoint =
+        (T1 == StrainTags::deformationGradient or T1 == StrainTags::displacementGradient) and T2 == StressTags::PK1;
+  } // namespace Formulations
+
 } // namespace Concepts
 } // namespace Ikarus

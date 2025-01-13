@@ -56,6 +56,18 @@ SPDX-License-Identifier: LGPL-3.0-or-later
 - Add an About Ikarus page in the documentation ([#291](https://github.com/ikarus-project/ikarus/pull/291))
 - Add new class `Vtk::Writer`, which implements some convenience methods over the existing `dune-vtk` module ([#309](https://github.com/ikarus-project/ikarus/pull/309))
 - Add `VanishingStrain` material (useful for example for plane strain case), also refactor the constructor of `LinearElastic` to take any linear material law ([#317](https://github.com/ikarus-project/ikarus/pull/317))
+- Refactor EAS to handle NonLinearElastic ([#325](https://github.com/ikarus-project/ikarus/pull/325))
+    - `updateState()` function is added to `mixin.hh`, which can be used to update the internal state variables of the skills.
+        - `updateStateImpl()` now has to be implemented by every skill.
+        - For EAS, `updateStateImpl()` is used to update the internal variable `alpha` in a nonlinear analysis.
+    - Synchronize functions like `internalEnergy`, `stress` and `materialTangent` between `LinearElastic` and `NonLinearElastic`.
+    - A `helperfunctions.hh` file is added that contains the helper functions used by the nonlinear solvers.
+        - This contains the function `updateStates()` that calls the `updateState()` function for every finite element.
+        - `updateStates()` is called by nonlinear solvers during every iteration, whenever the correction vector is updated.
+    - `NonLinearOperator` now has an additional template argument, `Assembler`.
+        - It stores a shared pointer to the underlying assembler.
+        - This helps the nonlinear solvers to have access to the underlying assembler,
+          which in turn provides the finite element container to update the state variables.
 
 ## Release v0.4 (Ganymede)
 

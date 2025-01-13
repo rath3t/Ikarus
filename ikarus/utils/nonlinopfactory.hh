@@ -47,7 +47,7 @@ struct NonLinearOperatorFactory
       return assembler->vector(req, affordances.vectorAffordance(), dbcOption);
     };
 
-    assert(req.populated() && " Before you calls this method you have to pass populated fe requirements");
+    assert(req.populated() && "Before you call this method you have to pass populated fe requirements");
     if constexpr (affordances.hasScalarAffordance) {
       [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](
                                                  typename FERequirement::SolutionVectorType& globalSol,
@@ -58,10 +58,10 @@ struct NonLinearOperatorFactory
         return assembler->scalar(req, affordances.scalarAffordance());
       };
       return NonLinearOperator(functions(std::move(energyFunction), std::move(residualFunction), std::move(KFunction)),
-                               parameter(req.globalSolution(), req.parameter()));
+                               parameter(req.globalSolution(), req.parameter()), assemblerPtr);
     } else
       return NonLinearOperator(functions(std::move(residualFunction), std::move(KFunction)),
-                               parameter(req.globalSolution(), req.parameter()));
+                               parameter(req.globalSolution(), req.parameter()), assemblerPtr);
   }
 
   template <typename Assembler>

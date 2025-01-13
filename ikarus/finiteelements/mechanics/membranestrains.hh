@@ -7,7 +7,6 @@
  */
 
 #pragma once
-#include <ranges>
 
 #include <dune/common/fvector.hh>
 
