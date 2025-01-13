@@ -183,15 +183,16 @@ public:
                        Dune::PriorityTag<1>) const {
     using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
 
-    const auto eps = strainFunction(req);
-    auto epsVoigt  = eps.evaluate(local, Dune::on(Dune::DerivativeDirections::gridElement));
-
-    if constexpr (isSameResultType<RT, ResultTypes::linearStress>) {
-      const auto C   = materialTangent();
-
-      return RTWrapper{(C * epsVoigt).eval()};
-    } else if constexpr (isSameResultType<RT, ResultTypes::linearStressFull>) {
-      auto mat  = Material::Underlying(mat_.materialParameters());
+    if constexpr (isSameResultType<RT, ResultTypes::linearStress> or
+                  isSameResultType<RT, ResultTypes::linearStressFull>) {
+      const auto eps     = strainFunction(req);
+      auto epsVoigt      = eps.evaluate(local, Dune::on(Dune::DerivativeDirections::gridElement));
+      decltype(auto) mat = [&]() {
+        if constexpr (isSameResultType<RT, ResultTypes::linearStressFull> and requires { mat_.underlying(); })
+          return mat_.underlying();
+        else
+          return mat_;
+      }();
       return RTWrapper{mat.template stresses<StrainTags::linear>(enlargeIfReduced<Material>(epsVoigt))};
     }
   }

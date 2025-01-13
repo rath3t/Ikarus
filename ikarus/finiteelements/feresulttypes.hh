@@ -255,7 +255,7 @@ auto toString() {
  * \tparam RT2 second ResultType template
  */
 template <template <typename, int, int> class RT1, template <typename, int, int> class RT2>
-constexpr bool isSameResultType = std::is_same_v<Impl::DummyRT<RT1>, Impl::DummyRT<RT2>>;
+constexpr static bool isSameResultType = std::is_same_v<Impl::DummyRT<RT1>, Impl::DummyRT<RT2>>;
 
 namespace Impl {
   template <typename T, typename Tuple>

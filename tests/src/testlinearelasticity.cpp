@@ -51,6 +51,7 @@ int main(int argc, char** argv) {
     return linearElastic(linPS);
   };
 
+  // Plane stress
   t.subTest(testFEElement(firstOrderLagrangePrePower2Basis, "LinearElastic", randomlyDistorted,
                           Dune::ReferenceElements<double, 2>::cube(), linearElasticFuncPlaneStress, skills(),
                           AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
@@ -60,36 +61,40 @@ int main(int argc, char** argv) {
                           AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
                           checkJacobianFunctor, checkFEByAutoDiffFunctor));
 
-  // Plane stress
   t.subTest(testFEElement(
       firstOrderLagrangePrePower2Basis, "LinearElastic", unDistorted, Dune::ReferenceElements<double, 2>::cube(),
       linearElasticFuncPlaneStress, skills(), AffordanceCollections::elastoStatics,
       checkCalculateAtFunctorFactory<linearStress>(linearStressResultsOfSquare),
       checkCalculateAtFunctorFactory<linearStress, false>(linearStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress>(linearStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, PolarStress>(linearPolarStressResultsOfSquare),
+      checkResultFunctionFunctorFactory<linearStress, PolarStress>(linearPolarStressResultsOfSquare,
+                                                                   Dune::FieldVector<double, 2>{0.5, 0.5}),
       checkResultFunctionFunctorFactory<linearStress, VonMises>(linearVonMisesResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, HydrostaticStress>(linearHydrostaticStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, Triaxiality>(linearTriaxialityStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress, PrincipalStress<2>>(linearPrincipalStressResultsOfSquare)));
 
-  using PlaneStrainMat = decltype(linearElasticFuncPlaneStrain({500, 0.3}))::Material;
+  // Plane strain
+  t.subTest(testFEElement(firstOrderLagrangePrePower2Basis, "LinearElastic", randomlyDistorted,
+                          Dune::ReferenceElements<double, 2>::cube(), linearElasticFuncPlaneStrain, skills(),
+                          AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+  t.subTest(testFEElement(secondOrderLagrangePrePower2Basis, "LinearElastic", randomlyDistorted,
+                          Dune::ReferenceElements<double, 2>::cube(), linearElasticFuncPlaneStrain, skills(),
+                          AffordanceCollections::elastoStatics, checkGradientFunctor, checkHessianFunctor,
+                          checkJacobianFunctor, checkFEByAutoDiffFunctor));
+
   t.subTest(testFEElement(
       firstOrderLagrangePrePower2Basis, "LinearElastic", unDistorted, Dune::ReferenceElements<double, 2>::cube(),
       linearElasticFuncPlaneStrain, skills(), AffordanceCollections::elastoStatics,
       checkCalculateAtFunctorFactory<linearStress>(linearStressResultsOfSquare),
       checkCalculateAtFunctorFactory<linearStress, false>(linearStressResultsOfSquare),
       checkResultFunctionFunctorFactory<linearStress>(linearStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<IdentityEvaluator<6>, PlaneStrainMat>>(
-          linear3dPlaneStrainStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<VonMises, PlaneStrainMat>>(
-          linearVonMisesResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<HydrostaticStress, PlaneStrainMat>>(
-          linearHydrostaticStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<Triaxiality, PlaneStrainMat>>(
-          linearTriaxialityStressResultsOfSquare),
-      checkResultFunctionFunctorFactory<linearStress, VanishingMaterialsWrapper<PrincipalStress<3>, PlaneStrainMat>>(
-          linearPrincipalStressResultsOfSquare)));
+      checkResultFunctionFunctorFactory<linearStressFull>(linear3dPlaneStrainStressResultsOfSquare),
+      checkResultFunctionFunctorFactory<linearStressFull, VonMises>(linearVonMisesResultsOfSquare),
+      checkResultFunctionFunctorFactory<linearStressFull, HydrostaticStress>(linearHydrostaticStressResultsOfSquare),
+      checkResultFunctionFunctorFactory<linearStressFull, Triaxiality>(linearTriaxialityStressResultsOfSquare),
+      checkResultFunctionFunctorFactory<linearStressFull, PrincipalStress<3>>(linearPrincipalStressResultsOfSquare)));
 
   // Test simplex 2D
   t.subTest(testFEElement(firstOrderLagrangePrePower2Basis, "LinearElastic", randomlyDistorted,

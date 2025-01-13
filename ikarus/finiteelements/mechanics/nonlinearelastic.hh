@@ -57,7 +57,7 @@ struct NonLinearElasticPre
  * \tparam PRE The type of the non-linear elastic pre finite element.
  */
 template <typename PreFE, typename FE, typename PRE>
-class NonLinearElastic : public ResultTypeBase<ResultTypes::PK2Stress>
+class NonLinearElastic : public ResultTypeBase<ResultTypes::PK2Stress, ResultTypes::PK2StressFull>
 {
 public:
   using Traits    = PreFE::Traits;
@@ -211,12 +211,18 @@ public:
     using namespace Dune::DerivativeDirections;
 
     using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
-    if constexpr (isSameResultType<RT, ResultTypes::PK2Stress>) {
+    if constexpr (isSameResultType<RT, ResultTypes::PK2Stress> or isSameResultType<RT, ResultTypes::PK2StressFull>) {
       const auto uFunction = displacementFunction(req);
       const auto H         = uFunction.evaluateDerivative(local, Dune::wrt(spatialAll), Dune::on(gridElement));
       const auto E         = (0.5 * (H.transpose() + H + H.transpose() * H)).eval();
 
-      return RTWrapper{mat_.template stresses<StrainTags::greenLagrangian>(toVoigt(E))};
+      decltype(auto) mat = [&]() {
+        if constexpr (isSameResultType<RT, ResultTypes::PK2StressFull> and requires { mat_.underlying(); })
+          return mat_.underlying();
+        else
+          return mat_;
+      }();
+      return RTWrapper{mat.template stresses<StrainTags::greenLagrangian>(enlargeIfReduced<Material>(toVoigt(E)))};
     }
   }
 

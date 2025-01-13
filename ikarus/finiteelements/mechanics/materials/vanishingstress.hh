@@ -130,6 +130,11 @@ struct VanishingStress : public Material<VanishingStress<stressIndexPair, MI>>
     return VanishingStress<stressIndexPair, decltype(reboundMatImpl)>(reboundMatImpl, tol_);
   }
 
+  /**
+   * \brief Returns a const reference to the underlying material.
+   */
+  auto& underlying() const { return matImpl_; }
+
 private:
   /**
    * \brief Initializes unknown strains based on fixed indices.

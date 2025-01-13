@@ -170,104 +170,15 @@ struct Triaxiality
 };
 
 /**
- * \brief Wrapper to obtain stress results for vanishing materials. It takes a resultevaluator as template argument.
- * For now this works only for plane strain and plane stress case with SVK or LinearElasticity material.
- * If you just want to obtain the 3d stresses without using a resultevaluator use IdentityEvaluator<6>.
- *
- * \tparam RE Type of the underlying resultevalutor
- */
-template <typename RE, typename MAT>
-struct VanishingMaterialsWrapper
-{
-  using Underlying = RE;
-
-  template <typename RE_>
-  VanishingMaterialsWrapper(RE_&& resultEvaluator, const MAT& mat)
-      : underlying_(std::forward<RE>(resultEvaluator)),
-        mat_(mat) {
-    static_assert(MAT::isReduced && (traits::isSpecialization<StVenantKirchhoffT, typename MAT::Underlying>::value ||
-                                     traits::isSpecialization<LinearElasticityT, typename MAT::Underlying>::value),
-                  "VanishingMaterialsWrapper only supports SVK and LinearElasticity material");
-  }
-
-  /**
-   * \brief Calculate the result quantity by calculating the missing stress in z-direction and forwarding the result to
-   * a resultevalutor
-   * \param resultArray EigenVector containing the stress state in Voigt notation
-   * \param comp component of result
-   * \tparam R Type of the matrix
-   * \return stress quantity
-   */
-  template <typename R>
-  double operator()(const R& resultArray, const int comp) const {
-    static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "VanishingMaterialsWrapper is only valid for 2D.");
-
-    auto enlargedResultArray      = Eigen::Vector<double, 6>::Zero().eval();
-    enlargedResultArray.head<2>() = resultArray.template head<2>();
-    enlargedResultArray[5]        = resultArray[2];
-    if constexpr (traits::isSpecializationNonTypeAndTypes<VanishingStrain, MAT>::value) {
-      auto nu                = convertLameConstants(mat_.materialParameters()).toPoissonsRatio();
-      auto sigZ              = nu * (resultArray[0] + resultArray[1]);
-      enlargedResultArray[2] = sigZ;
-
-      return underlying_(enlargedResultArray, comp);
-    } else if constexpr (traits::isSpecializationNonTypeAndTypes<VanishingStress, MAT>::value) {
-      return underlying_(enlargedResultArray, comp);
-    } else
-      static_assert(Dune::AlwaysFalse<MAT>::value, "Vanishing Material is not supported.");
-  }
-  /**
-   * \brief Get the name of the result type
-   * \return String representing the name
-   */
-  constexpr static std::string name()
-  requires requires {
-    { Underlying::name() };
-  }
-  {
-    return Underlying::name();
-  }
-
-  /**
-   * \brief Get the number of components in the result
-   * \return Number of components
-   */
-  constexpr static int ncomps() { return Underlying::ncomps(); }
-
-private:
-  Underlying underlying_;
-  MAT mat_;
-};
-
-template <typename ResultEvaluator, typename MAT>
-VanishingMaterialsWrapper(ResultEvaluator&&, MAT&&) -> VanishingMaterialsWrapper<ResultEvaluator, MAT>;
-
-/**
- * \brief Identity resultevalutor. Returns the results as is. Can for example be used with PlaneStrainWrapper.
- *
- * \tparam RT the requested result type
- * \tparam ncomps_ the amount of results in resultArray
- */
-template <int ncomps_>
-struct IdentityEvaluator
-{
-  template <typename R>
-  double operator()(const R& resultArray, const int comp) const {
-    static_assert(R::CompileTimeTraits::RowsAtCompileTime >= ncomps_,
-                  "Components in resultArray have to be at least as many as ncomps_.");
-    return resultArray[comp];
-  }
-
-  constexpr static int ncomps() { return ncomps_; }
-};
-
-/**
  * \brief Struct for calculating the 2d polar stress. The center of the coordinate system is chosen to be the center of
  * the corresponding reference geometry.
   \ingroup resultevaluators
  */
 struct PolarStress
 {
+  PolarStress(const Dune::FieldVector<double, 2>& origin)
+      : origin_(origin) {}
+
   /**
    * \brief Calculate the result quantity (von Mises stress)
    * \param resultArray EigenVector containing the stress state in Voigt notation
@@ -280,8 +191,8 @@ struct PolarStress
     static_assert(R::CompileTimeTraits::RowsAtCompileTime == 3, "PolarStress is only valid for 2D.");
 
     // Offset to center the coordinate system in the reference geometry
-    Dune::FieldVector<double, 2> offset = Dune::referenceElement(fe.geometry()).template geometry<0>(0).center();
-    auto theta                          = std::atan2(pos[1] - offset[1], pos[0] - offset[0]);
+    Dune::FieldVector<double, 2> posGlobal = fe.geometry().global(pos) - origin_;
+    auto theta                             = std::atan2(posGlobal[1], posGlobal[0]);
 
     const auto s_x  = resultArray[0];
     const auto s_y  = resultArray[1];
@@ -315,6 +226,9 @@ struct PolarStress
    * \return Number of components
    */
   constexpr static int ncomps() { return 3; }
+
+private:
+  Dune::FieldVector<double, 2> origin_;
 };
 
 } // namespace Ikarus::ResultEvaluators

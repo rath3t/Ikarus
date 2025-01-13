@@ -166,13 +166,18 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
 
   auto resultFunction3 = makeResultFunction<ResultTypes::PK2Stress, ResultEvaluators::VonMises>(sparseAssembler);
   t.check(resultFunction3->name() == "VonMises")
-      << "Test resultName: " << resultFunction2->name() << "should be VonMises";
-  t.check(resultFunction3->ncomps() == 1) << "Test result comps: " << resultFunction2->ncomps() << "should be 1";
+      << "Test resultName: " << resultFunction3->name() << "should be VonMises";
+  t.check(resultFunction3->ncomps() == 1) << "Test result comps: " << resultFunction3->ncomps() << "should be 1";
   vtkWriter2.addPointData(Dune::Vtk::Function<GridView>(resultFunction3));
 
   auto resultFunction4 = makeResultVtkFunction<ResultTypes::PK2Stress, OwnResultFunction>(sparseAssembler);
   vtkWriter2.addPointData(resultFunction4);
   vtkWriter2.write("EndResult" + Dune::className<Grid>());
+
+  auto resultFunction5 = makeResultFunction<ResultTypes::PK2StressFull>(sparseAssembler);
+  t.check(resultFunction5->name() == "PK2StressFull")
+      << "Test resultName: " << resultFunction5->name() << "should be PK2StressFull";
+  t.check(resultFunction5->ncomps() == 6) << "Test result comps: " << resultFunction5->ncomps() << "should be 6";
 
   nonLinOp.template update<1>();
   t.check(controlInfo.success, "Successful result");
