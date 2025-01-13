@@ -117,10 +117,9 @@ auto cantileverBeamTest(const MAT& reducedMat) {
 
   const auto controlInfo = lc.run();
 
-  double expectedLambda  = 1.0;
-  double expectedMaxDisp = std::is_same_v<typename MAT::Underlying, NeoHookeT<double>>
-                               ? 4.492526443429457
-                               : 4.459851990227056;
+  double expectedLambda = 1.0;
+  double expectedMaxDisp =
+      std::is_same_v<typename MAT::Underlying, NeoHookeT<double>> ? 4.492526443429457 : 4.459851990227056;
 
   t.check(controlInfo.success);
   const auto maxDisp = std::ranges::max(d.cwiseAbs());
