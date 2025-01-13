@@ -52,7 +52,7 @@ struct LinearElasticPre
  * \tparam FE The type of the finite element.
  */
 template <typename PreFE, typename FE, typename PRE>
-class LinearElastic : public ResultTypeBase<ResultTypes::linearStress>
+class LinearElastic : public ResultTypeBase<ResultTypes::linearStress, ResultTypes::linearStressFull>
 {
 public:
   using Traits       = PreFE::Traits;
@@ -158,6 +158,14 @@ public:
   [[nodiscard]] size_t numberOfNodes() const { return numberOfNodes_; }
   [[nodiscard]] int order() const { return order_; }
 
+  template <typename ScalarType = double>
+  decltype(auto) material() const {
+    if constexpr (Concepts::AutodiffScalar<ScalarType>)
+      return mat_.template rebind<ScalarType>();
+    else
+      return mat_;
+  }
+
 public:
   /**
    * \brief Calculates a requested result at a specific local position.
@@ -174,12 +182,18 @@ public:
   auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<1>) const {
     using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
-    if constexpr (isSameResultType<RT, ResultTypes::linearStress>) {
-      const auto eps = strainFunction(req);
-      const auto C   = materialTangent();
-      auto epsVoigt  = eps.evaluate(local, Dune::on(Dune::DerivativeDirections::gridElement));
 
-      return RTWrapper{(C * epsVoigt).eval()};
+    if constexpr (isSameResultType<RT, ResultTypes::linearStress> or
+                  isSameResultType<RT, ResultTypes::linearStressFull>) {
+      const auto eps     = strainFunction(req);
+      auto epsVoigt      = eps.evaluate(local, Dune::on(Dune::DerivativeDirections::gridElement));
+      decltype(auto) mat = [&]() {
+        if constexpr (isSameResultType<RT, ResultTypes::linearStressFull> and requires { mat_.underlying(); })
+          return mat_.underlying();
+        else
+          return mat_;
+      }();
+      return RTWrapper{mat.template stresses<StrainTags::linear>(enlargeIfReduced<Material>(epsVoigt))};
     }
   }
 

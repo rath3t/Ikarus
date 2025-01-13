@@ -9,6 +9,8 @@
 
 #include <dune/common/float_cmp.hh>
 
+#include <Eigen/Core>
+
 namespace Eigen {
 template <typename Derived>
 struct EigenBase;
@@ -62,4 +64,13 @@ void checkSolverInfos(TestSuiteType& t, const std::vector<int>& expectedIteratio
 
 inline auto testLocation(std::source_location loc = std::source_location::current()) {
   return loc.function_name() + std::string("(L ") + std::to_string(loc.line()) + "): ";
+}
+
+template <typename Derived>
+void replaceNaNWithZero(Eigen::MatrixBase<Derived>& val) {
+  for (auto& x : val.reshaped()) {
+    if (std::isnan(x)) {
+      x = 0.0;
+    }
+  }
 }

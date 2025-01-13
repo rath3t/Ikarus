@@ -126,6 +126,11 @@ struct VanishingStrain : public Material<VanishingStrain<strainIndexPair, MI>>
     return VanishingStrain<strainIndexPair, decltype(reboundMatImpl)>(reboundMatImpl);
   }
 
+  /**
+   * \brief Returns a const reference to the underlying material.
+   */
+  auto& underlying() const { return matImpl_; }
+
 private:
   Underlying matImpl_; ///< The underlying material model.
 

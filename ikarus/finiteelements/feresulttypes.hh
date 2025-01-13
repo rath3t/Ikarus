@@ -126,6 +126,11 @@ namespace ResultTypes {
   REGISTER_SIMPLE_SYMMETRIC_RESULTTYPE(PK2Stress, worldDim, worldDim, false);
   REGISTER_SIMPLE_SYMMETRIC_RESULTTYPE(cauchyStress, worldDim, worldDim, false);
 
+  // The following resulttypes are for reduced materials to obtain the full 3D stress state
+  REGISTER_SIMPLE_SYMMETRIC_RESULTTYPE(linearStressFull, 3, 3, false);
+  REGISTER_SIMPLE_SYMMETRIC_RESULTTYPE(PK2StressFull, 3, 3, false);
+  REGISTER_SIMPLE_SYMMETRIC_RESULTTYPE(cauchyStressFull, 3, 3, false);
+
   REGISTER_SIMPLE_RESULTTYPE(director, worldDim, 1);
   REGISTER_SIMPLE_RESULTTYPE(magnetization, worldDim, 1);
   REGISTER_SIMPLE_RESULTTYPE(gradientNormOfMagnetization, 1, 1);
@@ -250,7 +255,7 @@ auto toString() {
  * \tparam RT2 second ResultType template
  */
 template <template <typename, int, int> class RT1, template <typename, int, int> class RT2>
-constexpr bool isSameResultType = std::is_same_v<Impl::DummyRT<RT1>, Impl::DummyRT<RT2>>;
+constexpr static bool isSameResultType = std::is_same_v<Impl::DummyRT<RT1>, Impl::DummyRT<RT2>>;
 
 namespace Impl {
   template <typename T, typename Tuple>
