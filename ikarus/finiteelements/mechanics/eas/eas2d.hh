@@ -28,7 +28,7 @@ struct E0
   explicit E0(const GEO& /*geometry*/) {}
 
   // returns an Eigen zero expression for optimization purposes
-  static auto calcM(const Dune::FieldVector<double, 2>& /*quadPos*/) { return MType::Zero(); }
+  static auto calcM(const Dune::FieldVector<double, GEO::mydimension>& /*quadPos*/) { return MType::Zero(); }
 };
 
 /**

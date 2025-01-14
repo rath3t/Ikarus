@@ -221,7 +221,7 @@ public:
   }
 
 private:
-  StoredType value_{StoredType::Zero(rowsAtCompileTime, colsAtCompileTime)};
+  StoredType value_{};
 };
 
 namespace Impl {
