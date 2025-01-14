@@ -78,6 +78,9 @@ public:
   static constexpr auto stressType = StressTags::linear;
   static constexpr bool hasEAS     = FE::template hasEAS<strainType>;
 
+  template <template <typename, int, int> class RT>
+  using RTWrapperType = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
+
   /**
    * \brief Constructor for the LinearElastic class.
    * \param pre The pre fe
@@ -205,9 +208,9 @@ public:
   requires(supportsResultType<RT>())
   auto resultFunction() const {
     return [&]<int strainDim>(const Eigen::Vector<double, strainDim>& strainInVoigt) {
-      using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
+      // using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
       if constexpr (isSameResultType<RT, ResultTypes::linearStress>) {
-        return RTWrapper{stress(strainInVoigt)};
+        return RTWrapperType<RT>{stress(strainInVoigt)};
       }
     };
   }
@@ -226,7 +229,7 @@ public:
                        Dune::PriorityTag<1>) const {
     using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
     if constexpr (hasEAS)
-        return;
+        return RTWrapperType<RT>{};; 
     if constexpr (isSameResultType<RT, ResultTypes::linearStress> or
                   isSameResultType<RT, ResultTypes::linearStressFull>) {
       const auto eps     = strainFunction(req);
@@ -239,7 +242,7 @@ public:
       }();
       return RTWrapper{mat.template stresses<StrainTags::linear>(enlargeIfReduced<Material>(epsVoigt))};
     }
-   
+    
   }
 
 private:

@@ -60,7 +60,9 @@ void registerCalculateAt(pybind11::handle scope, pybind11::class_<FE, options...
         Dune::Hybrid::forEach(resultTypesTuple, [&]<typename RT>(RT i) {
           if (resType == toString(i)) {
             success = true;
-            result  = self.template calculateAt<RT::template Rebind>(req, local).asVec();
+            std::cout << "Type of result: " << resType << " "
+                      << Dune::className(self.template calculateAt<RT::template Rebind>(req, local)) << std::endl;
+            result = self.template calculateAt<RT::template Rebind>(req, local).asVec();
           }
         });
         if (success)

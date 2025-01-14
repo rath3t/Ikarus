@@ -82,6 +82,9 @@ public:
   static constexpr auto stressType = StressTags::PK2;
   static constexpr bool hasEAS     = FE::template hasEAS<strainType>;
 
+  template <template <typename, int, int> class RT>
+  using RTWrapperType = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
+
   /**
    * \brief Constructor for the NonLinearElastic class.
    * \param pre The pre fe
@@ -205,9 +208,8 @@ public:
   requires(supportsResultType<RT>())
   auto resultFunction() const {
     return [&]<int strainDim>(const Eigen::Vector<double, strainDim>& strainInVoigt) {
-      using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
       if constexpr (isSameResultType<RT, ResultTypes::PK2Stress>) {
-        return RTWrapper{stress<double>(strainInVoigt)};
+        return RTWrapperType<RT>{stress<double>(strainInVoigt)};
       }
     };
   }
@@ -226,7 +228,7 @@ public:
   auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<1>) const {
     if constexpr (hasEAS)
-      return;
+      return RTWrapperType<RT>{};
     const auto rFunction = resultFunction<RT>();
     using namespace Dune::DerivativeDirections;
     const auto uFunction = displacementFunction(req);
