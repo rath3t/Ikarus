@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "nonlinearsolverlogger.hh"
+#include <iostream>
 
 #include "spdlog/spdlog.h"
 #pragma GCC diagnostic push

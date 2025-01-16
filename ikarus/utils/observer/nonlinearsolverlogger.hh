@@ -10,6 +10,8 @@
 #include "observer.hh"
 #include "observermessages.hh"
 
+#include <ikarus/utils/broadcaster/listener.hh>
+
 namespace Ikarus {
 /**
  * \brief Implementation of an observer for logging non-linear solvers.
@@ -17,15 +19,39 @@ namespace Ikarus {
  * This class inherits from the IObserver class and provides specific
  * implementations for updating based on NonLinearSolverMessages.
  */
-class NonLinearSolverLogger : public IObserver<NonLinearSolverMessages>
+class NonLinearSolverLogger : public Listener
 {
 public:
+  template <typename NLS>
+  NonLinearSolverLogger(NLS& nls) {
+    // this->subscribe(nls, [&](NonLinearSolverMessages message) { this->updateImpl(message);
+    // });
+    // this->subscribe(
+    //     nls, [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
+    // this->subscribe(
+    //     nls, [&](NonLinearSolverMessages message, int intVal) { this->updateImpl(message, intVal); });
+
+    this->subscribe<NLS, void(NonLinearSolverMessages)>(
+        nls, [&](NonLinearSolverMessages message) { this->updateImpl(message); });
+    this->subscribe<NLS, void(NonLinearSolverMessages, double)>(
+        nls, [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
+    this->subscribe<NLS, void(NonLinearSolverMessages, int)>(
+        nls, [&](NonLinearSolverMessages message, int intVal) { this->updateImpl(message, intVal); });
+
+    // nls->template station<void(NonLinearSolverMessages)>().registerListener(
+    //     [&](NonLinearSolverMessages message) { this->updateImpl(message); });
+    // nls->template station<void(NonLinearSolverMessages, double)>().registerListener(
+    //     [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
+    // nls->template station<void(NonLinearSolverMessages, int)>().registerListener(
+    //     [&](NonLinearSolverMessages message, int val) { this->updateImpl(message, val); });
+  }
+
   /**
    * \brief Handles the update when a NonLinearSolverMessages is received.
    *
    * \param message The NonLinearSolverMessages received.
    */
-  void updateImpl(NonLinearSolverMessages message) final;
+  void updateImpl(NonLinearSolverMessages message);
 
   /**
    * \brief Handles the update when a NonLinearSolverMessages with a double value is received.
@@ -33,7 +59,7 @@ public:
    * \param message The NonLinearSolverMessages received.
    * \param val The double value associated with the message.
    */
-  void updateImpl(NonLinearSolverMessages message, double val) final;
+  void updateImpl(NonLinearSolverMessages message, double val);
 
   /**
    * \brief Handles the update when a NonLinearSolverMessages with an integer value is received.
@@ -41,7 +67,7 @@ public:
    * \param message The NonLinearSolverMessages received.
    * \param intVal The integer value associated with numberOfIterations.
    */
-  void updateImpl(NonLinearSolverMessages message, int intVal) final;
+  void updateImpl(NonLinearSolverMessages message, int intVal);
 
 private:
   int iters_{0};

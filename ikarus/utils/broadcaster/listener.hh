@@ -17,9 +17,21 @@ struct Listener
   using Token = std::shared_ptr<void>;
 
   // Control has to be derived from BroadCasters
-  template <typename CONTROL, typename F>
-  void subscribe(CONTROL& control, F&& f) {
-    t.push_back(control.registerListener(f));
+  template <typename Broadcaster, typename F>
+  void subscribe(Broadcaster& broadcaster, F&& f) {
+    if constexpr (requires { broadcaster.operator->(); })
+      t.push_back(broadcaster->registerListener(f));
+    else
+      t.push_back(broadcaster.registerListener(f));
+  }
+
+  // Control has to be derived from BroadCasters
+  template <typename Broadcaster, typename Siganture, typename F>
+  void subscribe(Broadcaster& broadcaster, F&& f) {
+    if constexpr (requires { broadcaster.operator->(); })
+      t.push_back(broadcaster->template station<Siganture>().registerListener(f));
+    else
+      t.push_back(broadcaster.template station<Siganture>().registerListener(f));
   }
 
   void unSubscribe() { t.clear(); }

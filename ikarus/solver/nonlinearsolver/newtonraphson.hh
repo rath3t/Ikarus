@@ -100,9 +100,11 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
  * \ingroup solvers
  */
 template <typename NLO, typename LS, typename UF>
-class NewtonRaphson : public IObservable<NonLinearSolverMessages>,
-                      public Broadcasters<void(NonLinearSolverMessages, typename NLO::template ParameterValue<0>&,
-                                               const typename NLO::ValueType&)>
+class NewtonRaphson
+    : public IObservable<NonLinearSolverMessages>,
+      public Broadcasters<
+          void(NonLinearSolverMessages, typename NLO::template ParameterValue<0>&, const typename NLO::ValueType&),
+          void(NonLinearSolverMessages), void(NonLinearSolverMessages, double), void(NonLinearSolverMessages, int)>
 {
 public:
   using Settings = NRSettings;
@@ -160,6 +162,7 @@ public:
       "it was successful")]] Ikarus::NonLinearSolverInformation
   solve(const SolutionType& dxPredictor = NoPredictor{}) {
     this->notify(NonLinearSolverMessages::INIT);
+    this->notifyListeners(NonLinearSolverMessages::INIT);
     Ikarus::NonLinearSolverInformation solverInformation;
     solverInformation.success = true;
     auto& x                   = nonLinearOperator().firstParameter();
@@ -175,6 +178,7 @@ public:
       linearSolver_.analyzePattern(Ax);
     while ((rNorm > settings_.tol && iter < settings_.maxIter) or iter < settings_.minIter) {
       this->notify(NonLinearSolverMessages::ITERATION_STARTED);
+      this->notifyListeners(NonLinearSolverMessages::ITERATION_STARTED);
       if constexpr (isLinearSolver) {
         linearSolver_.factorize(Ax);
         linearSolver_.solve(correction_, -rx);
@@ -190,11 +194,16 @@ public:
 
       updateFunction_(x, correction_);
       this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
+      this->notifyListeners(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
+
       this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
+      this->notifyListeners(NonLinearSolverMessages::SOLUTION_CHANGED);
       nonLinearOperator().updateAll();
       rNorm = norm(rx);
       this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, static_cast<double>(rNorm));
+      this->notifyListeners(NonLinearSolverMessages::RESIDUALNORM_UPDATED, static_cast<double>(rNorm));
       this->notify(NonLinearSolverMessages::ITERATION_ENDED);
+      this->notifyListeners(NonLinearSolverMessages::ITERATION_ENDED);
       ++iter;
     }
     if (iter == settings_.maxIter)
@@ -202,8 +211,10 @@ public:
     solverInformation.iterations     = iter;
     solverInformation.residualNorm   = static_cast<double>(rNorm);
     solverInformation.correctionNorm = static_cast<double>(dNorm);
-    if (solverInformation.success)
+    if (solverInformation.success) {
       this->notify(NonLinearSolverMessages::FINISHED_SUCESSFULLY, iter);
+      this->notifyListeners(NonLinearSolverMessages::FINISHED_SUCESSFULLY, iter);
+    }
     return solverInformation;
   }
 
