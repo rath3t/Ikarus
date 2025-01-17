@@ -16,8 +16,7 @@
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
 #include <ikarus/solver/nonlinearsolver/newtonraphsonwithscalarsubsidiaryfunction.hh>
 #include <ikarus/utils/nonlinearoperator.hh>
-#include <ikarus/utils/observer/observer.hh>
-#include <ikarus/utils/observer/observermessages.hh>
+#include <ikarus/utils/observer/broadcastermessages.hh>
 
 namespace Ikarus {
 
@@ -26,7 +25,7 @@ requires(Impl::checkPathFollowingTemplates<NLS, PF, ASS>())
 ControlInformation PathFollowing<NLS, PF, ASS>::run() {
   ControlInformation info;
   auto& nonOp = nonLinearSolver_->nonLinearOperator();
-  this->notify(ControlMessages::CONTROL_STARTED, pathFollowingType_.name());
+  this->notifyListeners(ControlMessages::CONTROL_STARTED, pathFollowingType_.name());
 
   SubsidiaryArgs subsidiaryArgs;
 
@@ -36,15 +35,15 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
   subsidiaryArgs.DD.setZero();
 
   /// Initializing solver
-  this->notify(ControlMessages::STEP_STARTED, 0, subsidiaryArgs.stepSize);
+  this->notifyListeners(ControlMessages::STEP_STARTED, 0, subsidiaryArgs.stepSize);
   pathFollowingType_.initialPrediction(nonOp, subsidiaryArgs);
   auto solverInfo = nonLinearSolver_->solve(pathFollowingType_, subsidiaryArgs);
   info.solverInfos.push_back(solverInfo);
   info.totalIterations += solverInfo.iterations;
   if (not solverInfo.success)
     return info;
-  this->notify(ControlMessages::SOLUTION_CHANGED);
-  this->notify(ControlMessages::STEP_ENDED);
+  this->notifyListeners(ControlMessages::SOLUTION_CHANGED);
+  this->notifyListeners(ControlMessages::STEP_ENDED);
 
   /// Calculate predictor for a particular step
   for (int ls = 1; ls < steps_; ++ls) {
@@ -52,7 +51,7 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
 
     adaptiveStepSizing_(solverInfo, subsidiaryArgs, nonOp);
 
-    this->notify(ControlMessages::STEP_STARTED, subsidiaryArgs.currentStep, subsidiaryArgs.stepSize);
+    this->notifyListeners(ControlMessages::STEP_STARTED, subsidiaryArgs.currentStep, subsidiaryArgs.stepSize);
 
     pathFollowingType_.intermediatePrediction(nonOp, subsidiaryArgs);
 
@@ -62,11 +61,11 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
     info.totalIterations += solverInfo.iterations;
     if (not solverInfo.success)
       return info;
-    this->notify(ControlMessages::SOLUTION_CHANGED);
-    this->notify(ControlMessages::STEP_ENDED);
+    this->notifyListeners(ControlMessages::SOLUTION_CHANGED);
+    this->notifyListeners(ControlMessages::STEP_ENDED);
   }
 
-  this->notify(ControlMessages::CONTROL_ENDED, info.totalIterations, pathFollowingType_.name());
+  this->notifyListeners(ControlMessages::CONTROL_ENDED, info.totalIterations, pathFollowingType_.name());
   info.success = true;
   return info;
 }

@@ -105,13 +105,14 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
   Ikarus::NonlinearSolverFactory trFactory(trConfig);
   auto tr = trFactory.create(sparseAssembler);
 
-  auto vtkWriter = std::make_shared<ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>>(
+  auto vtkWriter = ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>(
       basis.flat(), d, 2);
-  vtkWriter->setFileNamePrefix("Test2DSolid");
-  vtkWriter->setFieldInfo("Displacement", Dune::VTK::FieldInfo::Type::vector, 2);
+  vtkWriter.setFileNamePrefix("Test2DSolid");
+  vtkWriter.setFieldInfo("Displacement", Dune::VTK::FieldInfo::Type::vector, 2);
 
   auto lc = Ikarus::LoadControl(tr, 1, {0, 50}, sparseAssembler);
-  lc.subscribeAll(vtkWriter);
+  vtkWriter.subscribeTo(lc);
+
   const auto controlInfo = lc.run();
   nonLinOp.template update<0>();
   const auto maxDisp = std::ranges::max(d);

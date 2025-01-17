@@ -249,8 +249,7 @@ static auto secondOrderVectorValuedOperatorNonlinearAutodiff() {
   Ikarus::NewtonRaphson nr(subOperator, Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT));
 
   const Eigen::Vector3d xSol(-4.9131804394348836888, 2.0287578381104342236, 2.0287578381104342236);
-  auto nonLinearSolverObserver = std::make_shared<NonLinearSolverLogger>();
-  nr.subscribeAll(nonLinearSolverObserver);
+  auto nonLinearSolverObserver = NonLinearSolverLogger().subscribeTo(nr);
 
   t.subTest(checkNewtonRaphson(nr, x, eps, maxIter, 5, xSol, Eigen::VectorXd::Zero(3).eval()));
 

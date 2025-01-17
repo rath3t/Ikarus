@@ -17,12 +17,12 @@
 #include <Eigen/Sparse>
 
 #include <ikarus/linearalgebra/truncatedconjugategradient.hh>
+#include <ikarus/solver/nonlinearsolver/nonlinearsolverbase.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/broadcaster/broadcaster.hh>
 #include <ikarus/utils/defaultfunctions.hh>
 #include <ikarus/utils/linearalgebrahelper.hh>
-#include <ikarus/utils/observer/observer.hh>
-#include <ikarus/utils/observer/observermessages.hh>
+#include <ikarus/utils/observer/broadcastermessages.hh>
 #include <ikarus/utils/traits.hh>
 
 namespace Ikarus {
@@ -166,9 +166,7 @@ struct Stats
 * \tparam UF Type of the update function
 */
 template <typename NLO, PreConditioner preConditioner, typename UF>
-class TrustRegion : public IObservable<NonLinearSolverMessages>,
-                    public Broadcasters<void(NonLinearSolverMessages, typename NLO::template ParameterValue<0>&,
-                                             const typename NLO::DerivativeType&)>
+class TrustRegion : public NonlinearSolverBase<NLO>
 {
 public:
   using Settings  = TRSettings;                               ///< Type of the settings for the TrustRegion solver
@@ -225,7 +223,7 @@ public:
   template <typename SolutionType = NoPredictor>
   requires std::is_same_v<SolutionType, NoPredictor> || std::is_convertible_v<SolutionType, CorrectionType>
   NonLinearSolverInformation solve(const SolutionType& dxPredictor = NoPredictor{}) {
-    this->notify(NonLinearSolverMessages::INIT);
+    this->notifyListeners(NonLinearSolverMessages::INIT);
     stats_ = Stats{};
     info_  = AlgoInfo{};
 
@@ -245,7 +243,7 @@ public:
         "InnerBreakReason");
     spdlog::info("{:-^143}", "-");
     while (not stoppingCriterion()) {
-      this->notify(NonLinearSolverMessages::ITERATION_STARTED);
+      this->notifyListeners(NonLinearSolverMessages::ITERATION_STARTED);
       if (settings_.useRand) {
         if (stats_.outerIter == 0) {
           eta_.setRandom();
@@ -385,16 +383,16 @@ public:
         stats_.energy = stats_.energyProposal;
         nonLinearOperator_.updateAll();
         xOld_ = x;
-        this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, stats_.etaNorm);
-        this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, stats_.gradNorm);
-        this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
+        this->notifyListeners(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, stats_.etaNorm);
+        this->notifyListeners(NonLinearSolverMessages::RESIDUALNORM_UPDATED, stats_.gradNorm);
+        this->notifyListeners(NonLinearSolverMessages::SOLUTION_CHANGED);
       } else {
         x = xOld_;
         eta_.setZero();
       }
       nonLinearOperator_.updateAll();
       stats_.gradNorm = gradient().norm();
-      this->notify(NonLinearSolverMessages::ITERATION_ENDED);
+      this->notifyListeners(NonLinearSolverMessages::ITERATION_ENDED);
     }
     spdlog::info("{}", info_.reasonString);
     spdlog::info("Total iterations: {} Total CG Iterations: {}", stats_.outerIter, stats_.innerIterSum);
@@ -405,7 +403,7 @@ public:
     solverInformation.iterations   = stats_.outerIter;
     solverInformation.residualNorm = stats_.gradNorm;
     if (solverInformation.success)
-      this->notify(NonLinearSolverMessages::FINISHED_SUCESSFULLY, solverInformation.iterations);
+      this->notifyListeners(NonLinearSolverMessages::FINISHED_SUCESSFULLY, solverInformation.iterations);
     return solverInformation;
   }
   /**

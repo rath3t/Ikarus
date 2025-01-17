@@ -18,7 +18,7 @@
 #include <ikarus/finiteelements/ferequirements.hh>
 #include <ikarus/python/finiteelements/scalarwrapper.hh>
 #include <ikarus/solver/linearsolver/linearsolver.hh>
-#include <ikarus/utils/observer/observermessages.hh>
+#include <ikarus/utils/observer/broadcastermessages.hh>
 
 /**
  * \brief Registers the ScalarWrapper class template with pybind11, adding various operations and constructors.

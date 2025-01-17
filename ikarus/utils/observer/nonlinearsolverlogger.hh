@@ -7,9 +7,8 @@
  */
 
 #pragma once
-#include "observermessages.hh"
-
 #include <ikarus/utils/broadcaster/listener.hh>
+#include <ikarus/utils/observer/broadcastermessages.hh>
 
 namespace Ikarus {
 /**
@@ -21,11 +20,12 @@ namespace Ikarus {
 class NonLinearSolverLogger : public Listener
 {
 public:
-  template <typename NLS>
-  NonLinearSolverLogger(NLS& nls) {
-    this->subscribe(nls, [&](NonLinearSolverMessages message) { this->updateImpl(message); });
-    this->subscribe(nls, [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
-    this->subscribe(nls, [&](NonLinearSolverMessages message, int intVal) { this->updateImpl(message, intVal); });
+  template <typename BC>
+  NonLinearSolverLogger& subscribeTo(BC& bc) {
+    this->subscribe(bc, [&](NonLinearSolverMessages message) { this->updateImpl(message); });
+    this->subscribe(bc, [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
+    this->subscribe(bc, [&](NonLinearSolverMessages message, int intVal) { this->updateImpl(message, intVal); });
+    return *this;
   }
 
   /**

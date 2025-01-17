@@ -12,12 +12,12 @@
 
 #include <ikarus/controlroutines/adaptivestepsizing.hh>
 #include <ikarus/controlroutines/controlinfos.hh>
+#include <ikarus/controlroutines/controlroutinebase.hh>
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
 #include <ikarus/solver/nonlinearsolver/newtonraphsonwithscalarsubsidiaryfunction.hh>
 #include <ikarus/solver/nonlinearsolver/nonlinearsolverfactory.hh>
 #include <ikarus/utils/nonlinopfactory.hh>
-#include <ikarus/utils/observer/observer.hh>
-#include <ikarus/utils/observer/observermessages.hh>
+#include <ikarus/utils/observer/broadcastermessages.hh>
 
 namespace Ikarus {
 
@@ -76,7 +76,8 @@ namespace Impl {
  */
 template <typename NLS, typename PF = ArcLength, typename ASS = AdaptiveStepSizing::NoOp>
 requires(Impl::checkPathFollowingTemplates<NLS, PF, ASS>())
-class PathFollowing : public IObservable<ControlMessages>
+class PathFollowing : public ControlRoutineBase
+
 {
 public:
   /** \brief The name of the PathFollowing method. */

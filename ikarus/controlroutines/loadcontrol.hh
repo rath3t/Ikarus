@@ -13,8 +13,8 @@
 #include <dune/common/hybridutilities.hh>
 
 #include <ikarus/controlroutines/controlinfos.hh>
-#include <ikarus/utils/observer/observer.hh>
-#include <ikarus/utils/observer/observermessages.hh>
+#include <ikarus/controlroutines/controlroutinebase.hh>
+#include <ikarus/utils/broadcaster/broadcaster.hh>
 
 namespace Ikarus {
 
@@ -22,14 +22,15 @@ namespace Ikarus {
  * \class LoadControl
  * \brief The LoadControl control routine increases the last parameter of a nonlinear operator and calls a nonlinear
  * solver.
- *   \ingroup controlroutines
+ * \ingroup controlroutines
  * This class represents the LoadControl control routine. It increments the last parameter of a nonlinear operator
  * and utilizes a nonlinear solver, such as Newton's method, to solve the resulting system at each step.
  *
  * \tparam NLS Type of the nonlinear solver used in the control routine.
  */
 template <typename NLS>
-class LoadControl : public IObservable<ControlMessages>
+class LoadControl : public ControlRoutineBase
+
 {
 public:
   /** \brief The name of the LoadControl method. */
@@ -60,8 +61,6 @@ public:
     if constexpr (not std::is_same_v<Assembler, Impl::NoAssembler>) {
       for (auto& fe : assembler->finiteElements()) {
         fe.listenTo(nonLinearSolver_);
-        // Dune::Hybrid::forEach(fe.getSubsciptions(),
-        //                       [&](auto& subscription) { fe.subscribe(*nonLinearSolver_, subscription); });
       };
     }
   }

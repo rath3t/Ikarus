@@ -20,7 +20,7 @@
 
 #include <ikarus/finiteelements/feresulttypes.hh>
 #include <ikarus/utils/makeenum.hh>
-#include <ikarus/utils/observer/observermessages.hh>
+#include <ikarus/utils/observer/broadcastermessages.hh>
 
 namespace Ikarus {
 // clang-format off
