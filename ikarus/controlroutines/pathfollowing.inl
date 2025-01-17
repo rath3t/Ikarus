@@ -33,6 +33,8 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
   subsidiaryArgs.stepSize = stepSize_;
   subsidiaryArgs.DD.resizeLike(nonOp.firstParameter());
   subsidiaryArgs.DD.setZero();
+  subsidiaryArgs.dfdDD.resizeLike(nonOp.firstParameter());
+  subsidiaryArgs.dfdDD.setZero();
 
   /// Initializing solver
   this->notifyListeners(ControlMessages::STEP_STARTED, 0, subsidiaryArgs.stepSize);
