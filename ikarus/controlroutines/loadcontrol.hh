@@ -59,8 +59,9 @@ public:
     // register FEs to listen to NR messages
     if constexpr (not std::is_same_v<Assembler, Impl::NoAssembler>) {
       for (auto& fe : assembler->finiteElements()) {
-        Dune::Hybrid::forEach(fe.getSubsciptions(),
-                              [&](auto& subscription) { fe.subscribe(*nonLinearSolver_, subscription); });
+        fe.listenTo(nonLinearSolver_);
+        // Dune::Hybrid::forEach(fe.getSubsciptions(),
+        //                       [&](auto& subscription) { fe.subscribe(*nonLinearSolver_, subscription); });
       };
     }
   }

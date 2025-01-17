@@ -161,8 +161,11 @@ public:
       "The solve method returns information of the solution process. You should store this information and check if "
       "it was successful")]] Ikarus::NonLinearSolverInformation
   solve(const SolutionType& dxPredictor = NoPredictor{}) {
-    this->notify(NonLinearSolverMessages::INIT);
-    this->notifyListeners(NonLinearSolverMessages::INIT);
+    using enum NonLinearSolverMessages;
+
+    this->notify(INIT);
+    this->notifyListeners(INIT);
+    
     Ikarus::NonLinearSolverInformation solverInformation;
     solverInformation.success = true;
     auto& x                   = nonLinearOperator().firstParameter();
@@ -177,8 +180,8 @@ public:
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
     while ((rNorm > settings_.tol && iter < settings_.maxIter) or iter < settings_.minIter) {
-      this->notify(NonLinearSolverMessages::ITERATION_STARTED);
-      this->notifyListeners(NonLinearSolverMessages::ITERATION_STARTED);
+      this->notify(ITERATION_STARTED);
+      this->notifyListeners(ITERATION_STARTED);
       if constexpr (isLinearSolver) {
         linearSolver_.factorize(Ax);
         linearSolver_.solve(correction_, -rx);

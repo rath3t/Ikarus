@@ -41,8 +41,12 @@ struct FEMixin
       : Skills<PreFE, typename PreFE::template FE<Skills...>>(
             std::forward<typename Skills<PreFE, typename PreFE::template FE<Skills...>>::Pre>(skillsArgs))... {}
 
-  auto getSubsciptions() {
-    return std::make_tuple([&](NonLinearSolverMessages message, auto& x, const auto& dx) {
+
+
+  template <typename BC>
+  auto listenTo(BC& bc) {
+    this->subscribe(bc, [&](NonLinearSolverMessages message, Eigen::VectorXd& x,
+                            const std::remove_reference_t<typename Traits::template VectorType<>>& dx) {
       if (message == NonLinearSolverMessages::CORRECTION_UPDATED)
         this->updateImpl(message, x, dx);
     });

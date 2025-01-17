@@ -7,7 +7,6 @@
  */
 
 #pragma once
-#include "observer.hh"
 #include "observermessages.hh"
 
 #include <ikarus/utils/broadcaster/listener.hh>
@@ -24,26 +23,9 @@ class NonLinearSolverLogger : public Listener
 public:
   template <typename NLS>
   NonLinearSolverLogger(NLS& nls) {
-    // this->subscribe(nls, [&](NonLinearSolverMessages message) { this->updateImpl(message);
-    // });
-    // this->subscribe(
-    //     nls, [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
-    // this->subscribe(
-    //     nls, [&](NonLinearSolverMessages message, int intVal) { this->updateImpl(message, intVal); });
-
-    this->subscribe<NLS, void(NonLinearSolverMessages)>(
-        nls, [&](NonLinearSolverMessages message) { this->updateImpl(message); });
-    this->subscribe<NLS, void(NonLinearSolverMessages, double)>(
-        nls, [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
-    this->subscribe<NLS, void(NonLinearSolverMessages, int)>(
-        nls, [&](NonLinearSolverMessages message, int intVal) { this->updateImpl(message, intVal); });
-
-    // nls->template station<void(NonLinearSolverMessages)>().registerListener(
-    //     [&](NonLinearSolverMessages message) { this->updateImpl(message); });
-    // nls->template station<void(NonLinearSolverMessages, double)>().registerListener(
-    //     [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
-    // nls->template station<void(NonLinearSolverMessages, int)>().registerListener(
-    //     [&](NonLinearSolverMessages message, int val) { this->updateImpl(message, val); });
+    this->subscribe(nls, [&](NonLinearSolverMessages message) { this->updateImpl(message); });
+    this->subscribe(nls, [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
+    this->subscribe(nls, [&](NonLinearSolverMessages message, int intVal) { this->updateImpl(message, intVal); });
   }
 
   /**

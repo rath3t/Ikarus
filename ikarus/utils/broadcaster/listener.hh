@@ -10,28 +10,29 @@
 #include <memory>
 #include <vector>
 
+#include <ikarus/utils/traits.hh>
+
 namespace Ikarus {
 
 struct Listener
 {
   using Token = std::shared_ptr<void>;
 
-  // Control has to be derived from BroadCasters
   template <typename Broadcaster, typename F>
   void subscribe(Broadcaster& broadcaster, F&& f) {
+    using Signature = typename traits::FunctionTraits<F>::FreeSignature;
     if constexpr (requires { broadcaster.operator->(); })
-      t.push_back(broadcaster->registerListener(f));
+      t.push_back(broadcaster->template station<Signature>().registerListener(std::forward<F>(f)));
     else
-      t.push_back(broadcaster.registerListener(f));
+      t.push_back(broadcaster.template station<Signature>().registerListener(std::forward<F>(f)));
   }
 
-  // Control has to be derived from BroadCasters
-  template <typename Broadcaster, typename Siganture, typename F>
+  template <typename Broadcaster, typename Signature, typename F>
   void subscribe(Broadcaster& broadcaster, F&& f) {
     if constexpr (requires { broadcaster.operator->(); })
-      t.push_back(broadcaster->template station<Siganture>().registerListener(f));
+      t.push_back(broadcaster->template station<Signature>().registerListener(std::forward<F>(f)));
     else
-      t.push_back(broadcaster.template station<Siganture>().registerListener(f));
+      t.push_back(broadcaster.template station<Signature>().registerListener(std::forward<F>(f)));
   }
 
   void unSubscribe() { t.clear(); }

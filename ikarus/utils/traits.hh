@@ -337,8 +337,9 @@ struct FunctionTraits;
 template <typename R, typename... Args>
 struct FunctionTraits<R (*)(Args...)>
 {
-  using return_type = R;
-  using ArgsTuple   = std::tuple<Args...>;
+  using return_type   = R;
+  using ArgsTuple     = std::tuple<Args...>;
+  using FreeSignature = R(Args...);
 
   template <int i>
   using args_type                        = typename std::tuple_element<i, ArgsTuple>::type;
@@ -351,8 +352,9 @@ struct FunctionTraits<R (*)(Args...)>
 template <typename R, typename C, typename... Args>
 struct FunctionTraits<R (C::*)(Args...) const>
 {
-  using return_type = R;
-  using ArgsTuple   = std::tuple<Args...>;
+  using return_type   = R;
+  using ArgsTuple     = std::tuple<Args...>;
+  using FreeSignature = R(Args...);
 
   template <int i>
   using args_type                        = typename std::tuple_element<i, ArgsTuple>::type;
@@ -365,8 +367,9 @@ struct FunctionTraits<R (C::*)(Args...) const>
 template <typename R, typename C, typename... Args>
 struct FunctionTraits<R (C::*)(Args...)>
 {
-  using return_type = R;
-  using ArgsTuple   = std::tuple<Args...>;
+  using return_type   = R;
+  using ArgsTuple     = std::tuple<Args...>;
+  using FreeSignature = R(Args...);
 
   template <int i>
   using args_type                        = typename std::tuple_element<i, ArgsTuple>::type;
