@@ -44,6 +44,16 @@ struct SubsidiaryArgs
   Eigen::VectorX<double> dfdDD; ///< The derivative of the subsidiary function with respect to DD.
   double dfdDlambda;            ///< The derivative of the subsidiary function with respect to Dlambda.
   int currentStep;              ///< The current step index in the control routine.
+
+  void reset() {
+    stepSize = 0.0;
+    DD.setZero();
+    Dlambda = 0.0;
+    f       = 0.0;
+    dfdDD.setZero();
+    dfdDlambda  = 0.0;
+    currentStep = 0;
+  }
 };
 
 /**

@@ -27,19 +27,18 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
   auto& nonOp = nonLinearSolver_->nonLinearOperator();
   this->notifyListeners(ControlMessages::CONTROL_STARTED, pathFollowingType_.name());
 
-  SubsidiaryArgs subsidiaryArgs;
-
-  info.totalIterations    = 0;
-  subsidiaryArgs.stepSize = stepSize_;
-  subsidiaryArgs.DD.resizeLike(nonOp.firstParameter());
-  subsidiaryArgs.DD.setZero();
-  subsidiaryArgs.dfdDD.resizeLike(nonOp.firstParameter());
-  subsidiaryArgs.dfdDD.setZero();
+  info.totalIterations = 0;
+  subsidiaryArgs_.reset();
+  subsidiaryArgs_.stepSize = stepSize_;
+  subsidiaryArgs_.DD.resizeLike(nonOp.firstParameter());
+  subsidiaryArgs_.DD.setZero();
+  subsidiaryArgs_.dfdDD.resizeLike(nonOp.firstParameter());
+  subsidiaryArgs_.dfdDD.setZero();
 
   /// Initializing solver
-  this->notifyListeners(ControlMessages::STEP_STARTED, 0, subsidiaryArgs.stepSize);
-  pathFollowingType_.initialPrediction(nonOp, subsidiaryArgs);
-  auto solverInfo = nonLinearSolver_->solve(pathFollowingType_, subsidiaryArgs);
+  this->notifyListeners(ControlMessages::STEP_STARTED, 0, subsidiaryArgs_.stepSize);
+  pathFollowingType_.initialPrediction(nonOp, subsidiaryArgs_);
+  auto solverInfo = nonLinearSolver_->solve(pathFollowingType_, subsidiaryArgs_);
   info.solverInfos.push_back(solverInfo);
   info.totalIterations += solverInfo.iterations;
   if (not solverInfo.success)
@@ -49,15 +48,15 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
 
   /// Calculate predictor for a particular step
   for (int ls = 1; ls < steps_; ++ls) {
-    subsidiaryArgs.currentStep = ls;
+    subsidiaryArgs_.currentStep = ls;
 
-    adaptiveStepSizing_(solverInfo, subsidiaryArgs, nonOp);
+    adaptiveStepSizing_(solverInfo, subsidiaryArgs_, nonOp);
 
-    this->notifyListeners(ControlMessages::STEP_STARTED, subsidiaryArgs.currentStep, subsidiaryArgs.stepSize);
+    this->notifyListeners(ControlMessages::STEP_STARTED, subsidiaryArgs_.currentStep, subsidiaryArgs_.stepSize);
 
-    pathFollowingType_.intermediatePrediction(nonOp, subsidiaryArgs);
+    pathFollowingType_.intermediatePrediction(nonOp, subsidiaryArgs_);
 
-    solverInfo = nonLinearSolver_->solve(pathFollowingType_, subsidiaryArgs);
+    solverInfo = nonLinearSolver_->solve(pathFollowingType_, subsidiaryArgs_);
 
     info.solverInfos.push_back(solverInfo);
     info.totalIterations += solverInfo.iterations;

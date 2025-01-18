@@ -116,6 +116,7 @@ private:
   double stepSize_;
   PF pathFollowingType_;
   ASS adaptiveStepSizing_;
+  SubsidiaryArgs subsidiaryArgs_;
 };
 
 } // namespace Ikarus
