@@ -101,7 +101,8 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
  * \tparam UF Type of the update function (default is UpdateDefault).
  */
 template <typename NLO, typename LS, typename UF>
-class NewtonRaphsonWithSubsidiaryFunction : public IObservable<NonLinearSolverMessages>
+class NewtonRaphsonWithSubsidiaryFunction
+    : public IObservable<NonLinearSolverMessages, typename NLO::DerivativeType, typename NLO::ValueType>
 {
 public:
   using Settings = NewtonRaphsonWithSubsidiaryFunctionSettings;
@@ -222,6 +223,8 @@ public:
       const double deltalambda = (-subsidiaryArgs.f - subsidiaryArgs.dfdDD.dot(sol2d.col(0))) /
                                  (subsidiaryArgs.dfdDD.dot(sol2d.col(1)) + subsidiaryArgs.dfdDlambda);
       deltaD = sol2d.col(0) + deltalambda * sol2d.col(1);
+
+      this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, deltaD);
 
       updateFunction_(x, deltaD);
       updateFunction_(subsidiaryArgs.DD, deltaD);

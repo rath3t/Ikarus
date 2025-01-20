@@ -7,37 +7,19 @@
  */
 
 #pragma once
+#include <ikarus/utils/makeenum.hh>
 
 namespace Ikarus {
 /**
  * \brief Enum class defining control-routine-related messages.
  * \ingroup observer
  */
-enum class ControlMessages
-{
-  BEGIN,
-  CONTROL_STARTED,
-  CONTROL_ENDED,
-  STEP_STARTED,
-  STEP_ENDED,
-  SOLUTION_CHANGED,
-  END
-};
-
+MAKE_ENUM(ControlMessages, CONTROL_STARTED, CONTROL_ENDED, STEP_STARTED, STEP_ENDED, SOLUTION_CHANGED)
 /**
  * \brief Enum class defining non-linear solver-related messages.
  * \ingroup observer
  */
-enum class NonLinearSolverMessages
-{
-  BEGIN,
-  INIT,
-  ITERATION_STARTED,
-  ITERATION_ENDED,
-  RESIDUALNORM_UPDATED,
-  CORRECTIONNORM_UPDATED,
-  SOLUTION_CHANGED,
-  FINISHED_SUCESSFULLY,
-  END
-};
+MAKE_ENUM(NonLinearSolverMessages, INIT, ITERATION_STARTED, ITERATION_ENDED, RESIDUALNORM_UPDATED,
+          CORRECTIONNORM_UPDATED, CORRECTION_UPDATED, SOLUTION_CHANGED, FINISHED_SUCESSFULLY);
+
 } // namespace Ikarus

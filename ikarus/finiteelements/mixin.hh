@@ -12,6 +12,9 @@
 #include <dune/common/tuplevector.hh>
 
 #include <ikarus/finiteelements/fetraits.hh>
+#include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
+#include <ikarus/utils/observer/observer.hh>
+#include <ikarus/utils/observer/observermessages.hh>
 
 namespace Ikarus {
 /**
@@ -24,7 +27,7 @@ namespace Ikarus {
  * @tparam Skills A template parameter pack for additional skills to be mixed into the finite element.
  */
 template <typename PreFE, template <typename, typename> class... Skills>
-struct FEMixin : Skills<PreFE, typename PreFE::template FE<Skills...>>...
+struct FEMixin : public IObserver<NonLinearSolverMessages>, Skills<PreFE, typename PreFE::template FE<Skills...>>...
 {
   /**
    * @brief Constructor for the FEMixin class.
@@ -242,6 +245,35 @@ public:
     (Skills<PreFE, typename PreFE::template FE<Skills...>>::template calculateMatrixImpl<ScalarType>(par, affordance, K,
                                                                                                      dx),
      ...);
+  }
+
+private:
+  template <typename Sk>
+  auto invokeUpdateState(NonLinearSolverMessages message, const Requirement& par,
+                         const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
+    if constexpr (requires { Sk::updateStateImpl(message, par, correction); })
+      Sk::updateStateImpl(message, par, correction);
+  }
+
+public:
+  void updateImpl(NonLinearSolverMessages message, Eigen::VectorXd& vec, const Eigen::VectorXd& dx) {
+    auto req = Requirement();
+    req.insertGlobalSolution(vec);
+    updateState(message, req, dx);
+  }
+
+  /**
+   * \brief  Call all updateStateImpl functions if the skill implements it.
+   *
+   * \details Update the state variables related to a particular skill.
+   *
+   * \param req The Requirement object specifying the requirements for the update itself.
+   * \param correction A correction vector (for example, the displacement increment) based on which the state variables
+   * are to be updated.
+   */
+  void updateState(NonLinearSolverMessages message, const Requirement& par,
+                   const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
+    (invokeUpdateState<Skills<PreFE, typename PreFE::template FE<Skills...>>>(message, par, correction), ...);
   }
 
 protected:
