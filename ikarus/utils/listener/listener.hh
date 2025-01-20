@@ -35,7 +35,7 @@ struct Listener
       t.push_back(broadcaster.template station<Signature>().registerListener(std::forward<F>(f)));
   }
 
-  void unSubscribe() { t.clear(); }
+  void unSubscribeAll() { t.clear(); }
 
 private:
   std::vector<Token> t;

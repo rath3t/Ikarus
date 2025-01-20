@@ -12,10 +12,10 @@
 #include <ikarus/solver/nonlinearsolver/nonlinearsolverbase.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/broadcaster/broadcaster.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
 #include <ikarus/utils/concepts.hh>
 #include <ikarus/utils/defaultfunctions.hh>
 #include <ikarus/utils/linearalgebrahelper.hh>
-#include <ikarus/utils/observer/broadcastermessages.hh>
 
 namespace Ikarus {
 
@@ -157,9 +157,7 @@ public:
       "The solve method returns information of the solution process. You should store this information and check if "
       "it was successful")]] Ikarus::NonLinearSolverInformation
   solve(const SolutionType& dxPredictor = NoPredictor{}) {
-    using enum NonLinearSolverMessages;
-
-    this->notifyListeners(INIT);
+    this->notifyListeners(NonLinearSolverMessages::INIT);
     Ikarus::NonLinearSolverInformation solverInformation;
     solverInformation.success = true;
     auto& x                   = nonLinearOperator().firstParameter();
@@ -174,7 +172,7 @@ public:
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
     while ((rNorm > settings_.tol && iter < settings_.maxIter) or iter < settings_.minIter) {
-      this->notifyListeners(ITERATION_STARTED);
+      this->notifyListeners(NonLinearSolverMessages::ITERATION_STARTED);
       if constexpr (isLinearSolver) {
         linearSolver_.factorize(Ax);
         linearSolver_.solve(correction_, -rx);
@@ -185,15 +183,13 @@ public:
         dNorm       = norm(correction_);
         updateFunction_(x, correction_);
       }
-
-      this->notifyListeners(CORRECTION_UPDATED, x, correction_);
-      updateFunction_(x, correction_);
-      this->notifyListeners(CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
-      this->notifyListeners(SOLUTION_CHANGED);
+      this->notifyListeners(NonLinearSolverMessages::CORRECTION_UPDATED, x, correction_);
+      this->notifyListeners(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
+      this->notifyListeners(NonLinearSolverMessages::SOLUTION_CHANGED);
       nonLinearOperator().updateAll();
       rNorm = norm(rx);
-      this->notifyListeners(RESIDUALNORM_UPDATED, static_cast<double>(rNorm));
-      this->notifyListeners(ITERATION_ENDED);
+      this->notifyListeners(NonLinearSolverMessages::RESIDUALNORM_UPDATED, static_cast<double>(rNorm));
+      this->notifyListeners(NonLinearSolverMessages::ITERATION_ENDED);
       ++iter;
     }
     if (iter == settings_.maxIter)
@@ -201,9 +197,8 @@ public:
     solverInformation.iterations     = iter;
     solverInformation.residualNorm   = static_cast<double>(rNorm);
     solverInformation.correctionNorm = static_cast<double>(dNorm);
-    if (solverInformation.success) {
-      this->notifyListeners(FINISHED_SUCESSFULLY, iter);
-    }
+    if (solverInformation.success)
+      this->notifyListeners(NonLinearSolverMessages::FINISHED_SUCESSFULLY, iter);
     return solverInformation;
   }
 

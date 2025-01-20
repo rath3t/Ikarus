@@ -3,6 +3,5 @@
 
 # install headers
 install(FILES controllogger.hh controlvtkwriter.hh genericlistener.hh nonlinearsolverlogger.hh
-broadcastermessages.hh
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/utils/observer
+              listener.hh DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/utils/listener
 )

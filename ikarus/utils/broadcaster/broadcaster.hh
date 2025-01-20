@@ -54,13 +54,13 @@ public:
 };
 
 // BasicBroadcaster for multiple message types
-template <typename... Ms>
-class BasicBroadcaster : public Broadcaster<Ms>...
+template <typename... Signatures>
+class BasicBroadcaster : public Broadcaster<Signatures>...
 {
 public:
-  using Broadcaster<Ms>::registerListener...;
-  using Broadcaster<Ms>::unregisterListener...;
-  using Broadcaster<Ms>::notifyListeners...;
+  using Broadcaster<Signatures>::registerListener...;
+  using Broadcaster<Signatures>::unregisterListener...;
+  using Broadcaster<Signatures>::notifyListeners...;
 
   // Access a specific broadcaster for a given message type
   template <typename M>

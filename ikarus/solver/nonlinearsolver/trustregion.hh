@@ -20,9 +20,9 @@
 #include <ikarus/solver/nonlinearsolver/nonlinearsolverbase.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/broadcaster/broadcaster.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
 #include <ikarus/utils/defaultfunctions.hh>
 #include <ikarus/utils/linearalgebrahelper.hh>
-#include <ikarus/utils/observer/broadcastermessages.hh>
 #include <ikarus/utils/traits.hh>
 
 namespace Ikarus {

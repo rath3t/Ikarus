@@ -43,9 +43,9 @@ public:
    * \param loadSteps Number of load steps in the control routine.
    * \param tbeginEnd Array representing the range of load parameters [tbegin, tend].
    */
-  template <typename Assembler>
+  template <typename Assembler = Impl::NoAssembler>
   LoadControl(const std::shared_ptr<NLS>& nonLinearSolver, int loadSteps, const std::array<double, 2>& tbeginEnd,
-              std::shared_ptr<Assembler>& assembler)
+              std::shared_ptr<Assembler> assembler = {})
       : nonLinearSolver_{nonLinearSolver},
         loadSteps_{loadSteps},
         parameterBegin_{tbeginEnd[0]},
@@ -58,11 +58,11 @@ public:
         }, "The last parameter (load factor) must be assignable and incrementable with a double!");
 
     // register FEs to listen to NR messages
-    if constexpr (not std::is_same_v<Assembler, Impl::NoAssembler>) {
+    if constexpr (not std::is_same_v<Assembler, Impl::NoAssembler>)
       for (auto& fe : assembler->finiteElements()) {
-        fe.listenTo(nonLinearSolver_);
-      };
-    }
+        fe.template subscribeTo<NonLinearSolverMessages>(nonLinearSolver_);
+        fe.template subscribeTo<ControlMessages>(*this);
+      }
   }
 
   /**

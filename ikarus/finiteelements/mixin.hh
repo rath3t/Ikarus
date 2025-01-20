@@ -13,8 +13,8 @@
 
 #include <ikarus/finiteelements/fetraits.hh>
 #include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
-#include <ikarus/utils/broadcaster/listener.hh>
-#include <ikarus/utils/observer/broadcastermessages.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
+#include <ikarus/utils/listener/listener.hh>
 
 namespace Ikarus {
 /**
@@ -37,15 +37,6 @@ struct FEMixin : public Listener, Skills<PreFE, typename PreFE::template FE<Skil
   explicit FEMixin(typename Skills<PreFE, typename PreFE::template FE<Skills...>>::Pre&&... skillsArgs)
       : Skills<PreFE, typename PreFE::template FE<Skills...>>(
             std::forward<typename Skills<PreFE, typename PreFE::template FE<Skills...>>::Pre>(skillsArgs))... {}
-
-  template <typename BC>
-  auto listenTo(BC& bc) {
-    this->subscribe(bc, [&](NonLinearSolverMessages message, Eigen::VectorXd& x,
-                            const std::remove_reference_t<typename Traits::template VectorType<>>& dx) {
-      if (message == NonLinearSolverMessages::CORRECTION_UPDATED)
-        this->updateImpl(message, x, dx);
-    });
-  }
 
   /**
    * @brief Checks if the mixin class has a specific skill.
@@ -257,32 +248,19 @@ public:
   }
 
 private:
-  template <typename Sk>
-  auto invokeUpdateState(NonLinearSolverMessages message, const Requirement& par,
-                         const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
-    if constexpr (requires { Sk::updateStateImpl(message, par, correction); })
-      Sk::updateStateImpl(message, par, correction);
+  template <typename Sk, typename BC, typename MT>
+  auto invokeSubscribeTo(BC& bc) {
+    if constexpr (requires { this->Sk::template subscribeToImpl<MT>(); }) {
+      auto fTuple = Sk::template subscribeToImpl<MT>();
+      Dune::Hybrid::forEach(fTuple, [&](auto& f) { this->subscribe(bc, std::move(f)); });
+    }
   }
 
 public:
-  void updateImpl(NonLinearSolverMessages message, Eigen::VectorXd& vec, const Eigen::VectorXd& dx) {
-    auto req = Requirement();
-    req.insertGlobalSolution(vec);
-    updateState(message, req, dx);
-  }
-
-  /**
-   * \brief  Call all updateStateImpl functions if the skill implements it.
-   *
-   * \details Update the state variables related to a particular skill.
-   *
-   * \param req The Requirement object specifying the requirements for the update itself.
-   * \param correction A correction vector (for example, the displacement increment) based on which the state variables
-   * are to be updated.
-   */
-  void updateState(NonLinearSolverMessages message, const Requirement& par,
-                   const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
-    (invokeUpdateState<Skills<PreFE, typename PreFE::template FE<Skills...>>>(message, par, correction), ...);
+  template <typename MT, typename BC>
+  auto subscribeTo(BC& bc) {
+    (invokeSubscribeTo<Skills<PreFE, typename PreFE::template FE<Skills...>>, BC, MT>(bc), ...);
+    return *this;
   }
 
 protected:

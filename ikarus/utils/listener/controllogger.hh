@@ -9,8 +9,8 @@
 #pragma once
 #include <chrono>
 
-#include <ikarus/utils/broadcaster/listener.hh>
-#include <ikarus/utils/observer/broadcastermessages.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
+#include <ikarus/utils/listener/listener.hh>
 
 namespace Ikarus {
 /**

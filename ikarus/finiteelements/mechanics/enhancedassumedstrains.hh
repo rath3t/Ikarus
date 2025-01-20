@@ -19,7 +19,6 @@
   #include <ikarus/finiteelements/mechanics/easvariants.hh>
   #include <ikarus/finiteelements/mixin.hh>
   #include <ikarus/utils/concepts.hh>
-  #include <ikarus/utils/observer/broadcastermessages.hh>
 
 namespace Ikarus {
 
@@ -49,8 +48,6 @@ struct EnhancedAssumedStrainsPre
  */
 template <typename PreFE, typename FE>
 class EnhancedAssumedStrains
-    : public std::conditional_t<ES == StrainTags::linear, ResultTypeBase<ResultTypes::linearStress>,
-                                ResultTypeBase<ResultTypes::PK2Stress>>, public FEOberserverBase<NonLinearSolverMessages::CORRECTION_UPDATED>, public FEOberserverBase<NonLinearSolverMessages::CORRECTION_UPDATED>
 {
 public:
   using Traits = PreFE::Traits;
@@ -149,37 +146,8 @@ protected:
     easVariant_.bind(underlying().localView().element().geometry());
   }
 
-  /**
-   * \brief Updates the internal state variable alpha_ at the end of an iteration before the update of the displacements
-   * done by the non-linear solver. See \cite bieberLockingHourglassingNonlinear2024 for implementation details and
-   * further references.
-   *
-   * \param par The Requirement object.
-   * \param correction The correction in displacement (DeltaD) vector passed based on which the internal state variable
-   * alpha is to be updated.
-   */
-  void updateStateImpl(NonLinearSolverMessages message, const Requirement& par,
-                       const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
-    using ScalarType = Traits::ctype;
-    easApplicabilityCheck();
-    auto correctAlpha = [&]<typename EAST>(const EAST& easFunction) {
-      if constexpr (EAST::enhancedStrainSize != 0) { // compile-time check
-        const auto& Rtilde      = calculateRtilde<ScalarType>(par);
-        const auto localdxBlock = Ikarus::FEHelper::localSolutionBlockVector<Traits, Eigen::VectorXd, double>(
-            correction, underlying().localView());
-        const auto localdx               = Dune::viewAsFlatEigenVector(localdxBlock);
-        decltype(auto) LMat              = LMatFunc<ScalarType>();
-        constexpr int enhancedStrainSize = EAST::enhancedStrainSize;
-        Eigen::Matrix<double, enhancedStrainSize, enhancedStrainSize> D;
-        calculateDAndLMatrix(easFunction, par, D, LMat);
-        const auto updateAlpha = (D.inverse() * (Rtilde + (LMat * localdx))).eval();
-        this->alpha_ -= updateAlpha;
-      }
-    };
-
-    easVariant_(correctAlpha);
-  }
-
+public:
+protected:
   inline void easApplicabilityCheck() const {
     const auto& numberOfNodes = underlying().numberOfNodes();
     assert(not(not((numberOfNodes == 4 and Traits::mydim == 2) or (numberOfNodes == 8 and Traits::mydim == 3)) and

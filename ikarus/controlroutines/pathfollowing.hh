@@ -16,8 +16,8 @@
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
 #include <ikarus/solver/nonlinearsolver/newtonraphsonwithscalarsubsidiaryfunction.hh>
 #include <ikarus/solver/nonlinearsolver/nonlinearsolverfactory.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
 #include <ikarus/utils/nonlinopfactory.hh>
-#include <ikarus/utils/observer/broadcastermessages.hh>
 
 namespace Ikarus {
 
@@ -91,13 +91,27 @@ public:
    * \param pathFollowingType Type of the path-following function.
    * \param adaptiveStepSizing Type of the adaptive step sizing strategy.
    */
+
   PathFollowing(const std::shared_ptr<NLS>& nls, int steps, double stepSize, PF pathFollowingType = ArcLength{},
                 ASS adaptiveStepSizing = {})
+      : PathFollowing(nls, steps, stepSize, std::shared_ptr<Impl::NoAssembler>{}, pathFollowingType,
+                      adaptiveStepSizing) {}
+
+  template <typename Assembler>
+  PathFollowing(const std::shared_ptr<NLS>& nls, int steps, double stepSize, std::shared_ptr<Assembler> assembler,
+                PF pathFollowingType = ArcLength{}, ASS adaptiveStepSizing = {})
       : nonLinearSolver_{nls},
         steps_{steps},
         stepSize_{stepSize},
         pathFollowingType_{pathFollowingType},
-        adaptiveStepSizing_{adaptiveStepSizing} {}
+        adaptiveStepSizing_{adaptiveStepSizing} {
+    // register FEs to listen to NR messages
+    if constexpr (not std::is_same_v<Assembler, Impl::NoAssembler>)
+      for (auto& fe : assembler->finiteElements()) {
+        fe.template subscribeTo<NonLinearSolverMessages>(nonLinearSolver_);
+        fe.template subscribeTo<ControlMessages>(*this);
+      }
+  }
 
   /**
    * \brief Executes the PathFollowing routine.

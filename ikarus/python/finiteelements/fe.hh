@@ -17,7 +17,7 @@
 
 #include <ikarus/finiteelements/fefactory.hh>
 #include <ikarus/python/finiteelements/registerferequirements.hh>
-#include <ikarus/utils/observer/broadcastermessages.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
 
 namespace Ikarus::Python {
 

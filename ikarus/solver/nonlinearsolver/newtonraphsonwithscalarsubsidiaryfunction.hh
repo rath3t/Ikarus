@@ -11,13 +11,12 @@
 #include <iosfwd>
 #include <utility>
 
-#include "ikarus/assembler/dirichletbcenforcement.hh"
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
 #include <ikarus/solver/nonlinearsolver/nonlinearsolverbase.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/broadcaster/broadcaster.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
 #include <ikarus/utils/concepts.hh>
-#include <ikarus/utils/observer/broadcastermessages.hh>
 
 namespace Ikarus {
 

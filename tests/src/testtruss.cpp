@@ -24,9 +24,9 @@
 #include <ikarus/utils/basis.hh>
 #include <ikarus/utils/dirichletvalues.hh>
 #include <ikarus/utils/init.hh>
-#include <ikarus/utils/observer/controlvtkwriter.hh>
-#include <ikarus/utils/observer/genericlistener.hh>
-#include <ikarus/utils/observer/nonlinearsolverlogger.hh>
+#include <ikarus/utils/listener/controlvtkwriter.hh>
+#include <ikarus/utils/listener/genericlistener.hh>
+#include <ikarus/utils/listener/nonlinearsolverlogger.hh>
 
 using namespace Ikarus;
 using Dune::TestSuite;
@@ -120,8 +120,7 @@ static auto vonMisesTrussTest() {
   auto nr = nrFactory.create(denseFlatAssembler);
 
   /// Create Observer to write information of the non-linear solver
-  auto nonLinearSolverObserver = NonLinearSolverLogger();
-  auto nonLinOp                = Ikarus::NonLinearOperatorFactory::op(denseFlatAssembler);
+  auto nonLinOp = Ikarus::NonLinearOperatorFactory::op(denseFlatAssembler);
 
   t.check(utils::checkGradient(nonLinOp, {.draw = false, .writeSlopeStatementIfFailed = true}))
       << "Check gradient failed";
@@ -145,7 +144,9 @@ static auto vonMisesTrussTest() {
   vtkWriter.setFileNamePrefix("vonMisesTruss");
 
   /// Create loadcontrol
-  auto lc = LoadControl(nr, loadSteps, {0, 0.5}, denseFlatAssembler);
+  auto lc                      = LoadControl(nr, loadSteps, {0, 0.5}, denseFlatAssembler);
+  auto nonLinearSolverObserver = NonLinearSolverLogger();
+
   nonLinearSolverObserver.subscribeTo(lc.nonlinearSolver());
   vtkWriter.subscribeTo(lc);
   lvkObserver.subscribeTo(lc);

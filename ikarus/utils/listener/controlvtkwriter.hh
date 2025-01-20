@@ -14,8 +14,8 @@
 
 #include <Eigen/Core>
 
-#include <ikarus/utils/broadcaster/listener.hh>
-#include <ikarus/utils/observer/broadcastermessages.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
+#include <ikarus/utils/listener/listener.hh>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-enum"
