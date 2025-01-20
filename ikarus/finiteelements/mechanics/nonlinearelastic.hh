@@ -208,15 +208,14 @@ public:
   requires(supportsResultType<RT>())
   auto resultFunction() const {
     return [&]<int strainDim>(const Eigen::Vector<double, strainDim>& strainInVoigt) {
-      if constexpr (isSameResultType<RT, ResultTypes::PK2Stress>) {
+      if constexpr (isSameResultType<RT, ResultTypes::PK2Stress> or isSameResultType<RT, ResultTypes::PK2StressFull>) {
         decltype(auto) mat = [&]() {
           if constexpr (isSameResultType<RT, ResultTypes::PK2StressFull> and requires { mat_.underlying(); })
             return mat_.underlying();
           else
             return mat_;
         }();
-
-        return RTWrapperType<RT>{stress<double>(strainInVoigt)};
+        return RTWrapperType<RT>{mat.template stresses<strainType>(enlargeIfReduced<Material>(strainInVoigt))};
       }
     };
   }
