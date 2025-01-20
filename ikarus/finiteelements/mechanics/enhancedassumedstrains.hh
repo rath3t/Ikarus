@@ -50,7 +50,7 @@ struct EnhancedAssumedStrainsPre
 template <typename PreFE, typename FE>
 class EnhancedAssumedStrains
     : public std::conditional_t<ES == StrainTags::linear, ResultTypeBase<ResultTypes::linearStress>,
-                                ResultTypeBase<ResultTypes::PK2Stress>>, public FEOberserverBase<NonLinearSolverMessages::CORRECTION_UPDATED>
+                                ResultTypeBase<ResultTypes::PK2Stress>>, public FEOberserverBase<NonLinearSolverMessages::CORRECTION_UPDATED>, public FEOberserverBase<NonLinearSolverMessages::CORRECTION_UPDATED>
 {
 public:
   using Traits = PreFE::Traits;

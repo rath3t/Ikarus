@@ -10,6 +10,8 @@
 
 #include <memory>
 
+#include <dune/common/hybridutilities.hh>
+
 #include <ikarus/controlroutines/controlinfos.hh>
 #include <ikarus/utils/observer/observer.hh>
 #include <ikarus/utils/observer/observermessages.hh>
@@ -40,7 +42,9 @@ public:
    * \param loadSteps Number of load steps in the control routine.
    * \param tbeginEnd Array representing the range of load parameters [tbegin, tend].
    */
-  LoadControl(const std::shared_ptr<NLS>& nonLinearSolver, int loadSteps, const std::array<double, 2>& tbeginEnd)
+  template <typename Assembler>
+  LoadControl(const std::shared_ptr<NLS>& nonLinearSolver, int loadSteps, const std::array<double, 2>& tbeginEnd,
+              std::shared_ptr<Assembler>& assembler)
       : nonLinearSolver_{nonLinearSolver},
         loadSteps_{loadSteps},
         parameterBegin_{tbeginEnd[0]},
@@ -51,6 +55,14 @@ public:
           nonLinearSolver_->nonLinearOperator().lastParameter() = 0.0;
           nonLinearSolver_->nonLinearOperator().lastParameter() += 0.0;
         }, "The last parameter (load factor) must be assignable and incrementable with a double!");
+
+    // register FEs to listen to NR messages
+    if constexpr (not std::is_same_v<Assembler, Impl::NoAssembler>) {
+      for (auto& fe : assembler->finiteElements()) {
+        Dune::Hybrid::forEach(fe.getSubsciptions(),
+                              [&](auto& subscription) { fe.subscribe(*nonLinearSolver_, subscription); });
+      };
+    }
   }
 
   /**

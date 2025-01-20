@@ -41,6 +41,13 @@ struct FEMixin
       : Skills<PreFE, typename PreFE::template FE<Skills...>>(
             std::forward<typename Skills<PreFE, typename PreFE::template FE<Skills...>>::Pre>(skillsArgs))... {}
 
+  auto getSubsciptions() {
+    return std::make_tuple([&](NonLinearSolverMessages message, auto& x, const auto& dx) {
+      if (message == NonLinearSolverMessages::CORRECTION_UPDATED)
+        this->updateImpl(message, x, dx);
+    });
+  }
+
   /**
    * @brief Checks if the mixin class has a specific skill.
    *

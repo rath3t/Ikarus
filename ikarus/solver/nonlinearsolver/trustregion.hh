@@ -168,7 +168,7 @@ struct Stats
 template <typename NLO, PreConditioner preConditioner, typename UF>
 class TrustRegion : public IObservable<NonLinearSolverMessages>,
                     public Broadcasters<void(NonLinearSolverMessages, typename NLO::template ParameterValue<0>&,
-                                             const typename NLO::ValueType&)>
+                                             const typename NLO::DerivativeType&)>
 {
 public:
   using Settings  = TRSettings;                               ///< Type of the settings for the TrustRegion solver

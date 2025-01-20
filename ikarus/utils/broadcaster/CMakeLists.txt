@@ -2,6 +2,4 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 # install headers
-install(FILES broadcaster.hh
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/utils/broadcaster
-)
+install(FILES broadcaster.hh DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/utils/broadcaster)

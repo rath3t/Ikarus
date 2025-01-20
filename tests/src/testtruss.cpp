@@ -147,7 +147,7 @@ static auto vonMisesTrussTest() {
   vtkWriter->setFileNamePrefix("vonMisesTruss");
 
   /// Create loadcontrol
-  auto lc = LoadControl(nr, loadSteps, {0, 0.5});
+  auto lc = LoadControl(nr, loadSteps, {0, 0.5}, denseFlatAssembler);
   lc.nonlinearSolver().subscribeAll(nonLinearSolverObserver);
   lc.subscribeAll({vtkWriter, lvkObserver});
 

@@ -9,13 +9,14 @@ status: new
 A load control object is constructed as follows:
 
 ```cpp
-auto lc = Ikarus::LoadControl(nonlinearSolver, numLoadSteps, {loadFactorStartValue, loadFactorEndValue});
+auto lc = Ikarus::LoadControl(nonlinearSolver, numLoadSteps, {loadFactorStartValue, loadFactorEndValue}, assembler);
 ```
 
 - `nonlinearSolver` is a nonlinear solver, e.g., Newton-Raphson method, trust-region method, etc.
 - `numLoadSteps` is the number of load steps.
 - `loadFactorStartValue` is the value of the load factor at the beginning of the simulation.
 - `loadFactorEndValue` is the value of the load factor at the end of the simulation.
+- `assembler` a shared_ptr of the assembler.
 
 The load control is started with the ``run()`` method, i.e., for the above-mentioned example:
 

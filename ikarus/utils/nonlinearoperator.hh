@@ -17,6 +17,7 @@
 namespace Ikarus {
 
 namespace Impl {
+
   /**
    * \brief Helper function to apply a function and remove reference wrappers.
    *
@@ -381,4 +382,5 @@ private:
 template <typename... DerivativeArgs, typename... ParameterArgs>
 NonLinearOperator(const Impl::Functions<DerivativeArgs&&...>& a, const Impl::Parameter<ParameterArgs...>& b)
     -> NonLinearOperator<Impl::Functions<DerivativeArgs...>, Impl::Parameter<ParameterArgs...>>;
+
 } // namespace Ikarus

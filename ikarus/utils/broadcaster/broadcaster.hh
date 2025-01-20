@@ -20,6 +20,7 @@ template <typename... Args>
 class Broadcaster<void(Args...)>
 {
   using f = std::function<void(Args...)>;
+
   std::vector<std::weak_ptr<f>> listeners;
 
 public:

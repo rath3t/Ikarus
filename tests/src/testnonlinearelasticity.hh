@@ -110,7 +110,7 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
   vtkWriter->setFileNamePrefix("Test2DSolid");
   vtkWriter->setFieldInfo("Displacement", Dune::VTK::FieldInfo::Type::vector, 2);
 
-  auto lc = Ikarus::LoadControl(tr, 1, {0, 50});
+  auto lc = Ikarus::LoadControl(tr, 1, {0, 50}, sparseAssembler);
   lc.subscribeAll(vtkWriter);
   const auto controlInfo = lc.run();
   nonLinOp.template update<0>();

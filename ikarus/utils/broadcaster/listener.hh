@@ -22,6 +22,8 @@ struct Listener
     t.push_back(control.registerListener(f));
   }
 
+  void unSubscribe() { t.clear(); }
+
 private:
   std::vector<Token> t;
 };

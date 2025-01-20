@@ -361,7 +361,7 @@ public:
 };
 
 template <NonLinearSolverMessages... Messages>
-struct FEOberserverBase
+struct FEListenerBase
 {
   constexpr bool wantsToObserve(NonLinearSolverMessages message) const {
     return ((message == Messages) || ...); // Fold expression over ||

@@ -140,7 +140,7 @@ static auto NonLinearKLShellLoadControlTR() {
   vtkWriter->setFileNamePrefix("TestKLShell");
   vtkWriter->setFieldInfo("Displacement", Dune::VTK::FieldInfo::Type::vector, 3);
 
-  auto lc = LoadControl(tr, 1, {0, 1});
+  auto lc = LoadControl(tr, 1, {0, 1}, sparseAssembler);
   lc.subscribeAll(vtkWriter);
   const auto controlInfo = lc.run();
 
