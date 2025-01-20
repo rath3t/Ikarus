@@ -18,6 +18,7 @@
 #include <ikarus/finiteelements/ferequirements.hh>
 #include <ikarus/python/finiteelements/scalarwrapper.hh>
 #include <ikarus/solver/linearsolver/linearsolver.hh>
+#include <ikarus/utils/observer/observermessages.hh>
 
 /**
  * \brief Registers the ScalarWrapper class template with pybind11, adding various operations and constructors.
@@ -81,6 +82,8 @@ PYBIND11_MODULE(_ikarus, m) {
   ENUM_BINDINGS(FEParameter);
   ENUM_BINDINGS(SolverTypeTag);
   ENUM_BINDINGS(DBCOption);
+  ENUM_BINDINGS(ControlMessages);
+  ENUM_BINDINGS(NonLinearSolverMessages);
 
   py::class_<std::tuple<ScalarAffordance, VectorAffordance, MatrixAffordance>>(m, "Base");
   auto affordanceCollections3 =

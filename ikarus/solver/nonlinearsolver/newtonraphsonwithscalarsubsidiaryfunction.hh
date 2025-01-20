@@ -14,6 +14,7 @@
 #include "ikarus/assembler/dirichletbcenforcement.hh"
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
+#include <ikarus/utils/broadcaster/broadcaster.hh>
 #include <ikarus/utils/concepts.hh>
 #include <ikarus/utils/observer/observer.hh>
 #include <ikarus/utils/observer/observermessages.hh>
@@ -102,7 +103,9 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
  */
 template <typename NLO, typename LS, typename UF>
 class NewtonRaphsonWithSubsidiaryFunction
-    : public IObservable<NonLinearSolverMessages, typename NLO::DerivativeType, typename NLO::ValueType>
+    : public IObservable<NonLinearSolverMessages>,
+      public Broadcasters<void(NonLinearSolverMessages, typename NLO::template ParameterValue<0>&,
+                               const typename NLO::ValueType&)>
 {
 public:
   using Settings = NewtonRaphsonWithSubsidiaryFunctionSettings;
@@ -224,7 +227,7 @@ public:
                                  (subsidiaryArgs.dfdDD.dot(sol2d.col(1)) + subsidiaryArgs.dfdDlambda);
       deltaD = sol2d.col(0) + deltalambda * sol2d.col(1);
 
-      this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, deltaD);
+      this->notifyListeners(NonLinearSolverMessages::CORRECTION_UPDATED, x, deltaD);
 
       updateFunction_(x, deltaD);
       updateFunction_(subsidiaryArgs.DD, deltaD);

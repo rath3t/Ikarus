@@ -10,6 +10,7 @@
 
 #include <ikarus/solver/linearsolver/linearsolver.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
+#include <ikarus/utils/broadcaster/broadcaster.hh>
 #include <ikarus/utils/concepts.hh>
 #include <ikarus/utils/defaultfunctions.hh>
 #include <ikarus/utils/linearalgebrahelper.hh>
@@ -99,7 +100,9 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
  * \ingroup solvers
  */
 template <typename NLO, typename LS, typename UF>
-class NewtonRaphson : public IObservable<NonLinearSolverMessages, typename NLO::DerivativeType, typename NLO::ValueType>
+class NewtonRaphson : public IObservable<NonLinearSolverMessages>,
+                      public Broadcasters<void(NonLinearSolverMessages, typename NLO::template ParameterValue<0>&,
+                                               const typename NLO::ValueType&)>
 {
 public:
   using Settings = NRSettings;
@@ -183,7 +186,7 @@ public:
         updateFunction_(x, correction_);
       }
 
-      this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, correction_);
+      this->notifyListeners(NonLinearSolverMessages::CORRECTION_UPDATED, x, correction_);
 
       updateFunction_(x, correction_);
       this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));

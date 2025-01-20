@@ -18,6 +18,7 @@
 
 #include <ikarus/linearalgebra/truncatedconjugategradient.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
+#include <ikarus/utils/broadcaster/broadcaster.hh>
 #include <ikarus/utils/defaultfunctions.hh>
 #include <ikarus/utils/linearalgebrahelper.hh>
 #include <ikarus/utils/observer/observer.hh>
@@ -165,7 +166,9 @@ struct Stats
 * \tparam UF Type of the update function
 */
 template <typename NLO, PreConditioner preConditioner, typename UF>
-class TrustRegion : public IObservable<NonLinearSolverMessages, typename NLO::DerivativeType, typename NLO::ValueType>
+class TrustRegion : public IObservable<NonLinearSolverMessages>,
+                    public Broadcasters<void(NonLinearSolverMessages, typename NLO::template ParameterValue<0>&,
+                                             const typename NLO::ValueType&)>
 {
 public:
   using Settings  = TRSettings;                               ///< Type of the settings for the TrustRegion solver
@@ -377,7 +380,7 @@ public:
 
       info_.randomPredictionString = "";
 
-      this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, eta_);
+      this->notifyListeners(NonLinearSolverMessages::CORRECTION_UPDATED, x, eta_);
       if (info_.acceptProposal) {
         stats_.energy = stats_.energyProposal;
         nonLinearOperator_.updateAll();

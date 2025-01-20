@@ -13,6 +13,7 @@
 
 #include <ikarus/finiteelements/fetraits.hh>
 #include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
+#include <ikarus/utils/broadcaster/listener.hh>
 #include <ikarus/utils/observer/observer.hh>
 #include <ikarus/utils/observer/observermessages.hh>
 
@@ -27,7 +28,9 @@ namespace Ikarus {
  * @tparam Skills A template parameter pack for additional skills to be mixed into the finite element.
  */
 template <typename PreFE, template <typename, typename> class... Skills>
-struct FEMixin : public IObserver<NonLinearSolverMessages>, Skills<PreFE, typename PreFE::template FE<Skills...>>...
+struct FEMixin
+    : public Listener,
+      /*public IObserver<NonLinearSolverMessages> , */ Skills<PreFE, typename PreFE::template FE<Skills...>>...
 {
   /**
    * @brief Constructor for the FEMixin class.

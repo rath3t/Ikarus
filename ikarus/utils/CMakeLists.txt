@@ -32,3 +32,4 @@ install(
 
 add_subdirectory(drawing)
 add_subdirectory(observer)
+add_subdirectory(broadcaster)

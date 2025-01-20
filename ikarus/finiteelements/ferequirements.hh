@@ -366,7 +366,6 @@ struct FEOberserverBase
   constexpr bool wantsToObserve(NonLinearSolverMessages message) const {
     return ((message == Messages) || ...); // Fold expression over ||
   }
-
 };
 
 } // namespace Ikarus
