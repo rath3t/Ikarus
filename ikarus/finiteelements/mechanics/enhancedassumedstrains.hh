@@ -51,8 +51,9 @@ struct EnhancedAssumedStrainsPre
  */
 template <typename PreFE, typename FE, StrainTags ES>
 class EnhancedAssumedStrains
-    : public std::conditional_t<ES == StrainTags::linear, ResultTypeBase<ResultTypes::linearStress>,
-                                ResultTypeBase<ResultTypes::PK2Stress>>
+    : public std::conditional_t<ES == StrainTags::linear,
+                                ResultTypeBase<ResultTypes::linearStress, ResultTypes::linearStressFull>,
+                                ResultTypeBase<ResultTypes::PK2Stress, ResultTypes::PK2StressFull>>
 {
 public:
   using Traits = PreFE::Traits;
@@ -116,7 +117,9 @@ public:
   requires(EnhancedAssumedStrains::template supportsResultType<RT>())
   auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<2>) const {
-    if constexpr (isSameResultType<RT, ResultTypes::linearStress> or isSameResultType<RT, ResultTypes::PK2Stress>) {
+    if constexpr (isSameResultType<RT, ResultTypes::linearStress> or isSameResultType<RT, ResultTypes::PK2Stress> or
+                  isSameResultType<RT, ResultTypes::linearStressFull> or
+                  isSameResultType<RT, ResultTypes::PK2StressFull>) {
       auto strainFunction  = underlying().strainFunction(req);
       const auto ufunc     = underlying().displacementFunction(req);
       const auto rFunction = underlying().template resultFunction<RT>();

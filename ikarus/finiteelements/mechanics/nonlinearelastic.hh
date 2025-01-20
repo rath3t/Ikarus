@@ -209,6 +209,13 @@ public:
   auto resultFunction() const {
     return [&]<int strainDim>(const Eigen::Vector<double, strainDim>& strainInVoigt) {
       if constexpr (isSameResultType<RT, ResultTypes::PK2Stress>) {
+        decltype(auto) mat = [&]() {
+          if constexpr (isSameResultType<RT, ResultTypes::PK2StressFull> and requires { mat_.underlying(); })
+            return mat_.underlying();
+          else
+            return mat_;
+        }();
+
         return RTWrapperType<RT>{stress<double>(strainInVoigt)};
       }
     };
@@ -227,32 +234,18 @@ public:
   requires(supportsResultType<RT>())
   auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<1>) const {
+    using namespace Dune::DerivativeDirections;
+
     if constexpr (hasEAS)
       return RTWrapperType<RT>{};
-    const auto rFunction = resultFunction<RT>();
-    using namespace Dune::DerivativeDirections;
-    const auto uFunction = displacementFunction(req);
-    const auto H         = uFunction.evaluateDerivative(local, Dune::wrt(spatialAll), Dune::on(gridElement));
-    const auto E         = (0.5 * (H.transpose() + H + H.transpose() * H)).eval();
-
-    using RTWrapper = ResultWrapper<RT<typename Traits::ctype, myDim, Traits::worlddim>, ResultShape::Vector>;
-    if (usesEASSkill())
-      return RTWrapper{};
     if constexpr (isSameResultType<RT, ResultTypes::PK2Stress> or isSameResultType<RT, ResultTypes::PK2StressFull>) {
       const auto uFunction = displacementFunction(req);
+      const auto rFunction = resultFunction<RT>();
       const auto H         = uFunction.evaluateDerivative(local, Dune::wrt(spatialAll), Dune::on(gridElement));
       const auto E         = (0.5 * (H.transpose() + H + H.transpose() * H)).eval();
 
-      decltype(auto) mat = [&]() {
-        if constexpr (isSameResultType<RT, ResultTypes::PK2StressFull> and requires { mat_.underlying(); })
-          return mat_.underlying();
-        else
-          return mat_;
-      }();
-      // return RTWrapper{mat.template stresses<StrainTags::greenLagrangian>(enlargeIfReduced<Material>(toVoigt(E)))};
       return rFunction(toVoigt(E));
     }
-
   }
 
 private:
@@ -264,14 +257,6 @@ private:
   Material mat_;
   size_t numberOfNodes_{0};
   int order_{};
-
-  template <typename ScalarType>
-  decltype(auto) material() const {
-    if constexpr (Concepts::AutodiffScalar<ScalarType>)
-      return mat_.template rebind<ScalarType>();
-    else
-      return mat_;
-  }
 
 public:
   /**
