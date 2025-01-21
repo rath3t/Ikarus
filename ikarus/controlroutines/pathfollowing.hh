@@ -13,6 +13,7 @@
 #include <ikarus/controlroutines/adaptivestepsizing.hh>
 #include <ikarus/controlroutines/controlinfos.hh>
 #include <ikarus/controlroutines/controlroutinebase.hh>
+#include <ikarus/controlroutines/controlroutinefactory.hh>
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
 #include <ikarus/solver/nonlinearsolver/newtonraphsonwithscalarsubsidiaryfunction.hh>
 #include <ikarus/solver/nonlinearsolver/nonlinearsolverfactory.hh>
@@ -44,6 +45,59 @@ namespace Impl {
   }
 
 } // namespace Impl
+
+template <typename NLS, typename PF, typename ASS>
+requires(Impl::checkPathFollowingTemplates<NLS, PF, ASS>())
+class PathFollowing;
+
+/**
+ * \struct PathFollowingConfig
+ * \brief Config for the Path-Following control routine
+ *
+ * \tparam PF_ the type of PathFollowing that is used (defaults to ArcLength)
+ * \tparam ASS_ the type of AdaptiveStepSizing that is used (defaults to NoOp)
+ */
+template <typename PF_ = ArcLength, typename ASS_ = AdaptiveStepSizing::NoOp>
+struct PathFollowingConfig
+{
+  using PF  = PF_;
+  using ASS = ASS_;
+
+  int steps{};
+  double stepSize{};
+  PF pathFollowingFunction{};
+  ASS adaptiveStepSizingFunction{};
+};
+
+#ifndef DOXYGEN
+PathFollowingConfig(int, double) -> PathFollowingConfig<>;
+
+template <typename PF>
+PathFollowingConfig(int, double, PF) -> PathFollowingConfig<PF>;
+
+template <typename PF, typename ASS>
+PathFollowingConfig(int, double, PF, ASS) -> PathFollowingConfig<PF, ASS>;
+
+template <typename ASS>
+PathFollowingConfig(int, double, ArcLength, ASS) -> PathFollowingConfig<ArcLength, ASS>;
+#endif
+
+/**
+ * \brief Function to create a path following instance
+ *
+ * \tparam NLS Type of the nonlinear solver
+ * \tparam PFConfig  the provided config for the path following
+ * \param config the provided config for the path following
+ * \param nonlinearSolver the provided nonlinearsolver
+ * \return PathFollowing
+ */
+template <typename NLS, typename PFConfig>
+requires traits::isSpecialization<PathFollowingConfig, std::remove_cvref_t<PFConfig>>::value
+auto createControlRoutine(PFConfig&& config, NLS&& nonlinearSolver) {
+  return PathFollowing<typename std::remove_cvref_t<NLS>::element_type, typename PFConfig::PF, typename PFConfig::ASS>(
+      std::forward<NLS>(nonlinearSolver), config.steps, config.stepSize, config.pathFollowingFunction,
+      config.adaptiveStepSizingFunction);
+}
 
 /**
  * \class PathFollowing
@@ -91,27 +145,13 @@ public:
    * \param pathFollowingType Type of the path-following function.
    * \param adaptiveStepSizing Type of the adaptive step sizing strategy.
    */
-
   PathFollowing(const std::shared_ptr<NLS>& nls, int steps, double stepSize, PF pathFollowingType = ArcLength{},
                 ASS adaptiveStepSizing = {})
-      : PathFollowing(nls, steps, stepSize, std::shared_ptr<Impl::NoAssembler>{}, pathFollowingType,
-                      adaptiveStepSizing) {}
-
-  template <typename Assembler>
-  PathFollowing(const std::shared_ptr<NLS>& nls, int steps, double stepSize, std::shared_ptr<Assembler> assembler,
-                PF pathFollowingType = ArcLength{}, ASS adaptiveStepSizing = {})
       : nonLinearSolver_{nls},
         steps_{steps},
         stepSize_{stepSize},
         pathFollowingType_{pathFollowingType},
-        adaptiveStepSizing_{adaptiveStepSizing} {
-    // register FEs to listen to NR messages
-    if constexpr (not std::is_same_v<Assembler, Impl::NoAssembler>)
-      for (auto& fe : assembler->finiteElements()) {
-        fe.template subscribeTo<NonLinearSolverMessages>(nonLinearSolver_);
-        fe.template subscribeTo<ControlMessages>(*this);
-      }
-  }
+        adaptiveStepSizing_{adaptiveStepSizing} {}
 
   /**
    * \brief Executes the PathFollowing routine.

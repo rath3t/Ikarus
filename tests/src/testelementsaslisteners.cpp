@@ -14,6 +14,7 @@
 #include <Eigen/Dense>
 
 #include <ikarus/assembler/simpleassemblers.hh>
+#include "ikarus/controlroutines/loadcontrol.hh"
 #include <ikarus/finiteelements/febase.hh>
 #include <ikarus/finiteelements/fefactory.hh>
 #include <ikarus/finiteelements/ferequirements.hh>
@@ -68,6 +69,8 @@ protected:
     } else if constexpr (std::same_as<MT, UpdateMessages>) {
       return std::make_tuple([&](UpdateMessages message, int val) { this->updateState(message, val); },
                              [&](UpdateMessages message) { this->updateState(message); });
+    } else if constexpr (std::same_as<MT, ControlMessages>) {
+      return std::make_tuple([&](ControlMessages message) { this->updateState(message); });
     } else
       static_assert(Dune::AlwaysFalse<MT>::value, "No registration for MT");
   }
@@ -114,6 +117,10 @@ protected:
   void updateState(UpdateMessages message) {
     if (message == UpdateMessages::RESET)
       counter_ = 0;
+  }
+  void updateState(ControlMessages message) {
+    if (message == ControlMessages::CONTROL_STARTED)
+      counter_ = 10;
   }
 
 private:
@@ -198,7 +205,7 @@ int main(int argc, char** argv) {
     t.check(F.sum() == counter * 8) << messageIfFailed;
   };
 
-  // Counter is zero, we havnt updated yet
+  // Counter is zero, we haven't updated yet
   checkMatrixAndVector(0, testLocation());
 
   DummyBroadcaster broadcaster(size);
@@ -219,6 +226,18 @@ int main(int argc, char** argv) {
 
   broadcaster.emitMessage(UpdateMessages::RESET);
   checkMatrixAndVector(0, testLocation());
+
+  // Now check with lc
+
+  auto linSolver = LinearSolver(SolverTypeTag::d_LDLT);
+  NewtonRaphsonConfig<decltype(linSolver)> nrConfig{.linearSolver = linSolver};
+  NonlinearSolverFactory nrFactory(nrConfig);
+  auto nr       = nrFactory.create(sparseFlatAssembler);
+  auto nonLinOp = Ikarus::NonLinearOperatorFactory::op(sparseFlatAssembler);
+  auto lc       = ControlRoutineFactory(LoadControlConfig(1, {0.0, 1.0})).create(nr, sparseFlatAssembler);
+
+  lc.notifyListeners(Ikarus::ControlMessages::CONTROL_STARTED);
+  checkMatrixAndVector(10, testLocation());
 
   return t.exit();
 }

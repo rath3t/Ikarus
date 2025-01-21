@@ -250,7 +250,11 @@ public:
 private:
   template <typename Sk, typename BC, typename MT>
   auto invokeSubscribeTo(BC& bc) {
+#if defined(__clang__)
     if constexpr (requires { this->Sk::template subscribeToImpl<MT>(); }) {
+#else
+    if constexpr (requires { Sk::template subscribeToImpl<MT>(); }) {
+#endif
       auto fTuple = Sk::template subscribeToImpl<MT>();
       Dune::Hybrid::forEach(fTuple, [&](auto& f) { this->subscribe(bc, std::move(f)); });
     }

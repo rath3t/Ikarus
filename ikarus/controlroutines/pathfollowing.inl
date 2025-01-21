@@ -28,12 +28,8 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
   this->notifyListeners(ControlMessages::CONTROL_STARTED, pathFollowingType_.name());
 
   info.totalIterations = 0;
-  subsidiaryArgs_.reset();
+  subsidiaryArgs_.setZero(nonOp.firstParameter());
   subsidiaryArgs_.stepSize = stepSize_;
-  subsidiaryArgs_.DD.resizeLike(nonOp.firstParameter());
-  subsidiaryArgs_.DD.setZero();
-  subsidiaryArgs_.dfdDD.resizeLike(nonOp.firstParameter());
-  subsidiaryArgs_.dfdDD.setZero();
 
   /// Initializing solver
   this->notifyListeners(ControlMessages::STEP_STARTED, 0, subsidiaryArgs_.stepSize);

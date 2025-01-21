@@ -14,9 +14,36 @@
 
 #include <ikarus/controlroutines/controlinfos.hh>
 #include <ikarus/controlroutines/controlroutinebase.hh>
+#include <ikarus/controlroutines/controlroutinefactory.hh>
 #include <ikarus/utils/broadcaster/broadcaster.hh>
 
 namespace Ikarus {
+
+template <typename NLS>
+class LoadControl;
+
+/**
+ * \struct LoadControlConfig
+ * \brief Config for the Load-Control control routine
+ */
+struct LoadControlConfig
+{
+  int loadSteps;
+  std::array<double, 2> tbeginEnd;
+};
+
+/**
+ * \brief Function to create a load control instance
+ *
+ * \tparam NLS Type of the nonlinear solver
+ * \param config the provided config for the load control
+ * \param nonlinearSolver the provided nonlinearsolver
+ * \return LoadControl the newly created load control instance
+ */
+template <typename NLS>
+auto createControlRoutine(const LoadControlConfig& config, NLS&& nonlinearSolver) {
+  return LoadControl(std::forward<NLS>(nonlinearSolver), config.loadSteps, config.tbeginEnd);
+}
 
 /**
  * \class LoadControl
@@ -43,9 +70,7 @@ public:
    * \param loadSteps Number of load steps in the control routine.
    * \param tbeginEnd Array representing the range of load parameters [tbegin, tend].
    */
-  template <typename Assembler = Impl::NoAssembler>
-  LoadControl(const std::shared_ptr<NLS>& nonLinearSolver, int loadSteps, const std::array<double, 2>& tbeginEnd,
-              std::shared_ptr<Assembler> assembler = {})
+  LoadControl(const std::shared_ptr<NLS>& nonLinearSolver, int loadSteps, const std::array<double, 2>& tbeginEnd)
       : nonLinearSolver_{nonLinearSolver},
         loadSteps_{loadSteps},
         parameterBegin_{tbeginEnd[0]},
@@ -56,13 +81,6 @@ public:
           nonLinearSolver_->nonLinearOperator().lastParameter() = 0.0;
           nonLinearSolver_->nonLinearOperator().lastParameter() += 0.0;
         }, "The last parameter (load factor) must be assignable and incrementable with a double!");
-
-    // register FEs to listen to NR messages
-    if constexpr (not std::is_same_v<Assembler, Impl::NoAssembler>)
-      for (auto& fe : assembler->finiteElements()) {
-        fe.template subscribeTo<NonLinearSolverMessages>(nonLinearSolver_);
-        fe.template subscribeTo<ControlMessages>(*this);
-      }
   }
 
   /**
