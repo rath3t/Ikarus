@@ -135,7 +135,7 @@ static auto NonLinearKLShellLoadControlTR() {
              .rho_reg   = 1e8,
              .Delta0    = 1});
 
-  auto lc = ControlRoutineFactory(LoadControlConfig(1, {0.0, 1.0})).create(tr, sparseAssembler);
+  auto lc = ControlRoutineFactory(LoadControlConfig(1, 0.0, 1.0)).create(tr, sparseAssembler);
 
   auto vtkWriter = ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>(basis.flat(), d, 2);
   vtkWriter.setFileNamePrefix("TestKLShell");

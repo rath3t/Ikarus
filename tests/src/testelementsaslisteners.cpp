@@ -228,13 +228,12 @@ int main(int argc, char** argv) {
   checkMatrixAndVector(0, testLocation());
 
   // Now check with lc
-
   auto linSolver = LinearSolver(SolverTypeTag::d_LDLT);
   NewtonRaphsonConfig<decltype(linSolver)> nrConfig{.linearSolver = linSolver};
   NonlinearSolverFactory nrFactory(nrConfig);
   auto nr       = nrFactory.create(sparseFlatAssembler);
   auto nonLinOp = Ikarus::NonLinearOperatorFactory::op(sparseFlatAssembler);
-  auto lc       = ControlRoutineFactory(LoadControlConfig(1, {0.0, 1.0})).create(nr, sparseFlatAssembler);
+  auto lc       = ControlRoutineFactory(LoadControlConfig(1, 0.0, 1.0)).create(nr, sparseFlatAssembler);
 
   lc.notifyListeners(Ikarus::ControlMessages::CONTROL_STARTED);
   checkMatrixAndVector(10, testLocation());

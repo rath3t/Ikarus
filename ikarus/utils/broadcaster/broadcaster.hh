@@ -16,19 +16,33 @@ namespace Ikarus {
 template <class Args>
 struct Broadcaster;
 
+/**
+ * \brief Implements a Broadcaster for a specifc function signature with return type void
+ *
+ * \tparam Args the arguments of the signature the Broadcaster can emit
+ */
 template <typename... Args>
 class Broadcaster<void(Args...)>
 {
-  using f = std::function<void(Args...)>;
+  using F = std::function<void(Args...)>;
 
-  std::vector<std::weak_ptr<f>> listeners;
+  // The functions are stored as weak pointer, therfore the Broadcaster has no ownership over them
+  std::vector<std::weak_ptr<F>> listeners;
 
 public:
-  using Token = std::shared_ptr<f>;
+  using Token = std::shared_ptr<F>;
 
-  // Register a listener
-  Token registerListener(f target) {
-    auto sp = std::make_shared<f>(std::move(target));
+  /**
+   * \brief This method is used to register a Listener function.
+   * \details The function that is passed in is first stored in a shared_ptr. After this, the shared_ptr is added to the
+   * vector of listener functions, which leads to a implicit conversion to a weak_ptr. The shared_ptr is then returned
+   * to the Listener that has called this function to be stored in a vector of shared_ptr<void> \ref listener.hh.
+   *
+   * \param target
+   * \return Token
+   */
+  Token registerListener(F f) {
+    auto sp = std::make_shared<F>(std::move(f));
     listeners.push_back(sp);
     return sp;
   }
@@ -36,13 +50,9 @@ public:
   // Unregister a listener
   void unregisterListener(Token&& t) { t = nullptr; }
 
-  // Remove expired listeners
-  void trim() {
-    listeners.erase(std::remove_if(listeners.begin(), listeners.end(), [](auto& p) { return p.expired(); }),
-                    listeners.end());
-  }
-
-  // Notify all listeners
+  /**
+   * \brief This calles all the functions of the listeners.
+   */
   void notifyListeners(Args... args) {
     trim();
     for (auto& w : listeners) {
@@ -50,6 +60,13 @@ public:
         (*p)(args...);
       }
     }
+  }
+
+private:
+  // Remove expired listeners, we need that because the weak pointers could already be invalidated (i.e. refcount == 0)
+  void trim() {
+    listeners.erase(std::remove_if(listeners.begin(), listeners.end(), [](auto& p) { return p.expired(); }),
+                    listeners.end());
   }
 };
 

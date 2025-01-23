@@ -261,6 +261,14 @@ private:
   }
 
 public:
+  /**
+   * \brief Subscribes the elements to listen to functions provided from the skills emitted by the given broadcaster
+   *
+   * \tparam MT the message type (for example NonlinerSolverMessages or ControlMessages)
+   * \tparam BC the type of the broadcaster
+   * \param bc the broadcaster (for example a nonlinearsolver or control routine)
+   * \return auto
+   */
   template <typename MT, typename BC>
   auto subscribeTo(BC& bc) {
     (invokeSubscribeTo<Skills<PreFE, typename PreFE::template FE<Skills...>>, BC, MT>(bc), ...);

@@ -29,7 +29,8 @@ class LoadControl;
 struct LoadControlConfig
 {
   int loadSteps;
-  std::array<double, 2> tbeginEnd;
+  double tbegin;
+  double tEnd;
 };
 
 /**
@@ -42,7 +43,7 @@ struct LoadControlConfig
  */
 template <typename NLS>
 auto createControlRoutine(const LoadControlConfig& config, NLS&& nonlinearSolver) {
-  return LoadControl(std::forward<NLS>(nonlinearSolver), config.loadSteps, config.tbeginEnd);
+  return LoadControl(std::forward<NLS>(nonlinearSolver), config.loadSteps, std::array{config.tbegin, config.tEnd});
 }
 
 /**
@@ -57,7 +58,6 @@ auto createControlRoutine(const LoadControlConfig& config, NLS&& nonlinearSolver
  */
 template <typename NLS>
 class LoadControl : public ControlRoutineBase
-
 {
 public:
   /** \brief The name of the LoadControl method. */

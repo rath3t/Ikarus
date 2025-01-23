@@ -177,7 +177,6 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
   //     "nonLinearSolverObserver should have failed for the END message");
 
   /// Create Observer which writes vtk files when control routines messages
-  /// SOLUTION_CHANGED
   auto vtkWriter = ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>(basis.flat(), d, 2);
   vtkWriter.setFieldInfo("displacement", Dune::VTK::FieldInfo::Type::vector, 3);
   vtkWriter.setFileNamePrefix("testAdaptiveStepSizing" + pft.name());
@@ -186,8 +185,7 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
   pathFollowingObserver.subscribeTo(crWoSS);
   vtkWriter.subscribeTo(crWoSS);
 
-  // TODO How to unregister?
-  // crWoSS.unSubscribeAll(vtkWriter);
+  vtkWriter.unSubscribeAll();
   pathFollowingObserver.subscribeTo(crWSS);
 
   // crWSS.subscribe(ControlMessages::SOLUTION_CHANGED, vtkWriter);

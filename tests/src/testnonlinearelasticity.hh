@@ -109,7 +109,7 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
   vtkWriter.setFileNamePrefix("Test2DSolid");
   vtkWriter.setFieldInfo("Displacement", Dune::VTK::FieldInfo::Type::vector, 2);
 
-  auto lc = ControlRoutineFactory(LoadControlConfig(1, {0, 50})).create(tr, sparseAssembler);
+  auto lc = ControlRoutineFactory(LoadControlConfig(1, 0, 50)).create(tr, sparseAssembler);
   vtkWriter.subscribeTo(lc);
 
   const auto controlInfo = lc.run();
