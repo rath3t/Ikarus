@@ -16,7 +16,7 @@ namespace Ikarus {
  * \brief A factory class for creating control routines
  *
  * \details This class is responsible for creating control routines using the provided config and an assembler.
- * The assembler is used to register the finite elements to the broadcaster messenges from the solver and the
+ * The assembler is used to register the finite elements to the broadcaster messages from the solver and the
  * control routine.
  *
  * \tparam CRConfig The Type of the config
@@ -33,12 +33,12 @@ struct ControlRoutineFactory
       : config_(config) {}
 
   /**
-   * \brief Creates the control routine and registering the elements to the broadcaster messenges from the solver and
+   * \brief Creates the control routine and registering the elements to the broadcaster messages from the solver and
    * the control routine.
    *
    * \tparam NLS the type of the nonlinear solver used by the control routine
-   * \tparam Assembler the type of the assembler. It has to be a pointer and statisfy the FlatAssembler conncept
-   * \param nonlinearSolver the nonlinenar sovler
+   * \tparam Assembler the type of the assembler. It has to be a pointer and satisfy the FlatAssembler conncept
+   * \param nonlinearSolver the nonlinear solver
    * \param assembler the assembler
    * \return The control routine
    */
