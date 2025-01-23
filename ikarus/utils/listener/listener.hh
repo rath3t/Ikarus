@@ -17,7 +17,7 @@ namespace Ikarus {
 /**
  * \brief
  * \details The functions that the listener is listening to are stored in a vector of shared_ptr<void>. This type
- * erasure has the advantage that we can listen to different function signatures and the Listener not beeing a template.
+ * erasure has the advantage that we can listen to different function signatures and the Listener not being a template.
  * This works, because the deleter of the stored objects is not bound to the type information and thus there are no
  * memory leaks possible.
  *
@@ -63,7 +63,7 @@ struct Listener
   }
 
   /**
-   * \brief Unsubscribe from all listeners. At the moment unsubscibing can't be done more granularly.
+   * \brief Unsubscribe from all listeners. At the moment unsubscribing can't be done more granularly.
    */
   void unSubscribeAll() { t.clear(); }
 

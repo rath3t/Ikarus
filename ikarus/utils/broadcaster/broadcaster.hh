@@ -17,16 +17,16 @@ template <class Args>
 struct Broadcaster;
 
 /**
- * \brief Implements a Broadcaster for a specifc function signature with return type void
+ * \brief Implements a Broadcaster for a specific function signature with return type void.
  *
- * \tparam Args the arguments of the signature the Broadcaster can emit
+ * \tparam Args the arguments of the signature the Broadcaster can emit.
  */
 template <typename... Args>
 class Broadcaster<void(Args...)>
 {
   using F = std::function<void(Args...)>;
 
-  // The functions are stored as weak pointer, therfore the Broadcaster has no ownership over them
+  // The functions are stored as weak pointer, therefore the Broadcaster has no ownership over them.
   std::vector<std::weak_ptr<F>> listeners;
 
 public:
@@ -51,7 +51,7 @@ public:
   void unregisterListener(Token&& t) { t = nullptr; }
 
   /**
-   * \brief This calles all the functions of the listeners.
+   * \brief This calls all the registered functions.
    */
   void notifyListeners(Args... args) {
     trim();
@@ -63,16 +63,21 @@ public:
   }
 
 private:
-  // Remove expired listeners, we need that because the weak pointers could already be invalidated (i.e. refcount == 0)
+  // Remove expired listeners, we need that because the weak pointers could already be invalidated (i.e. refcount == 0).
   void trim() {
     listeners.erase(std::remove_if(listeners.begin(), listeners.end(), [](auto& p) { return p.expired(); }),
                     listeners.end());
   }
 };
 
-// BasicBroadcaster for multiple message types
+/**
+ * \brief Fuses together multiple function signatures that can be emitted by one broadcaster. A broadcaster has to be a
+ * derived class of this class.
+ *
+ * \tparam Signatures
+ */
 template <typename... Signatures>
-class BasicBroadcaster : public Broadcaster<Signatures>...
+class Broadcasters : public Broadcaster<Signatures>...
 {
 public:
   using Broadcaster<Signatures>::registerListener...;
@@ -91,8 +96,5 @@ public:
     return *this;
   }
 };
-
-template <class... Signatures>
-using Broadcasters = BasicBroadcaster<Signatures...>;
 
 } // namespace Ikarus
