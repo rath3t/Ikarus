@@ -250,6 +250,8 @@ public:
 private:
   template <typename Sk, typename BC, typename MT>
   auto invokeSubscribeTo(BC& bc) {
+    // For Clang-16: we need the this-> otherwise the code in the if clause will never be called. For Gcc-12.2: with the
+    // this-> it throws a compiler error in certain cases
 #if defined(__clang__)
     if constexpr (requires { this->Sk::template subscribeToImpl<MT>(); }) {
 #else

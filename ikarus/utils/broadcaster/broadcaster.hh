@@ -53,7 +53,7 @@ public:
   /**
    * \brief This calls all the registered functions.
    */
-  void notifyListeners(Args... args) {
+  void notify(Args... args) {
     trim();
     for (auto& w : listeners) {
       if (auto p = w.lock()) {
@@ -82,7 +82,7 @@ class Broadcasters : public Broadcaster<Signatures>...
 public:
   using Broadcaster<Signatures>::registerListener...;
   using Broadcaster<Signatures>::unregisterListener...;
-  using Broadcaster<Signatures>::notifyListeners...;
+  using Broadcaster<Signatures>::notify...;
 
   // Access a specific broadcaster for a given message type
   template <typename M>

@@ -223,7 +223,7 @@ public:
   template <typename SolutionType = NoPredictor>
   requires std::is_same_v<SolutionType, NoPredictor> || std::is_convertible_v<SolutionType, CorrectionType>
   NonLinearSolverInformation solve(const SolutionType& dxPredictor = NoPredictor{}) {
-    this->notifyListeners(NonLinearSolverMessages::INIT);
+    this->notify(NonLinearSolverMessages::INIT);
     stats_ = Stats{};
     info_  = AlgoInfo{};
 
@@ -243,7 +243,7 @@ public:
         "InnerBreakReason");
     spdlog::info("{:-^143}", "-");
     while (not stoppingCriterion()) {
-      this->notifyListeners(NonLinearSolverMessages::ITERATION_STARTED);
+      this->notify(NonLinearSolverMessages::ITERATION_STARTED);
       if (settings_.useRand) {
         if (stats_.outerIter == 0) {
           eta_.setRandom();
@@ -378,21 +378,21 @@ public:
 
       info_.randomPredictionString = "";
 
-      this->notifyListeners(NonLinearSolverMessages::CORRECTION_UPDATED, x, eta_);
+      this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, eta_);
       if (info_.acceptProposal) {
         stats_.energy = stats_.energyProposal;
         nonLinearOperator_.updateAll();
         xOld_ = x;
-        this->notifyListeners(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, stats_.etaNorm);
-        this->notifyListeners(NonLinearSolverMessages::RESIDUALNORM_UPDATED, stats_.gradNorm);
-        this->notifyListeners(NonLinearSolverMessages::SOLUTION_CHANGED);
+        this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, stats_.etaNorm);
+        this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, stats_.gradNorm);
+        this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
       } else {
         x = xOld_;
         eta_.setZero();
       }
       nonLinearOperator_.updateAll();
       stats_.gradNorm = gradient().norm();
-      this->notifyListeners(NonLinearSolverMessages::ITERATION_ENDED);
+      this->notify(NonLinearSolverMessages::ITERATION_ENDED);
     }
     spdlog::info("{}", info_.reasonString);
     spdlog::info("Total iterations: {} Total CG Iterations: {}", stats_.outerIter, stats_.innerIterSum);
@@ -403,7 +403,7 @@ public:
     solverInformation.iterations   = stats_.outerIter;
     solverInformation.residualNorm = stats_.gradNorm;
     if (solverInformation.success)
-      this->notifyListeners(NonLinearSolverMessages::FINISHED_SUCESSFULLY, solverInformation.iterations);
+      this->notify(NonLinearSolverMessages::FINISHED_SUCESSFULLY, solverInformation.iterations);
     return solverInformation;
   }
   /**

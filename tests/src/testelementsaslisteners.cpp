@@ -62,9 +62,7 @@ protected:
     if constexpr (std::same_as<MT, NonLinearSolverMessages>) {
       return std::make_tuple([&](NonLinearSolverMessages message, Eigen::VectorXd& vec,
                                  const std::remove_reference_t<typename Traits::template VectorType<>>& dx) {
-        auto req = Requirement();
-        req.insertGlobalSolution(vec);
-        this->updateState(message, req, dx);
+        this->updateState(message, vec, dx);
       });
     } else if constexpr (std::same_as<MT, UpdateMessages>) {
       return std::make_tuple([&](UpdateMessages message, int val) { this->updateState(message, val); },
@@ -101,7 +99,7 @@ protected:
   auto calculateAtImpl(const Requirement& req, [[maybe_unused]] const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<0>) const {}
 
-  void updateState(NonLinearSolverMessages message, const Requirement& par,
+  void updateState(NonLinearSolverMessages message, Eigen::VectorXd& vec,
                    const std::remove_reference_t<typename Traits::template VectorType<>>& correction) {
     // We are hijacking the NLSolverMessages here to get either increment the counter or reset it to zero
     if (message == NonLinearSolverMessages::FINISHED_SUCESSFULLY)
@@ -140,9 +138,9 @@ inline auto dummySkill() {
 struct DummyBroadcaster : public Broadcasters<void(NonLinearSolverMessages, Eigen::VectorXd&, const Eigen::VectorXd&),
                                               void(UpdateMessages, int), void(UpdateMessages)>
 {
-  void emitMessage(NonLinearSolverMessages message) { this->notifyListeners(message, x_, dx_); }
-  void emitMessage(UpdateMessages message, int val) { this->notifyListeners(message, val); }
-  void emitMessage(UpdateMessages message) { this->notifyListeners(message); }
+  void emitMessage(NonLinearSolverMessages message) { this->notify(message, x_, dx_); }
+  void emitMessage(UpdateMessages message, int val) { this->notify(message, val); }
+  void emitMessage(UpdateMessages message) { this->notify(message); }
 
   DummyBroadcaster(size_t size)
       : size_(size) {
@@ -229,13 +227,13 @@ int main(int argc, char** argv) {
 
   // Now check with lc
   auto linSolver = LinearSolver(SolverTypeTag::d_LDLT);
-  NewtonRaphsonConfig<decltype(linSolver)> nrConfig{.linearSolver = linSolver};
+  NewtonRaphsonConfig nrConfig({}, linSolver);
   NonlinearSolverFactory nrFactory(nrConfig);
   auto nr       = nrFactory.create(sparseFlatAssembler);
   auto nonLinOp = Ikarus::NonLinearOperatorFactory::op(sparseFlatAssembler);
   auto lc       = ControlRoutineFactory(LoadControlConfig(1, 0.0, 1.0)).create(nr, sparseFlatAssembler);
 
-  lc.notifyListeners(Ikarus::ControlMessages::CONTROL_STARTED);
+  lc.notify(Ikarus::ControlMessages::CONTROL_STARTED);
   checkMatrixAndVector(10, testLocation());
 
   return t.exit();

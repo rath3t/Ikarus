@@ -30,6 +30,9 @@ template <typename Derived>
 struct EigenBase;
 }
 
+template <typename T>
+concept EigenType = std::is_base_of_v<Eigen::MatrixBase<std::decay_t<T>>, std::decay_t<T>>;
+
 namespace Ikarus {
 
 template <typename Derived>

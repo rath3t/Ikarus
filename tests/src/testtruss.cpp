@@ -114,8 +114,7 @@ static auto vonMisesTrussTest() {
   /// Choose linear solver
   auto linSolver = LinearSolver(SolverTypeTag::d_LDLT);
 
-  NewtonRaphsonConfig<decltype(linSolver)> nrConfig{.linearSolver = linSolver};
-
+  NewtonRaphsonConfig nrConfig({}, linSolver);
   NonlinearSolverFactory nrFactory(nrConfig);
   auto nr = nrFactory.create(denseFlatAssembler);
 

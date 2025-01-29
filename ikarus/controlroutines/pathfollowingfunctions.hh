@@ -45,7 +45,7 @@ struct SubsidiaryArgs
   double dfdDlambda;            ///< The derivative of the subsidiary function with respect to Dlambda.
   int currentStep;              ///< The current step index in the control routine.
 
-  void setZero(const auto& firstParameter) {
+  void setZero(const EigenType auto& firstParameter) {
     stepSize = 0.0;
     DD.resizeLike(firstParameter);
     DD.setZero();

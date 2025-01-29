@@ -167,15 +167,6 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
       NonLinearSolverLogger().subscribeTo(crWSS.nonlinearSolver()).subscribeTo(crWoSS.nonlinearSolver());
   auto pathFollowingObserver = ControlLogger();
 
-  // TODO We lost this functionality, we could of course re-enable it somewhere
-  // t.checkThrow<Dune::InvalidStateException>(
-  //     [&]() { nonLinearSolverObserver->update(Ikarus::NonLinearSolverMessages::BEGIN); },
-  //     "nonLinearSolverObserver should have failed for the BEGIN message");
-
-  // t.checkThrow<Dune::InvalidStateException>(
-  //     [&]() { nonLinearSolverObserver->update(Ikarus::NonLinearSolverMessages::END); },
-  //     "nonLinearSolverObserver should have failed for the END message");
-
   /// Create Observer which writes vtk files when control routines messages
   auto vtkWriter = ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>(basis.flat(), d, 2);
   vtkWriter.setFieldInfo("displacement", Dune::VTK::FieldInfo::Type::vector, 3);
