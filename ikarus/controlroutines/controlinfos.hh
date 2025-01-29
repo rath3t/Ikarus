@@ -8,7 +8,6 @@
  */
 
 #pragma once
-
 #include <vector>
 
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
@@ -26,11 +25,5 @@ struct ControlInformation
       solverInfos{};      ///< Vector containing information from nonlinear solvers.
   int totalIterations{0}; ///< Total number of iterations performed.
 };
-
-namespace Impl {
-  struct NoAssembler
-  {
-  };
-} // namespace Impl
 
 } // namespace Ikarus
