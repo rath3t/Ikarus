@@ -171,7 +171,9 @@ public:
       "The solve method returns information of the solution process. You should store this information and check if "
       "it was successful")]] Ikarus::NonLinearSolverInformation
   solve(const SolutionType& dxPredictor = NoPredictor{}) {
-    this->notify(NonLinearSolverMessages::INIT);
+    using enum NonLinearSolverMessages;
+
+    this->notify(INIT);
     Ikarus::NonLinearSolverInformation solverInformation;
     solverInformation.success = true;
     auto& x                   = nonLinearOperator().firstParameter();
@@ -186,7 +188,7 @@ public:
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
     while ((rNorm > settings_.tol && iter < settings_.maxIter) or iter < settings_.minIter) {
-      this->notify(NonLinearSolverMessages::ITERATION_STARTED);
+      this->notify(ITERATION_STARTED);
       if constexpr (isLinearSolver) {
         linearSolver_.factorize(Ax);
         linearSolver_.solve(correction_, -rx);
@@ -197,13 +199,13 @@ public:
         dNorm       = norm(correction_);
         updateFunction_(x, correction_);
       }
-      this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, correction_);
-      this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
-      this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
+      this->notify(CORRECTION_UPDATED, x, correction_);
+      this->notify(CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
+      this->notify(SOLUTION_CHANGED);
       nonLinearOperator().updateAll();
       rNorm = norm(rx);
-      this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, static_cast<double>(rNorm));
-      this->notify(NonLinearSolverMessages::ITERATION_ENDED);
+      this->notify(RESIDUALNORM_UPDATED, static_cast<double>(rNorm));
+      this->notify(ITERATION_ENDED);
       ++iter;
     }
     if (iter == settings_.maxIter)
@@ -212,7 +214,7 @@ public:
     solverInformation.residualNorm   = static_cast<double>(rNorm);
     solverInformation.correctionNorm = static_cast<double>(dNorm);
     if (solverInformation.success)
-      this->notify(NonLinearSolverMessages::FINISHED_SUCESSFULLY, iter);
+      this->notify(FINISHED_SUCESSFULLY, iter);
     return solverInformation;
   }
 

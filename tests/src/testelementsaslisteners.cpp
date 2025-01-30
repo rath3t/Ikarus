@@ -236,5 +236,11 @@ int main(int argc, char** argv) {
   lc.notify(Ikarus::ControlMessages::CONTROL_STARTED);
   checkMatrixAndVector(10, testLocation());
 
+  // Set to 2 and then unsubscribe, then set to 4, but it should still be 2
+  broadcaster.emitMessage(UpdateMessages::INCREMENT, 2);
+  fe.unSubscribeAll();
+  broadcaster.emitMessage(UpdateMessages::INCREMENT, 4);
+  checkMatrixAndVector(2, testLocation());
+
   return t.exit();
 }

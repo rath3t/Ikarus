@@ -23,24 +23,26 @@ namespace Ikarus {
 template <typename NLS, typename PF, typename ASS>
 requires(Impl::checkPathFollowingTemplates<NLS, PF, ASS>())
 ControlInformation PathFollowing<NLS, PF, ASS>::run() {
+  using enum ControlMessages;
+
   ControlInformation info;
   auto& nonOp = nonLinearSolver_->nonLinearOperator();
-  this->notify(ControlMessages::CONTROL_STARTED, pathFollowingType_.name());
+  this->notify(CONTROL_STARTED, pathFollowingType_.name());
 
   info.totalIterations = 0;
   subsidiaryArgs_.setZero(nonOp.firstParameter());
   subsidiaryArgs_.stepSize = stepSize_;
 
   /// Initializing solver
-  this->notify(ControlMessages::STEP_STARTED, 0, subsidiaryArgs_.stepSize);
+  this->notify(STEP_STARTED, 0, subsidiaryArgs_.stepSize);
   pathFollowingType_.initialPrediction(nonOp, subsidiaryArgs_);
   auto solverInfo = nonLinearSolver_->solve(pathFollowingType_, subsidiaryArgs_);
   info.solverInfos.push_back(solverInfo);
   info.totalIterations += solverInfo.iterations;
   if (not solverInfo.success)
     return info;
-  this->notify(ControlMessages::SOLUTION_CHANGED);
-  this->notify(ControlMessages::STEP_ENDED);
+  this->notify(SOLUTION_CHANGED);
+  this->notify(STEP_ENDED);
 
   /// Calculate predictor for a particular step
   for (int ls = 1; ls < steps_; ++ls) {
@@ -48,7 +50,7 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
 
     adaptiveStepSizing_(solverInfo, subsidiaryArgs_, nonOp);
 
-    this->notify(ControlMessages::STEP_STARTED, subsidiaryArgs_.currentStep, subsidiaryArgs_.stepSize);
+    this->notify(STEP_STARTED, subsidiaryArgs_.currentStep, subsidiaryArgs_.stepSize);
 
     pathFollowingType_.intermediatePrediction(nonOp, subsidiaryArgs_);
 
@@ -58,11 +60,11 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
     info.totalIterations += solverInfo.iterations;
     if (not solverInfo.success)
       return info;
-    this->notify(ControlMessages::SOLUTION_CHANGED);
-    this->notify(ControlMessages::STEP_ENDED);
+    this->notify(SOLUTION_CHANGED);
+    this->notify(STEP_ENDED);
   }
 
-  this->notify(ControlMessages::CONTROL_ENDED, info.totalIterations, pathFollowingType_.name());
+  this->notify(CONTROL_ENDED, info.totalIterations, pathFollowingType_.name());
   info.success = true;
   return info;
 }
