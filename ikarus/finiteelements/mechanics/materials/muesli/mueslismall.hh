@@ -32,12 +32,13 @@ template <typename SM = muesli::elasticIsotropicMaterial>
 requires(std::is_base_of_v<muesli::smallStrainMaterial, SM>)
 struct SmallStrain : public Material<SmallStrain<SM>>
 {
-  using MaterialModel                 = SM;
-  using ScalarType                    = double;
-  static constexpr int worldDimension = 3;
-  using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
-  using StressMatrix                  = StrainMatrix;
-  using MaterialParameters            = muesli::materialProperties;
+  using MaterialModel      = SM;
+  using ScalarType         = double;
+  static constexpr int dim = 3;
+  using StrainMatrix       = Eigen::Matrix<ScalarType, dim, dim>;
+  using StressMatrix       = StrainMatrix;
+  using MaterialTensor     = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>>;
+  using MaterialParameters = muesli::materialProperties;
 
   static constexpr auto strainTag              = StrainTags::linear;
   static constexpr auto stressTag              = StressTags::linear;

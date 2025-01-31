@@ -38,7 +38,7 @@ auto compareIkarusAndMuesli(const MuesliMAT& muesliMat, const IkarusMAT& ikarusM
       return transformStrain<Ikarus::StrainTags::rightCauchyGreenTensor, strainTag>(cc).eval();
   }();
 
-  auto tol = isPlaneStress<IkarusMAT> ? 1e-8 : 1e-14;
+  auto tol = Testing::isPlaneStress<IkarusMAT> ? 1e-8 : 1e-14;
 
   auto energy_muesli = muesliMat.template storedEnergy<strainTag>(c);
   auto stress_muesli = muesliMat.template stresses<strainTag>(c);

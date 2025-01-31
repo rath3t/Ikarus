@@ -13,20 +13,21 @@
 
 #include <ikarus/finiteelements/feresulttypes.hh>
 #include <ikarus/finiteelements/mechanics/linearelastic.hh>
-#include <ikarus/finiteelements/mechanics/materials/muesli/mueslimaterials.hh>
+#if ENABLE_MUESLI
+  #include <ikarus/finiteelements/mechanics/materials/muesli/mueslimaterials.hh>
+#endif
 #include <ikarus/io/resultevaluators.hh>
 #include <ikarus/utils/init.hh>
 
 using Dune::TestSuite;
 
 int main(int argc, char** argv) {
+  Ikarus::init(argc, argv);
+  TestSuite t("LinearElasticity");
+
   using namespace Ikarus;
   using namespace ResultTypes;
   using namespace ResultEvaluators;
-
-  init(argc, argv);
-  TestSuite t("LinearElasticity");
-
   using namespace Dune::Functions::BasisFactory;
   using namespace Ikarus::Materials;
 
@@ -45,12 +46,12 @@ int main(int argc, char** argv) {
   };
 #if ENABLE_MUESLI
   auto linearElasticFuncPlaneStress_Muesli = [](const Ikarus::YoungsModulusAndPoissonsRatio& parameter) {
-    Ikarus::LinearElasticity lin(Ikarus::toLamesFirstParameterAndShearModulus(parameter));
-    auto linPS = Ikarus::planeStress(lin);
+    auto lin   = makeMuesliLinearElasticity(parameter);
+    auto linPS = planeStress(lin);
     return Ikarus::linearElastic(linPS);
   };
   auto linearElasticFunc3D_Muesli = [](const Ikarus::YoungsModulusAndPoissonsRatio& parameter) {
-    auto lin = Ikarus::Materials::makeMuesliLinearElasticity(parameter);
+    auto lin = makeMuesliLinearElasticity(parameter);
     return Ikarus::linearElastic(lin);
   };
 #endif

@@ -250,11 +250,10 @@ int main(int argc, char** argv) {
   auto nhRed8 = makeVanishingStrain<MatrixIndexPair{1, 1}, MatrixIndexPair{2, 2}>(nh);
   t.subTest(testMaterial(nhRed8));
 
-
   // Hyperelasticity
-  auto K      = convertLameConstants(matPar).toBulkModulus();
-  auto mu     = matPar.mu;
-  auto lambda = matPar.lambda;
+  double mu     = matPar.mu;
+  double lambda = matPar.lambda;
+  double K      = convertLameConstants(matPar).toBulkModulus();
 
   // Material parameters (example values)
   std::array<double, 1> mu_og    = {mu};
@@ -279,17 +278,12 @@ int main(int argc, char** argv) {
   t.subTest(testMaterial(psOgden));
   t.subTest(testMaterial(pstOgden));
 
-
-  auto muesliLin = Materials::MuesliElastic(matPar);
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::linear, LinearElasticity>());
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::greenLagrangian, StVenantKirchhoff>());
   t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::rightCauchyGreenTensor, NeoHooke>());
 
 #if ENABLE_MUESLI
   // Muesli
-  auto K  = convertLameConstants(matPar).toBulkModulus();
-  auto mu = convertLameConstants(matPar).toShearModulus();
-
   auto muesliLin = Materials::makeMuesliLinearElasticity(matPar);
   t.subTest(testMaterial(muesliLin));
 

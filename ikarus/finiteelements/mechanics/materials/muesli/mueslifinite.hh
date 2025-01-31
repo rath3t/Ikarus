@@ -33,12 +33,13 @@ template <typename FM>
 requires(std::is_base_of_v<muesli::finiteStrainMaterial, FM>)
 struct FiniteStrain : public Material<FiniteStrain<FM>>
 {
-  using MaterialModel                 = FM;
-  using ScalarType                    = double;
-  static constexpr int worldDimension = 3;
-  using StrainMatrix                  = Eigen::Matrix<ScalarType, worldDimension, worldDimension>;
-  using StressMatrix                  = StrainMatrix;
-  using MaterialParameters            = muesli::materialProperties;
+  using MaterialModel      = FM;
+  using ScalarType         = double;
+  static constexpr int dim = 3;
+  using StrainMatrix       = Eigen::Matrix<ScalarType, dim, dim>;
+  using StressMatrix       = StrainMatrix;
+  using MaterialTensor     = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>>;
+  using MaterialParameters = muesli::materialProperties;
 
   static constexpr auto strainTag              = StrainTags::rightCauchyGreenTensor;
   static constexpr auto stressTag              = StressTags::PK2;

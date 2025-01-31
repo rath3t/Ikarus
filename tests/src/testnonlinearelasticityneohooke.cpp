@@ -19,8 +19,8 @@ int main(int argc, char** argv) {
   auto matParameter1 = toLamesFirstParameterAndShearModulus({.emodul = 1000, .nu = 0.3});
   auto matParameter2 = toLamesFirstParameterAndShearModulus({.emodul = 1000, .nu = 0.0});
 
-  NeoHooke matNH1(matParameter1);
-  NeoHooke matNH2(matParameter2);
+  Materials::NeoHooke matNH1(matParameter1);
+  Materials::NeoHooke matNH2(matParameter2);
   auto matNH1M = Materials::makeMuesliNeoHooke(matParameter1, false);
 
   auto planeStressMat1 = planeStress(matNH1, 1e-8);

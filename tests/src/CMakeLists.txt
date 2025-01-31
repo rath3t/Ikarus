@@ -40,7 +40,6 @@ set(programSourceFiles
     testvtkwriter.cpp
     testhyperelasticity.cpp
     testmaterialswithad.cpp
-    testmueslimaterial.cpp
     testmaterialswithmuesli.cpp
 )
 
