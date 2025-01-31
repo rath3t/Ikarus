@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
 
   t.subTest(compareIkarusAndMuesli<StrainTags::linear>(linm, lin));
 
-  auto nhm = makeNeoHooke(matPar, false);
+  auto nhm = makeMuesliNeoHooke(matPar, false);
   auto nh  = NeoHooke(matPar);
 
   t.subTest(compareIkarusAndMuesli<StrainTags::rightCauchyGreenTensor>(nhm, nh));
@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
   t.subTest(compareIkarusAndMuesli<StrainTags::greenLagrangian>(nhm, nh));
 
   auto svk  = StVenantKirchhoff(matPar);
-  auto svkm = makeSVK(matPar);
+  auto svkm = makeMuesliSVK(matPar);
 
   t.subTest(compareIkarusAndMuesli<StrainTags::rightCauchyGreenTensor>(svkm, svk));
   t.subTest(compareIkarusAndMuesli<StrainTags::deformationGradient>(svkm, svk));
@@ -122,9 +122,9 @@ int main(int argc, char** argv) {
   t.subTest(checkConstructors<FiniteStrain<muesli::svkMaterial>>(matProp));
   t.subTest(checkConstructors<SmallStrain<muesli::elasticIsotropicMaterial>>(matProp));
 
-  makeNeoHooke(YoungsModulusAndBulkModulus{1000, 500});
-  makeNeoHooke(YoungsModulusAndPoissonsRatio{1000, 0.2});
-  makeSVK(YoungsModulusAndLamesFirstParameter{1000, 500});
+  makeMuesliNeoHooke(YoungsModulusAndBulkModulus{1000, 500});
+  makeMuesliNeoHooke(YoungsModulusAndPoissonsRatio{1000, 0.2});
+  makeMuesliSVK(YoungsModulusAndLamesFirstParameter{1000, 500});
 
   t.check(svkm.name() == "FiniteStrain: SvkMaterial");
   t.check(nhm.name() == "FiniteStrain: NeohookeanMaterial");

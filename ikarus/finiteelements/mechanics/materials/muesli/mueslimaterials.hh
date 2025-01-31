@@ -27,7 +27,7 @@ namespace Ikarus::Materials {
  * \return auto the constructed material properties.
  */
 template <Concepts::MPTuple MPT>
-inline auto makeLinearElasticity(const MPT& mpt) {
+inline auto makeMuesliLinearElasticity(const MPT& mpt) {
   auto muesliParameters = propertiesFromIkarusMaterialParameters(mpt);
   return SmallStrain<muesli::elasticIsotropicMaterial>(muesliParameters);
 }
@@ -41,7 +41,7 @@ inline auto makeLinearElasticity(const MPT& mpt) {
  * \return auto the constructed material.
  */
 template <Concepts::MPTuple MPT>
-inline auto makeNeoHooke(const MPT& mpt, bool useDeviatoricStretches = false) {
+inline auto makeMuesliNeoHooke(const MPT& mpt, bool useDeviatoricStretches = false) {
   auto muesliParameters = propertiesFromIkarusMaterialParameters(mpt);
   if (useDeviatoricStretches)
     addTag(muesliParameters, "subtype regularized");
@@ -56,7 +56,7 @@ inline auto makeNeoHooke(const MPT& mpt, bool useDeviatoricStretches = false) {
  * \return auto the constructed material.
  */
 template <Concepts::MPTuple MPT>
-inline auto makeSVK(const MPT& mpt) {
+inline auto makeMuesliSVK(const MPT& mpt) {
   auto muesliParameters = propertiesFromIkarusMaterialParameters(mpt);
   return FiniteStrain<muesli::svkMaterial>(muesliParameters);
 }
@@ -70,7 +70,7 @@ inline auto makeSVK(const MPT& mpt) {
  * \param compressible tells the material to use the compressible version of ArrudaBoyce.
  * \return auto the constructed material.
  */
-inline auto makeArrudaBoyce(double C1, double lambda_m, double K, bool compressible = true) {
+inline auto makeMuesliArrudaBoyce(double C1, double lambda_m, double K, bool compressible = true) {
   auto muesliParameters = muesli::materialProperties{};
   muesliParameters.insert({"c1", C1});
   muesliParameters.insert({"lambdam", lambda_m});
@@ -88,7 +88,7 @@ inline auto makeArrudaBoyce(double C1, double lambda_m, double K, bool compressi
  * \param compressible tells the material to use the compressible version of Yeoh.
  * \return auto the constructed material.
  */
-inline auto makeYeoh(std::array<double, 3> C, double K, bool compressible = true) {
+inline auto makeMuesliYeoh(std::array<double, 3> C, double K, bool compressible = true) {
   auto muesliParameters = muesli::materialProperties{};
   muesliParameters.insert({"c1", C[0]});
   muesliParameters.insert({"c2", C[1]});

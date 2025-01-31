@@ -367,21 +367,31 @@ if __name__ == "__main__":
     checkVoigtTransformations()
     checkMaterialConstructors()
 
-    # mm1 = materials.muesliMaterial(materials.MuesliSmallStrain.LinearElasticity, E=100, nu=0.2)
-    # mm2 = materials.muesliMaterial(materials.MuesliFiniteStrain.StVenantKirchhoff, E=100, Lambda=500)
+    mm1 = materials.muesliMaterial(
+        materials.MuesliSmallStrain.elasticIsotropicMaterial, E=100, nu=0.2
+    )
+    mm2 = materials.muesliMaterial(
+        materials.MuesliFiniteStrain.svkMaterial, E=100, Lambda=500
+    )
+    mm2 = materials.muesliMaterial(
+        materials.MuesliFiniteStrain.neohookeanMaterial, E=100, Lambda=500
+    )
     mm3 = materials.muesliMaterial(
-        materials.MuesliFiniteStrain.MooneyRivlin, alpha=[0.2, 0.3, 0.4]
+        materials.MuesliFiniteStrain.mooneyMaterial, alpha=[0.2, 0.3, 0.4]
     )
     mm4 = materials.muesliMaterial(
-        materials.MuesliFiniteStrain.MooneyRivlin,
+        materials.MuesliFiniteStrain.mooneyMaterial,
         alpha=[0.2, 0.3, 0.4],
         incompressible=True,
     )
     mm5 = materials.muesliMaterial(
-        materials.MuesliFiniteStrain.ArrudaBoyce, C1=500, lambda_m=200, K=200
+        materials.MuesliFiniteStrain.arrudaboyceMaterial, C1=500, lambda_m=200, K=200
     )
     mm6 = materials.muesliMaterial(
-        materials.MuesliFiniteStrain.Yeoh, C=[100, 200, 300], K=400, compressible=False
+        materials.MuesliFiniteStrain.yeohMaterial,
+        C=[100, 200, 300],
+        K=400,
+        compressible=False,
     )
 
     mm6.printDescription()

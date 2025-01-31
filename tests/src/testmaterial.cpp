@@ -290,31 +290,31 @@ int main(int argc, char** argv) {
   auto K  = convertLameConstants(matPar).toBulkModulus();
   auto mu = convertLameConstants(matPar).toShearModulus();
 
-  auto muesliLin = Materials::Muesli::makeLinearElasticity(matPar);
+  auto muesliLin = Materials::makeMuesliLinearElasticity(matPar);
   t.subTest(testMaterial(muesliLin));
 
-  auto muesliSVK = Materials::Muesli::makeSVK(matPar);
+  auto muesliSVK = Materials::makeMuesliSVK(matPar);
   t.subTest(testMaterial(muesliSVK));
 
-  auto muesliNeoHooke = Materials::Muesli::makeNeoHooke(matPar, false);
+  auto muesliNeoHooke = Materials::makeMuesliNeoHooke(matPar, false);
   t.subTest(testMaterial(muesliNeoHooke));
 
-  auto muesliNeoHookeReg = Materials::Muesli::makeNeoHooke(matPar, true);
+  auto muesliNeoHookeReg = Materials::makeMuesliNeoHooke(matPar, true);
   t.subTest(testMaterial(muesliNeoHookeReg));
 
-  auto muesliMR = Materials::Muesli::makeMooneyRivlin({K, mu / 2, mu / 2});
+  auto muesliMR = Materials::makeMooneyRivlin({K, mu / 2, mu / 2});
   t.subTest(testMaterial(muesliMR));
 
-  auto muesliYeoh = Materials::Muesli::makeYeoh({mu / 2, mu / 6, mu / 3}, K);
+  auto muesliYeoh = Materials::makeMuesliYeoh({mu / 2, mu / 6, mu / 3}, K);
   t.subTest(testMaterial(muesliYeoh));
 
-  auto muesliAB = Materials::Muesli::makeArrudaBoyce(mu, 0.85, K);
+  auto muesliAB = Materials::makeMuesliArrudaBoyce(mu, 0.85, K);
   t.subTest(testMaterial(muesliAB));
 
   auto muesliSVKPlaneStrain = planeStrain(muesliSVK);
   t.subTest(testMaterial(muesliSVKPlaneStrain));
 
-  auto muesliNHPlaneStress = planeStrain(muesliNeoHooke);
+  auto muesliNHPlaneStress = planeStress(muesliNeoHooke, 1e-12);
   t.subTest(testMaterial(muesliNHPlaneStress));
 #endif
   return t.exit();
