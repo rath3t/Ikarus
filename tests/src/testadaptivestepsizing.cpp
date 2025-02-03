@@ -143,7 +143,7 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
 
   int loadSteps = 6;
 
-  auto nrConfig = NewtonRaphsonWithSubsidiaryFunctionConfig<decltype(linSolver)>{.linearSolver = linSolver};
+  auto nrConfig = NewtonRaphsonWithSubsidiaryFunctionConfig{.parameters = {}, .linearSolver = linSolver};
 
   NonlinearSolverFactory nrFactory(nrConfig);
   auto nr  = nrFactory.create(sparseAssembler);
@@ -178,8 +178,6 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
 
   vtkWriter.unSubscribeAll();
   pathFollowingObserver.subscribeTo(crWSS);
-
-  // crWSS.subscribe(ControlMessages::SOLUTION_CHANGED, vtkWriter);
 
   const std::string& message1 = " --> " + pft.name() + " with default adaptive step sizing";
   const std::string& message2 = " --> " + pft.name() + " without default adaptive step sizing";

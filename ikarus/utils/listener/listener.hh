@@ -67,6 +67,11 @@ struct Listener
    */
   void unSubscribeAll() { t.clear(); }
 
+  /**
+   * \brief Unsubscribe from the last subscribed listener.
+   */
+  void unSubscribeLast() { t.pop_back(); }
+
 private:
   std::vector<Token> t;
 };

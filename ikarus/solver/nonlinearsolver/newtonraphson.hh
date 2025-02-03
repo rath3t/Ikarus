@@ -39,8 +39,8 @@ struct NewtonRaphsonConfig
   using LinearSolver   = LS;
   using UpdateFunction = UF;
   NRSettings parameters{};
-  LS linearSolver;
-  UF updateFunction;
+  LS linearSolver{};
+  UF updateFunction{};
 
   template <typename UF2>
   auto rebindUpdateFunction(UF2&& updateFunction) const {
@@ -53,6 +53,7 @@ struct NewtonRaphsonConfig
   using Solver = NewtonRaphson<NLO, LS, UF>;
 };
 
+// THE CTAD is broken for designated initializers in clang 16, when we drop support this can be simplified
 #ifndef DOXYGEN
 NewtonRaphsonConfig() -> NewtonRaphsonConfig<utils::SolverDefault, utils::UpdateDefault>;
 NewtonRaphsonConfig(NRSettings) -> NewtonRaphsonConfig<utils::SolverDefault, utils::UpdateDefault>;

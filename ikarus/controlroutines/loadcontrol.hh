@@ -28,9 +28,9 @@ class LoadControl;
  */
 struct LoadControlConfig
 {
-  int loadSteps;
-  double tbegin;
-  double tEnd;
+  int loadSteps{};
+  double tbegin{};
+  double tEnd{};
 };
 
 /**

@@ -38,9 +38,9 @@ struct NewtonRaphsonWithSubsidiaryFunctionConfig
 {
   using LinearSolver   = LS;
   using UpdateFunction = UF;
-  NewtonRaphsonWithSubsidiaryFunctionSettings parameters;
-  LS linearSolver;
-  UF updateFunction;
+  NewtonRaphsonWithSubsidiaryFunctionSettings parameters{};
+  LS linearSolver{};
+  UF updateFunction{};
 
   template <typename UF2>
   auto rebindUpdateFunction(UF2&& updateFunction) const {
@@ -53,6 +53,26 @@ struct NewtonRaphsonWithSubsidiaryFunctionConfig
   using Solver = NewtonRaphsonWithSubsidiaryFunction<NLO, LS, UF>;
 };
 
+// THE CTAD is broken for designated initializers in clang 16, when we drop support this can be simplified
+#ifndef DOXYGEN
+NewtonRaphsonWithSubsidiaryFunctionConfig()
+    -> NewtonRaphsonWithSubsidiaryFunctionConfig<utils::SolverDefault, utils::UpdateDefault>;
+
+NewtonRaphsonWithSubsidiaryFunctionConfig(NewtonRaphsonWithSubsidiaryFunctionSettings)
+    -> NewtonRaphsonWithSubsidiaryFunctionConfig<utils::SolverDefault, utils::UpdateDefault>;
+
+template <typename LS>
+NewtonRaphsonWithSubsidiaryFunctionConfig(NewtonRaphsonWithSubsidiaryFunctionSettings,
+                                          LS) -> NewtonRaphsonWithSubsidiaryFunctionConfig<LS, utils::UpdateDefault>;
+
+template <typename LS, typename UF>
+NewtonRaphsonWithSubsidiaryFunctionConfig(NewtonRaphsonWithSubsidiaryFunctionSettings, LS,
+                                          UF) -> NewtonRaphsonWithSubsidiaryFunctionConfig<LS, UF>;
+
+template <typename UF>
+NewtonRaphsonWithSubsidiaryFunctionConfig(NewtonRaphsonWithSubsidiaryFunctionSettings, utils::SolverDefault,
+                                          UF) -> NewtonRaphsonWithSubsidiaryFunctionConfig<utils::SolverDefault, UF>;
+#endif
 /**
  * \brief Function to create a NewtonRaphson with subsidiary function solver instance.
  * \tparam NLO Type of the nonlinear operator to solve.

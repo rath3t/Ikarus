@@ -198,7 +198,6 @@ private:
     };
 
     int minIter = isAutoDiff ? 1 : 0;
-    // THE CTAD is broken for designated initializers in clang 16, when we drop support this can be simplified
     NewtonRaphsonConfig nrs({.tol = tol_, .maxIter = 100, .minIter = minIter}, linearSolver, updateFunction);
 
     auto nr = createNonlinearSolver(std::move(nrs), nonOp);
