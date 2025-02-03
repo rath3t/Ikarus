@@ -4,6 +4,7 @@
 #include <config.h>
 
 #include "testhelpers.hh"
+#include "testhyperelasticity.hh"
 #include "tests/src/resultcollection.hh"
 
 #include <muesli/muesli.h>
@@ -25,37 +26,27 @@ template <StrainTags strainTag, typename MuesliMAT, typename IkarusMAT>
 auto compareIkarusAndMuesli(const MuesliMAT& muesliMat, const IkarusMAT& ikarusMat) {
   TestSuite t(MuesliMAT::name() + " vs " + IkarusMAT::name() + " InputStrainMeasure: " + toString(strainTag));
 
-  Eigen::Matrix3d cc{
-      { 0.600872, -0.179083, 0},
-      {-0.179083,  0.859121, 0},
-      {        0,         0, 1}
-  };
-  auto c = [&]() {
-    if constexpr (strainTag == Ikarus::StrainTags::linear)
-      return transformStrain<Ikarus::StrainTags::rightCauchyGreenTensor, Ikarus::StrainTags::greenLagrangian>(cc)
-          .eval();
+  Eigen::Matrix3d C = testMatrix();
+  auto strain       = [&]() {
+    if constexpr (strainTag == Ikarus::StrainTags::linear) // For linear we use the same as GreenLagrange
+      return transformStrain<Ikarus::StrainTags::rightCauchyGreenTensor, Ikarus::StrainTags::greenLagrangian>(C).eval();
     else
-      return transformStrain<Ikarus::StrainTags::rightCauchyGreenTensor, strainTag>(cc).eval();
+      return transformStrain<Ikarus::StrainTags::rightCauchyGreenTensor, strainTag>(C).eval();
   }();
 
   auto tol = Testing::isPlaneStress<IkarusMAT> ? 1e-8 : 1e-14;
 
-  auto energy_muesli = muesliMat.template storedEnergy<strainTag>(c);
-  auto stress_muesli = muesliMat.template stresses<strainTag>(c);
-  auto moduli_muesli = muesliMat.template tangentModuli<strainTag>(c);
+  auto energy_muesli = muesliMat.template storedEnergy<strainTag>(strain);
+  auto stress_muesli = muesliMat.template stresses<strainTag>(strain);
+  auto moduli_muesli = muesliMat.template tangentModuli<strainTag>(strain);
 
-  auto energy_ikarus = ikarusMat.template storedEnergy<strainTag>(c);
-  auto stress_ikarus = ikarusMat.template stresses<strainTag>(c);
-  auto moduli_ikarus = ikarusMat.template tangentModuli<strainTag>(c);
+  auto energy_ikarus = ikarusMat.template storedEnergy<strainTag>(strain);
+  auto stress_ikarus = ikarusMat.template stresses<strainTag>(strain);
+  auto moduli_ikarus = ikarusMat.template tangentModuli<strainTag>(strain);
 
-  checkScalars(t, energy_muesli, energy_ikarus, "<energy<", tol);
-  t.check(isApproxSame(stress_muesli, stress_ikarus, tol))
-      << "Incorrect stresses." << " stress_muesli is\t" << stress_muesli.transpose() << "\n stress_ikarus is\t"
-      << stress_ikarus.transpose();
-
-  t.check(isApproxSame(moduli_muesli, moduli_ikarus, tol)) << "Incorrect tangentModuli." << " moduli_muesli is\n"
-                                                           << moduli_muesli << "\n moduli_ikarus is\n"
-                                                           << moduli_ikarus;
+  checkScalars(t, energy_muesli, energy_ikarus, "Incorrect energy", tol);
+  checkApproxMatrices(t, stress_muesli, stress_ikarus, "Incorrect stresses", tol);
+  checkApproxMatrices(t, moduli_muesli, moduli_ikarus, "Incorrect tangentModuli", tol);
 
   return t;
 }
@@ -85,9 +76,7 @@ int main(int argc, char** argv) {
   Ikarus::init(argc, argv);
   TestSuite t;
 
-  double Emod  = 1000;
-  double nu    = 0.25; // Blatz Ko assumes nu = 0.25
-  auto matPar_ = YoungsModulusAndPoissonsRatio{.emodul = Emod, .nu = nu};
+  auto matPar_ = testMatPar();
   auto matPar  = toLamesFirstParameterAndShearModulus(matPar_);
   auto matProp = propertiesFromIkarusMaterialParameters(matPar);
 
