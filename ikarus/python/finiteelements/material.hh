@@ -24,7 +24,7 @@
   clsName.def(                                                                                                 \
       #functionname,                                                                                           \
       [](materialName& self, StrainTags straintag, Eigen::Ref<const Eigen::Vector<double, vecSize>> eVoigt_) { \
-        if constexpr (not Concepts::IsMaterial<Materials::LinearElasticityT, materialName>) {                  \
+        if constexpr (not(materialName::strainTag == StrainTags::linear)) {                                    \
           Eigen::Vector<double, vecSize> eVoigt = eVoigt_;                                                     \
           if (straintag == StrainTags::rightCauchyGreenTensor)                                                 \
             return self.template functionname<StrainTags::rightCauchyGreenTensor>(eVoigt);                     \
@@ -55,27 +55,12 @@
 namespace Ikarus::Python {
 
 namespace Impl {
-  // Function to extract and convert parameters using a conversion strategy
   template <typename T>
   LamesFirstParameterAndShearModulus convertMaterialParameters(const pybind11::kwargs& kwargs,
                                                                const std::string& param1, const std::string& param2) {
     auto converter =
         convertLameConstants(T{kwargs[param1.c_str()].cast<double>(), kwargs[param2.c_str()].cast<double>()});
-
-    // This is necessary as the converter can't convert to a parameter already present due to compile-time constraints
-    double lamesFirst = [&]() {
-      if constexpr (requires { converter.toLamesFirstParameter(); })
-        return converter.toLamesFirstParameter();
-      else
-        return kwargs["Lambda"].cast<double>();
-    }();
-    double shearModulus = [&]() {
-      if constexpr (requires { converter.toShearModulus(); })
-        return converter.toShearModulus();
-      else
-        return kwargs["mu"].cast<double>();
-    }();
-    return {lamesFirst, shearModulus};
+    return {converter.toLamesFirstParameter(), converter.toShearModulus()};
   }
 
   Ikarus::LamesFirstParameterAndShearModulus extractMaterialParameters(const pybind11::kwargs& kwargs) {
@@ -106,15 +91,16 @@ namespace Impl {
   }
 } // namespace Impl
 
-template <class Material, size_t vecSize, class... options>
+template <class Material, size_t vecSize, bool registerConstructor, class... options>
 void registerMaterial(pybind11::handle scope, pybind11::class_<Material, options...> cls) {
   using pybind11::operator""_a;
   namespace py = pybind11;
 
-  cls.def(pybind11::init([](const py::kwargs& kwargs) {
-    auto matParameter = Impl::extractMaterialParameters(kwargs);
-    return new Material(matParameter);
-  }));
+  if constexpr (registerConstructor)
+    cls.def(pybind11::init([](const py::kwargs& kwargs) {
+      auto matParameter = Impl::extractMaterialParameters(kwargs);
+      return new Material(matParameter);
+    }));
 
   std::string materialname = Material::name();
 
@@ -141,9 +127,9 @@ void registerMaterial(pybind11::handle scope, pybind11::class_<Material, options
   MAKE_MaterialFunction(pS, PlaneStressClass, stresses, 6);
   MAKE_MaterialFunction(pS, PlaneStressClass, tangentModuli, 6);
 
-  cls.def("asPlaneStress", [](Material& self) {
-    return Materials::planeStress(self);
-  }); /* no keep_alive since planeStress copies the material */
+  cls.def(
+      "asPlaneStress", [](Material& self, double tol = 1e-12) { return Materials::planeStress(self); },
+      py::arg("tol") = 1e-12); /* no keep_alive since planeStress copies the material */
 
   using PlaneStrainClass = decltype(Materials::planeStrain(std::declval<Material>()));
   auto pStrain           = Dune::Python::insertClass<PlaneStrainClass>(
@@ -182,9 +168,9 @@ void registerMaterial(pybind11::handle scope, pybind11::class_<Material, options
   MAKE_MaterialFunction(shellmaterial, ShellMaterialClass, stresses, 6);
   MAKE_MaterialFunction(shellmaterial, ShellMaterialClass, tangentModuli, 6);
 
-  cls.def("asShellMaterial", [](Material& self) {
-    return Materials::shellMaterial(self);
-  }); /* no keep_alive since shellMaterial copies the material */
+  cls.def(
+      "asShellMaterial", [](Material& self, double tol = 1e-12) { return Materials::shellMaterial(self); },
+      py::arg("tol") = 1e-12); /* no keep_alive since shellMaterial copies the material */
   using BeamMaterialClass = decltype(Materials::beamMaterial(std::declval<Material>()));
   auto beammaterial       = Dune::Python::insertClass<BeamMaterialClass>(
                           scope, std::string("Beam_") + materialname,
@@ -200,15 +186,15 @@ void registerMaterial(pybind11::handle scope, pybind11::class_<Material, options
   MAKE_MaterialFunction(beammaterial, BeamMaterialClass, storedEnergy, 6);
   MAKE_MaterialFunction(beammaterial, BeamMaterialClass, stresses, 6);
   MAKE_MaterialFunction(beammaterial, BeamMaterialClass, tangentModuli, 6);
-  cls.def("asBeamMaterial", [](Material& self) {
-    return Materials::beamMaterial(self);
-  }); /* no keep_alive since beamMaterial copies the material */
+  cls.def(
+      "asBeamMaterial", [](Material& self, double tol = 1e-12) { return Materials::beamMaterial(self); },
+      py::arg("tol") = 1e-12); /* no keep_alive since beamMaterial copies the material */
 }
 
 #define MAKE_MATERIAL_REGISTRY_FUNCTION(name, vecSize)                                      \
   template <class Material, class... options>                                               \
   void register##name(pybind11::handle scope, pybind11::class_<Material, options...> cls) { \
-    Ikarus::Python::registerMaterial<Material, vecSize>(scope, cls);                        \
+    Ikarus::Python::registerMaterial<Material, vecSize, true>(scope, cls);                  \
   }
 
 MAKE_MATERIAL_REGISTRY_FUNCTION(LinearElasticity, 6);

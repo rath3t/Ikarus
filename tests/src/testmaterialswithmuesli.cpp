@@ -74,9 +74,9 @@ auto checkConstructors(muesli::materialProperties matPar) {
   t.check(mm2.material().check()) << testLocation();
   t.check(mm3.material().check()) << testLocation();
 
-  t.check(mm1.assertMP()) << testLocation();
-  t.check(mm2.assertMP()) << testLocation();
-  t.check(mm3.assertMP()) << testLocation();
+  t.check(mm1.materialPoint().get() != NULL) << testLocation();
+  t.check(mm2.materialPoint().get() != NULL) << testLocation();
+  t.check(mm3.materialPoint().get() != NULL) << testLocation();
 
   return t;
 }

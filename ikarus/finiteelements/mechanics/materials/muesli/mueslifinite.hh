@@ -49,7 +49,7 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   static constexpr bool stressAcceptsVoigt     = false;
   static constexpr bool moduliToVoigt          = false;
   static constexpr bool moduliAcceptsVoigt     = false;
-  static constexpr double derivativeFactorImpl = 1;
+  static constexpr double derivativeFactorImpl = 2;
 
   [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "FiniteStrain: " + materialName<FM>(); }
 
@@ -137,9 +137,10 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   auto& material() const { return material_; }
 
   /**
-   * \brief asserts that the materialpoint pointer is not null.
+   * \brief Returns the underlying muesli material point implementation.
+   * \return auto& reference to the muesli material point.
    */
-  bool assertMP() const { return mp_.get() != NULL; }
+  auto& materialPoint() const { return mp_; }
 
   FiniteStrain(const FiniteStrain& other)
       : materialParameter_{other.materialParameter_},

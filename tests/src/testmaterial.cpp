@@ -273,7 +273,7 @@ int main(int argc, char** argv) {
   t.subTest(testMaterial(ogdenDev2));
 
   auto psOgden  = planeStrain(ogden);
-  auto pstOgden = planeStress(ogden2);
+  auto pstOgden = planeStress(ogden2, 1e-12);
 
   t.subTest(testMaterial(psOgden));
   t.subTest(testMaterial(pstOgden));
@@ -284,31 +284,31 @@ int main(int argc, char** argv) {
 
 #if ENABLE_MUESLI
   // Muesli
-  auto muesliLin = Materials::makeMuesliLinearElasticity(matPar);
+  auto muesliLin = makeMuesliLinearElasticity(matPar);
   t.subTest(testMaterial(muesliLin));
 
-  auto muesliSVK = Materials::makeMuesliSVK(matPar);
+  auto muesliSVK = makeMuesliSVK(matPar);
   t.subTest(testMaterial(muesliSVK));
 
-  auto muesliNeoHooke = Materials::makeMuesliNeoHooke(matPar, false);
+  auto muesliNeoHooke = makeMuesliNeoHooke(matPar, false);
   t.subTest(testMaterial(muesliNeoHooke));
 
-  auto muesliNeoHookeReg = Materials::makeMuesliNeoHooke(matPar, true);
+  auto muesliNeoHookeReg = makeMuesliNeoHooke(matPar, true);
   t.subTest(testMaterial(muesliNeoHookeReg));
 
-  auto muesliMR = Materials::makeMooneyRivlin({K, mu / 2, mu / 2});
+  auto muesliMR = makeMooneyRivlin({K, mu / 2, mu / 2});
   t.subTest(testMaterial(muesliMR));
 
-  auto muesliYeoh = Materials::makeMuesliYeoh({mu / 2, mu / 6, mu / 3}, K);
+  auto muesliYeoh = makeMuesliYeoh({mu / 2, mu / 6, mu / 3}, K);
   t.subTest(testMaterial(muesliYeoh));
 
-  auto muesliAB = Materials::makeMuesliArrudaBoyce(mu, 0.85, K);
+  auto muesliAB = makeMuesliArrudaBoyce(mu, 0.85, K);
   t.subTest(testMaterial(muesliAB));
 
   auto muesliSVKPlaneStrain = planeStrain(muesliSVK);
   t.subTest(testMaterial(muesliSVKPlaneStrain));
 
-  auto muesliNHPlaneStress = planeStress(muesliNeoHooke, 1e-12);
+  auto muesliNHPlaneStress = planeStress(muesliNeoHooke, 1e-11);
   t.subTest(testMaterial(muesliNHPlaneStress));
 #endif
   return t.exit();

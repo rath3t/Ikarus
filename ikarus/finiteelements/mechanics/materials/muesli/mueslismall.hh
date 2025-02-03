@@ -145,9 +145,10 @@ struct SmallStrain : public Material<SmallStrain<SM>>
   auto& material() const { return material_; }
 
   /**
-   * \brief asserts that the materialpoint pointer is not null
+   * \brief Returns the underlying muesli material point implementation.
+   * \return auto& reference to the muesli material point.
    */
-  bool assertMP() const { return mp_.get() != NULL; }
+  auto& materialPoint() const { return mp_; }
 
   SmallStrain(const SmallStrain& other)
       : materialParameter_{other.materialParameter_},
