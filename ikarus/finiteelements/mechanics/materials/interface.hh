@@ -86,6 +86,8 @@ struct Material
   static constexpr bool isReduced = traits::isSpecializationNonTypeAndTypes<VanishingStress, MaterialImpl>::value or
                                     traits::isSpecializationNonTypeAndTypes<VanishingStrain, MaterialImpl>::value;
 
+  static constexpr bool isLinear = MI::strainTag == StrainTags::linear;
+
   /**
    * \brief Const accessor to the underlying material (CRTP).
    *

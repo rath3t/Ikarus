@@ -14,3 +14,5 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/materials
 )
 add_subdirectory(hyperelastic)
+
+add_subdirectory(muesli)

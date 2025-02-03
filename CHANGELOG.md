@@ -78,6 +78,7 @@ SPDX-License-Identifier: LGPL-3.0-or-later
         - Eleven different volumetric functions are included.
     - An AutoDiff-based material model is included mainly to test these hyperelastic material models. It can be found in the `Experimental` namespace.
     - All materials are now in a separate namespace, `Ikarus::Materials`.
+- Add wrapper classes for small strain and finite strain materials from the Muesli material library ([#337](https://github.com/ikarus-project/ikarus/pull/337))
 
 ## Release v0.4 (Ganymede)
 
