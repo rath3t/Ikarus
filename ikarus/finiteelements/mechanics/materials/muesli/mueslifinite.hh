@@ -79,7 +79,6 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
     if constexpr (!Concepts::EigenVector<Derived>) {
       updateState(C);
       return mp_->storedEnergy();
-
     } else
       static_assert(!Concepts::EigenVector<Derived>,
                     "MuesliFiniteStrain energy can only be called with a matrix and not a vector in Voigt notation");
