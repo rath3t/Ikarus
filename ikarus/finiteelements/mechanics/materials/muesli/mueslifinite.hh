@@ -41,7 +41,7 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   using MaterialTensor     = Eigen::TensorFixedSize<ScalarType, Eigen::Sizes<dim, dim, dim, dim>>;
   using MaterialParameters = muesli::materialProperties;
 
-  static constexpr auto strainTag              = StrainTags::deformationGradient;
+  static constexpr auto strainTag              = StrainTags::rightCauchyGreenTensor;
   static constexpr auto stressTag              = StressTags::PK2;
   static constexpr auto tangentModuliTag       = TangentModuliTags::Material;
   static constexpr bool energyAcceptsVoigt     = false;
@@ -49,7 +49,7 @@ struct FiniteStrain : public Material<FiniteStrain<FM>>
   static constexpr bool stressAcceptsVoigt     = false;
   static constexpr bool moduliToVoigt          = false;
   static constexpr bool moduliAcceptsVoigt     = false;
-  static constexpr double derivativeFactorImpl = 0.5;
+  static constexpr double derivativeFactorImpl = 2;
 
   [[nodiscard]] constexpr static std::string nameImpl() noexcept { return "FiniteStrain: " + materialName<FM>(); }
 
@@ -157,7 +157,7 @@ private:
 
   template <typename Derived>
   void updateState(const Eigen::MatrixBase<Derived>& C) const {
-    toistensor(strain_, C);
+    toistensor(strain_, transformStrain<strainTag, StrainTags::deformationGradient>(C));
     mp_->updateCurrentState(0.0, strain_);
   }
 };
