@@ -10,6 +10,9 @@
 #include <Eigen/Eigenvalues>
 
 #include <ikarus/finiteelements/mechanics/materials.hh>
+#if ENABLE_MUESLI
+  #include <ikarus/finiteelements/mechanics/materials/muesli/mueslimaterials.hh>
+#endif
 #include <ikarus/finiteelements/physicshelper.hh>
 #include <ikarus/utils/functionsanitychecks.hh>
 #include <ikarus/utils/init.hh>
@@ -107,9 +110,7 @@ auto testMaterialWithStrain(const MaterialImpl& mat, const double tol = 1e-13) {
 template <typename Material>
 auto testMaterial(Material mat) {
   TestSuite t("testMaterial");
-  if constexpr (std::is_same_v<Material, LinearElasticity> or
-                std::is_same_v<Material,
-                               VanishingStress<std::array<MatrixIndexPair, 1>({{{2, 2}}}), LinearElasticity>>) {
+  if constexpr (Material::isLinear) {
     t.subTest(testMaterialWithStrain<StrainTags::linear>(mat));
   } else if constexpr (std::is_same_v<Material, VanishingStress<std::array<MatrixIndexPair, 1>({{{2, 2}}}),
                                                                 Ikarus::Materials::StVenantKirchhoff>>) {
@@ -249,14 +250,10 @@ int main(int argc, char** argv) {
   auto nhRed8 = makeVanishingStrain<MatrixIndexPair{1, 1}, MatrixIndexPair{2, 2}>(nh);
   t.subTest(testMaterial(nhRed8));
 
-  t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::linear, LinearElasticity>());
-  t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::greenLagrangian, StVenantKirchhoff>());
-  t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::rightCauchyGreenTensor, NeoHooke>());
-
   // Hyperelasticity
-  auto K      = convertLameConstants(matPar).toBulkModulus();
-  auto mu     = matPar.mu;
-  auto lambda = matPar.lambda;
+  double mu     = matPar.mu;
+  double lambda = matPar.lambda;
+  double K      = convertLameConstants(matPar).toBulkModulus();
 
   // Material parameters (example values)
   std::array<double, 1> mu_og    = {mu};
@@ -276,10 +273,43 @@ int main(int argc, char** argv) {
   t.subTest(testMaterial(ogdenDev2));
 
   auto psOgden  = planeStrain(ogden);
-  auto pstOgden = planeStress(ogden2);
+  auto pstOgden = planeStress(ogden2, 1e-12);
 
   t.subTest(testMaterial(psOgden));
   t.subTest(testMaterial(pstOgden));
 
+  t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::linear, LinearElasticity>());
+  t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::greenLagrangian, StVenantKirchhoff>());
+  t.subTest(testPlaneStrainAgainstPlaneStress<StrainTags::rightCauchyGreenTensor, NeoHooke>());
+
+#if ENABLE_MUESLI
+  // Muesli
+  auto muesliLin = makeMuesliLinearElasticity(matPar);
+  t.subTest(testMaterial(muesliLin));
+
+  auto muesliSVK = makeMuesliSVK(matPar);
+  t.subTest(testMaterial(muesliSVK));
+
+  auto muesliNeoHooke = makeMuesliNeoHooke(matPar, false);
+  t.subTest(testMaterial(muesliNeoHooke));
+
+  auto muesliNeoHookeReg = makeMuesliNeoHooke(matPar, true);
+  t.subTest(testMaterial(muesliNeoHookeReg));
+
+  auto muesliMR = makeMooneyRivlin({K, mu / 2, mu / 2});
+  t.subTest(testMaterial(muesliMR));
+
+  auto muesliYeoh = makeMuesliYeoh({mu / 2, mu / 6, mu / 3}, K);
+  t.subTest(testMaterial(muesliYeoh));
+
+  auto muesliAB = makeMuesliArrudaBoyce(mu, 0.85, K);
+  t.subTest(testMaterial(muesliAB));
+
+  auto muesliSVKPlaneStrain = planeStrain(muesliSVK);
+  t.subTest(testMaterial(muesliSVKPlaneStrain));
+
+  auto muesliNHPlaneStress = planeStress(muesliNeoHooke, 1e-11);
+  t.subTest(testMaterial(muesliNHPlaneStress));
+#endif
   return t.exit();
 }

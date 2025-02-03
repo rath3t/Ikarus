@@ -17,3 +17,6 @@ include(AddAutoDiffFlags)
 
 find_package(Spectra REQUIRED)
 include(AddSpectraFlags)
+
+find_package(Muesli)
+include(AddMuesliFlags)

@@ -167,26 +167,66 @@ def checkWithStrain(strain):
     svk = iks.materials.StVenantKirchhoff(E=1000, nu=0.3)
     nh = iks.materials.NeoHooke(E=1000, nu=0.3)
     lin = iks.materials.LinearElasticity(E=1000, nu=0.3)
+    mlin = materials.muesliMaterial(
+        materials.MuesliSmallStrain.elasticIsotropicMaterial, E=100, nu=0.3
+    )
+    mnh = materials.muesliMaterial(
+        materials.MuesliFiniteStrain.neohookeanMaterial, E=1000, nu=0.3
+    )
+    mmoon = materials.muesliMaterial(
+        materials.MuesliFiniteStrain.mooneyMaterial, alpha=[500, 200, 200]
+    )
 
     if len(strain) == 6:
         checkMaterial(svk, strain)
         checkMaterial(nh, strain)
+        checkMaterial(mnh, strain)
+        checkMaterial(mmoon, strain)
         checkMaterial(lin, strain, False)
+        checkMaterial(mlin, strain, False)
+
         checkMaterial(lin.asPlaneStress(), strain, False, 3)
+        checkMaterial(mlin.asPlaneStress(), strain, False, 3)
         checkMaterial(nh.asPlaneStress(), strain, True, 3)
         checkMaterial(svk.asPlaneStress(), strain, True, 3)
+        checkMaterial(mnh.asPlaneStress(), strain, True, 3)
+        checkMaterial(mmoon.asPlaneStress(), strain, True, 3)
+
+        checkMaterial(lin.asPlaneStrain(), strain, False, 3)
+        checkMaterial(mlin.asPlaneStrain(), strain, False, 3)
+        checkMaterial(nh.asPlaneStrain(), strain, True, 3)
+        checkMaterial(svk.asPlaneStrain(), strain, True, 3)
+        checkMaterial(mnh.asPlaneStrain(), strain, True, 3)
+        checkMaterial(mmoon.asPlaneStrain(), strain, True, 3)
 
         checkMaterial(lin.asShellMaterial(), strain, False, 5)
+        checkMaterial(mlin.asShellMaterial(), strain, False, 5)
         checkMaterial(nh.asShellMaterial(), strain, True, 5)
         checkMaterial(svk.asShellMaterial(), strain, True, 5)
+        checkMaterial(mnh.asShellMaterial(), strain, True, 5)
+        checkMaterial(mmoon.asShellMaterial(), strain, True, 5)
 
         checkMaterial(lin.asBeamMaterial(), strain, False, 4)
+        checkMaterial(mlin.asBeamMaterial(), strain, False, 4)
         checkMaterial(nh.asBeamMaterial(), strain, True, 4)
         checkMaterial(svk.asBeamMaterial(), strain, True, 4)
+        checkMaterial(mnh.asBeamMaterial(), strain, True, 4)
+        checkMaterial(mmoon.asBeamMaterial(), strain, True, 4)
+
     elif len(strain) == 3:
         checkMaterial(lin.asPlaneStress(), strain, False, 3)
+        checkMaterial(mlin.asPlaneStress(), strain, False, 3)
         checkMaterial(nh.asPlaneStress(), strain, True, 3)
         checkMaterial(svk.asPlaneStress(), strain, True, 3)
+        checkMaterial(mnh.asPlaneStress(), strain, True, 3)
+        checkMaterial(mmoon.asPlaneStress(), strain, True, 3)
+
+        checkMaterial(lin.asPlaneStrain(), strain, False, 3)
+        checkMaterial(mlin.asPlaneStrain(), strain, False, 3)
+        checkMaterial(nh.asPlaneStrain(), strain, True, 3)
+        checkMaterial(svk.asPlaneStrain(), strain, True, 3)
+        checkMaterial(mnh.asPlaneStrain(), strain, True, 3)
+        checkMaterial(mmoon.asPlaneStrain(), strain, True, 3)
 
         check2DReducedFullEquality(
             nh.asPlaneStress(), materials.StrainTags.rightCauchyGreenTensor, strain
@@ -225,6 +265,7 @@ def checkWithStrain(strain):
 
     elif len(strain) == 5:
         checkMaterial(lin.asShellMaterial(), strain, False, 5)
+        checkMaterial(mlin.asShellMaterial(), strain, False, 5)
         checkMaterial(nh.asShellMaterial(), strain, True, 5)
         checkMaterial(svk.asShellMaterial(), strain, True, 5)
 
@@ -331,6 +372,7 @@ def checkVoigtTransformations():
 def checkMaterialConstructors():
     # Check different constructors (no physical meaning)
     iks.materials.StVenantKirchhoff(E=1000, mu=500)
+    iks.materials.StVenantKirchhoff(E=1000, nu=0.3)
     iks.materials.StVenantKirchhoff(E=1000, K=500)
     iks.materials.StVenantKirchhoff(E=1000, Lambda=500)
     iks.materials.StVenantKirchhoff(K=1000, Lambda=500)
@@ -344,6 +386,36 @@ def checkMaterialConstructors():
     s2 = svk2.stresses(materials.StrainTags.greenLagrangian, strain)
 
     assert np.allclose(s1, s2)
+
+
+def instantiateMuesliMaterials():
+
+    materials.muesliMaterial(
+        materials.MuesliSmallStrain.elasticIsotropicMaterial, E=100, nu=0.3
+    )
+    materials.muesliMaterial(materials.MuesliFiniteStrain.svkMaterial, E=100, nu=0.3)
+    materials.muesliMaterial(
+        materials.MuesliFiniteStrain.neohookeanMaterial, E=100, nu=0.3
+    )
+    materials.muesliMaterial(
+        materials.MuesliFiniteStrain.mooneyMaterial, alpha=[500, 200, 200]
+    )
+    materials.muesliMaterial(
+        materials.MuesliFiniteStrain.mooneyMaterial,
+        alpha=[0.2, 0.3, 0.4],
+        incompressible=True,
+    )
+    materials.muesliMaterial(
+        materials.MuesliFiniteStrain.arrudaboyceMaterial, C1=500, lambda_m=200, K=200
+    )
+    mm = materials.muesliMaterial(
+        materials.MuesliFiniteStrain.yeohMaterial,
+        C=[100, 200, 300],
+        K=400,
+        compressible=False,
+    )
+
+    mm.printDescription()
 
 
 if __name__ == "__main__":
@@ -365,3 +437,5 @@ if __name__ == "__main__":
     checkStrainTransformation()
     checkVoigtTransformations()
     checkMaterialConstructors()
+
+    # instantiateMuesliMaterials()

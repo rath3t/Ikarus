@@ -13,13 +13,13 @@
 #include <ikarus/finiteelements/mechanics/materials/tags.hh>
 #include <ikarus/python/finiteelements/material.hh>
 
-void addMaterialsSubModule(pybind11::module& m) {
+void addBindingsToMaterials() {
   namespace py = pybind11;
   using namespace pybind11::literals;
   using namespace Ikarus;
   using namespace Eigen;
 
-  auto materials = m.def_submodule("materials", "This is the submodule for materials in Ikarus");
+  auto materials = pybind11::module::import("ikarus.materials");
 
   ENUM_BINDINGS_WITH_MODULE(StrainTags, materials);
   ENUM_BINDINGS_WITH_MODULE(StressTags, materials);
