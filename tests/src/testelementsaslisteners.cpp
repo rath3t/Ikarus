@@ -56,22 +56,16 @@ public:
 
   explicit DummySkill(const Pre& pre) {}
 
-  using NRState = NonlinearSolverState<const std::remove_reference_t<typename Traits::template VectorType<>>&, double,
-                                       const Eigen::VectorXd&>;
+  using NRState = NonlinearSolverState<const std::remove_reference_t<typename Traits::template VectorType<>>&>;
 
 protected:
   // This returns a tuple functions to be registered
   template <typename MT>
   auto subscribeToImpl() {
     if constexpr (std::same_as<MT, NonLinearSolverMessages>) {
-      // return std::make_tuple([&](NonLinearSolverMessages message, Eigen::VectorXd& vec,
-      //                            const std::remove_reference_t<typename Traits::template VectorType<>>& dx) {
-      //   this->updateState(message, vec, dx);
-      // });
       return std::make_tuple([&](NonLinearSolverMessages message, NRState& state) {
         this->updateState(message, state.solution, state.firstParameter);
       });
-
     } else if constexpr (std::same_as<MT, UpdateMessages>) {
       return std::make_tuple([&](UpdateMessages message, int val) { this->updateState(message, val); },
                              [&](UpdateMessages message) { this->updateState(message); });
@@ -142,12 +136,12 @@ inline auto dummySkill() {
 
   return pre;
 }
-using NRStateDummy = NonlinearSolverState<const Eigen::VectorXd&, double, const Eigen::VectorXd&>;
+using NRStateDummy = NonlinearSolverState<const Eigen::VectorXd&, const Eigen::VectorXd&>;
 struct DummyBroadcaster : public Broadcasters<void(NonLinearSolverMessages, NRStateDummy& state),
                                               void(UpdateMessages, int), void(UpdateMessages)>
 {
   void emitMessage(NonLinearSolverMessages message) {
-    auto state = NRStateDummy(x_, 0.0, dx_);
+    auto state = NRStateDummy(x_, dx_);
     this->notify(message, state);
   }
   void emitMessage(UpdateMessages message, int val) { this->notify(message, val); }

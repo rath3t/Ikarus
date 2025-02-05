@@ -7,21 +7,17 @@
  */
 
 #pragma once
-#include <type_traits>
-
 #include <ikarus/solver/nonlinearsolver/nonlinearsolverstate.hh>
 #include <ikarus/utils/broadcaster/broadcaster.hh>
 #include <ikarus/utils/broadcaster/broadcastermessages.hh>
 
 namespace Ikarus {
-// namespace Impl {
 
-#define COMMON_SIGNATURES                                                                                   \
-  void(NonLinearSolverMessages), void(NonLinearSolverMessages, double), void(NonLinearSolverMessages, int), \
-      void(NonLinearSolverMessages, typename NonlinearSolverStateFactory<NLO>::type&)
-
-template <typename NLO>
-struct NonlinearSolverBase : public Broadcasters<COMMON_SIGNATURES>
+template <typename NLO, typename... Args>
+struct NonlinearSolverBase
+    : public Broadcasters<void(NonLinearSolverMessages), void(NonLinearSolverMessages, double),
+                          void(NonLinearSolverMessages, int),
+                          void(NonLinearSolverMessages, typename NonlinearSolverStateFactory<NLO>::type&), Args...>
 {
 };
 

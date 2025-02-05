@@ -191,8 +191,7 @@ public:
       linearSolver_.analyzePattern(Ax);
 
     using NRSolverState = NonlinearSolverStateFactory<NLO>::type;
-    auto solverState    = NRSolverState{
-           .firstParameter = correction_, .secondParameter = nonLinearOperator().secondParameter(), .solution = x};
+    auto solverState    = NRSolverState{.firstParameter = correction_, .solution = x};
 
     while ((rNorm > settings_.tol && iter < settings_.maxIter) or iter < settings_.minIter) {
       this->notify(ITERATION_STARTED);
@@ -206,7 +205,6 @@ public:
         dNorm       = norm(correction_);
         updateFunction_(x, correction_);
       }
-      // this->notify(CORRECTION_UPDATED, x, correction_);
       solverState.dNorm     = static_cast<double>(dNorm);
       solverState.rNorm     = static_cast<double>(rNorm);
       solverState.iteration = iter;

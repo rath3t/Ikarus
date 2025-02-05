@@ -13,6 +13,7 @@
 
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
 #include <ikarus/solver/nonlinearsolver/nonlinearsolverbase.hh>
+#include <ikarus/solver/nonlinearsolver/nonlinearsolverstate.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/broadcaster/broadcaster.hh>
 #include <ikarus/utils/broadcaster/broadcastermessages.hh>
@@ -223,6 +224,9 @@ public:
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
 
+    using NRSolverState = NonlinearSolverStateFactory<NLO>::type;
+    auto solverState    = NRSolverState{.firstParameter = deltaD, .solution = x};
+
     /// Iterative solving scheme
     while (rNorm > settings_.tol && iter < settings_.maxIter) {
       this->notify(ITERATION_STARTED);
@@ -245,7 +249,10 @@ public:
                                  (subsidiaryArgs.dfdDD.dot(sol2d.col(1)) + subsidiaryArgs.dfdDlambda);
       deltaD = sol2d.col(0) + deltalambda * sol2d.col(1);
 
-      this->notify(CORRECTION_UPDATED, x, deltaD);
+      solverState.dNorm     = static_cast<double>(dNorm);
+      solverState.rNorm     = static_cast<double>(rNorm);
+      solverState.iteration = iter;
+      this->notify(CORRECTION_UPDATED, solverState);
 
       updateFunction_(x, deltaD);
       updateFunction_(subsidiaryArgs.DD, deltaD);

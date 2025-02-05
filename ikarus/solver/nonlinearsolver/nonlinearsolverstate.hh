@@ -12,12 +12,12 @@
 
 namespace Ikarus {
 
-template <typename P1, typename P2, typename SolType = Eigen::VectorXd>
+template <typename P1, /*typename P2,*/ typename SolType = P1>
 struct NonlinearSolverState
 {
-  const P1 firstParameter;  // Solution
-  const P2 secondParameter; //
-  const SolType solution;
+  P1 firstParameter;
+  // P2 secondParameter;
+  SolType solution;
 
   double rNorm{};
   double dNorm{};
@@ -35,8 +35,7 @@ private:
   using SolutionType = const typename NLO::ValueType&;
 
 public:
-  using type = NonlinearSolverState<const typename NLO::template ParameterValue<0>&,
-                                    typename NLO::template ParameterValue<1>, SolutionType>;
+  using type = NonlinearSolverState<const typename NLO::template ParameterValue<0>&, SolutionType>;
 };
 
 } // namespace Ikarus
