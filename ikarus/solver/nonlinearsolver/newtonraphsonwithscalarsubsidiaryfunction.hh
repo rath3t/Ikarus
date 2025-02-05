@@ -225,7 +225,7 @@ public:
       linearSolver_.analyzePattern(Ax);
 
     using NRSolverState = NonlinearSolverStateFactory<NLO>::type;
-    auto solverState    = NRSolverState{.firstParameter = deltaD, .solution = x};
+    auto solverState    = NRSolverState{.correction = deltaD, .solution = x};
 
     /// Iterative solving scheme
     while (rNorm > settings_.tol && iter < settings_.maxIter) {

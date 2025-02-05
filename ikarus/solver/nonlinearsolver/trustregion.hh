@@ -240,7 +240,7 @@ public:
       updateFunction(x, dxPredictor);
     truncatedConjugateGradient_.analyzePattern(hessian());
 
-    auto solverState = TRSolverState<NLO>{.firstParameter = eta_, .solution = x};
+    auto solverState = TRSolverState<NLO>{.correction = eta_, .solution = x};
 
     innerInfo_.Delta = settings_.Delta0;
     spdlog::info(

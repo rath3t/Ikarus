@@ -12,11 +12,10 @@
 
 namespace Ikarus {
 
-template <typename P1, /*typename P2,*/ typename SolType = P1>
+template <typename P1, typename SolType = P1>
 struct NonlinearSolverState
 {
-  P1 firstParameter;
-  // P2 secondParameter;
+  P1 correction;
   SolType solution;
 
   double rNorm{};
@@ -28,14 +27,10 @@ template <typename NLO>
 struct NonlinearSolverStateFactory
 {
 private:
-  static constexpr bool derivativeTypeEqualValueType =
-      std::is_same_v<typename NLO::ValueType, typename NLO::DerivativeType>;
-  // using SolutionType = std::conditional_t<derivativeTypeEqualValueType, const typename NLO::ValueType&,
-  //                                         const typename NLO::DerivativeType&>;
   using SolutionType = const typename NLO::ValueType&;
 
 public:
-  using type = NonlinearSolverState<const typename NLO::template ParameterValue<0>&, SolutionType>;
+  using type = NonlinearSolverState<const typename NLO::ValueType&, const typename NLO::template ParameterValue<0>&>;
 };
 
 } // namespace Ikarus

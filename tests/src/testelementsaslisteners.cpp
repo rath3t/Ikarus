@@ -64,7 +64,7 @@ protected:
   auto subscribeToImpl() {
     if constexpr (std::same_as<MT, NonLinearSolverMessages>) {
       return std::make_tuple([&](NonLinearSolverMessages message, NRState& state) {
-        this->updateState(message, state.solution, state.firstParameter);
+        this->updateState(message, state.solution, state.correction);
       });
     } else if constexpr (std::same_as<MT, UpdateMessages>) {
       return std::make_tuple([&](UpdateMessages message, int val) { this->updateState(message, val); },
