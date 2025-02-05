@@ -10,6 +10,7 @@
 
 #include <ikarus/solver/linearsolver/linearsolver.hh>
 #include <ikarus/solver/nonlinearsolver/nonlinearsolverbase.hh>
+#include <ikarus/solver/nonlinearsolver/nonlinearsolverstate.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/broadcaster/broadcaster.hh>
 #include <ikarus/utils/broadcaster/broadcastermessages.hh>
@@ -188,6 +189,11 @@ public:
     int iter{0};
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
+
+    using NRSolverState = NonlinearSolverStateFactory<NLO>::type;
+    auto solverState    = NRSolverState{
+           .firstParameter = correction_, .secondParameter = nonLinearOperator().secondParameter(), .solution = x};
+
     while ((rNorm > settings_.tol && iter < settings_.maxIter) or iter < settings_.minIter) {
       this->notify(ITERATION_STARTED);
       if constexpr (isLinearSolver) {
@@ -200,7 +206,12 @@ public:
         dNorm       = norm(correction_);
         updateFunction_(x, correction_);
       }
-      this->notify(CORRECTION_UPDATED, x, correction_);
+      // this->notify(CORRECTION_UPDATED, x, correction_);
+      solverState.dNorm     = static_cast<double>(dNorm);
+      solverState.rNorm     = static_cast<double>(rNorm);
+      solverState.iteration = iter;
+
+      this->notify(CORRECTION_UPDATED, solverState);
       this->notify(CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
       this->notify(SOLUTION_CHANGED);
       nonLinearOperator().updateAll();
