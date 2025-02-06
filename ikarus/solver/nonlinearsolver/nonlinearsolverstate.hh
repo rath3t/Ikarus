@@ -33,9 +33,8 @@ struct NonlinearSolverState
 };
 
 template <typename T>
-struct NonlinearSolverStateFactory; // Only a declaration
+struct NonlinearSolverStateFactory;
 
-// Partial specialization for the NonLinearOperator case
 template <typename NLO>
 requires traits::isSpecialization<NonLinearOperator, NLO>::value
 struct NonlinearSolverStateFactory<NLO>
@@ -43,7 +42,6 @@ struct NonlinearSolverStateFactory<NLO>
   using type = NonlinearSolverState<const typename NLO::ValueType&, const typename NLO::template ParameterValue<0>&>;
 };
 
-// Partial specialization for the FERequirements case
 template <typename FER>
 requires traits::isSpecializationNonTypeNonTypeAndTypes<FERequirements, FER>::value
 struct NonlinearSolverStateFactory<FER>
