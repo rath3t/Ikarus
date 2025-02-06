@@ -73,6 +73,12 @@ struct Listener
    */
   void unSubscribeLast() { t.pop_back(); }
 
+  void unSubscribe(Token&& ts) {
+    t.erase(std::ranges::find(t, ts)); // erase the shared ptr in t
+    assert(ts.unique() && "The given token has external references");
+    ts.reset();
+  }
+
 private:
   std::vector<Token> t;
 };

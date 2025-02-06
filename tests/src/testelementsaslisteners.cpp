@@ -252,5 +252,17 @@ int main(int argc, char** argv) {
   broadcaster.emitMessage(UpdateMessages::INCREMENT, 4);
   checkMatrixAndVector(6, testLocation());
 
+  // Using lower-level api
+  int i       = 0;
+  auto callee = [&]() { i++; };
+  auto token  = fe.subscribe(broadcaster, [&](UpdateMessages message) { callee(); });
+
+  broadcaster.emitMessage(UpdateMessages::INCREMENT);
+  t.check(i == 1) << testLocation();
+
+  fe.unSubscribe(std::move(token));
+  broadcaster.emitMessage(UpdateMessages::INCREMENT);
+  t.check(i == 1) << testLocation();
+
   return t.exit();
 }
