@@ -53,10 +53,9 @@ public:
   using GridView  = typename Traits::GridView;
   using Element   = typename Traits::Element;
   using Pre       = DummySkillPre;
+  using NRState   = NonlinearSolverStateType<Requirement>;
 
   explicit DummySkill(const Pre& pre) {}
-
-  using NRState = NonlinearSolverState<const std::remove_reference_t<typename Traits::template VectorType<>>&>;
 
 protected:
   // This returns a tuple functions to be registered

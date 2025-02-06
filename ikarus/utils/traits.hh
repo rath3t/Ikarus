@@ -181,6 +181,11 @@ template <template <auto, typename...> class Type, typename>
 struct isSpecializationNonTypeAndTypes : std::false_type
 {
 };
+
+template <template <auto, auto, typename...> class Type, typename>
+struct isSpecializationNonTypeNonTypeAndTypes : std::false_type
+{
+};
 #endif
 
 /**
@@ -194,6 +199,21 @@ struct isSpecializationNonTypeAndTypes : std::false_type
  */
 template <template <auto, typename...> class Type, auto T, typename... N>
 struct isSpecializationNonTypeAndTypes<Type, Type<T, N...>> : std::true_type
+{
+};
+
+/**
+ * \brief Type trait to check if a class is a specialization of a template with two non-type parameter and types.
+ *
+ * \ingroup traits
+ *
+ * \tparam Type Template class with a non-type parameter and types.
+ * \tparam T First non-type parameter.
+ * \tparam R Second non-type parameter.
+ * \tparam N Types used to instantiate the template.
+ */
+template <template <auto, auto, typename...> class Type, auto T, auto R, typename... N>
+struct isSpecializationNonTypeNonTypeAndTypes<Type, Type<T, R, N...>> : std::true_type
 {
 };
 

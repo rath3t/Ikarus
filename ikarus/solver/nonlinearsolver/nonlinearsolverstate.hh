@@ -8,9 +8,18 @@
 
 #pragma once
 
-#include <Eigen/Core>
+#include <ikarus/utils/traits.hh>
 
 namespace Ikarus {
+
+// Forward declarations
+template <typename TypeListOne, typename TypeListTwo>
+class NonLinearOperator;
+
+enum class FESolutions;
+enum class FEParameter;
+template <FESolutions sol, FEParameter para, typename SV, typename PM>
+class FERequirements;
 
 template <typename P1, typename SolType = P1>
 struct NonlinearSolverState
@@ -23,14 +32,26 @@ struct NonlinearSolverState
   int iteration{};
 };
 
-template <typename NLO>
-struct NonlinearSolverStateFactory
-{
-private:
-  using SolutionType = const typename NLO::ValueType&;
+template <typename T>
+struct NonlinearSolverStateFactory; // Only a declaration
 
-public:
+// Partial specialization for the NonLinearOperator case
+template <typename NLO>
+requires traits::isSpecialization<NonLinearOperator, NLO>::value
+struct NonlinearSolverStateFactory<NLO>
+{
   using type = NonlinearSolverState<const typename NLO::ValueType&, const typename NLO::template ParameterValue<0>&>;
 };
+
+// Partial specialization for the FERequirements case
+template <typename FER>
+requires traits::isSpecializationNonTypeNonTypeAndTypes<FERequirements, FER>::value
+struct NonlinearSolverStateFactory<FER>
+{
+  using type = NonlinearSolverState<const typename FER::SolutionVectorType&>;
+};
+
+template <typename T>
+using NonlinearSolverStateType = NonlinearSolverStateFactory<T>::type;
 
 } // namespace Ikarus

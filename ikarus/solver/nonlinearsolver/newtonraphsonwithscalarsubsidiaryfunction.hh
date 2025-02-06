@@ -224,8 +224,7 @@ public:
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
 
-    using NRSolverState = NonlinearSolverStateFactory<NLO>::type;
-    auto solverState    = NRSolverState{.correction = deltaD, .solution = x};
+    auto solverState = NonlinearSolverStateType<NLO>{.correction = deltaD, .solution = x};
 
     /// Iterative solving scheme
     while (rNorm > settings_.tol && iter < settings_.maxIter) {
