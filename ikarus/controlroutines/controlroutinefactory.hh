@@ -19,44 +19,33 @@ namespace Ikarus {
  * The assembler is used to register the finite elements to the broadcaster messages from the solver and the
  * control routine.
  *
- * \tparam CRConfig The Type of the config
  */
-template <typename CRConfig>
+
 struct ControlRoutineFactory
 {
-  /**
-   * \brief Construct a new Control Routine Factory with the given config
-   *
-   * \param config the config used by the factory
-   */
-  ControlRoutineFactory(const CRConfig& config)
-      : config_(config) {}
-
   /**
    * \brief Creates the control routine and registering the elements to the broadcaster messages from the solver and
    * the control routine.
    *
    * \tparam NLS the type of the nonlinear solver used by the control routine
    * \tparam Assembler the type of the assembler. It has to be a pointer and satisfy the FlatAssembler conncept
+   * \tparam CRConfig The Type of the config
+   * \param config the config
    * \param nonlinearSolver the nonlinear solver
    * \param assembler the assembler
    * \return The control routine
    */
-  template <typename NLS, typename Assembler>
+  template <typename CRConfig, typename NLS, typename Assembler>
   requires Concepts::FlatAssembler<typename std::remove_cvref_t<Assembler>::element_type>
-  auto create(NLS&& nonlinearSolver, Assembler&& assembler) const {
-    auto cr = createControlRoutine(std::move(config_), std::forward<NLS>(nonlinearSolver));
+  static auto create(const CRConfig& config, NLS&& nonlinearSolver, Assembler&& assembler) {
+    auto cr = createControlRoutine(std::move(config), std::forward<NLS>(nonlinearSolver));
 
     for (auto& fe : assembler->finiteElements()) {
       fe.template subscribeTo<NonLinearSolverMessages>(nonlinearSolver);
       fe.template subscribeTo<ControlMessages>(cr);
     }
-
     return cr;
   }
-
-private:
-  CRConfig config_;
 };
 
 } // namespace Ikarus

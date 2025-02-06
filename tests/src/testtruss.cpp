@@ -143,7 +143,8 @@ static auto vonMisesTrussTest() {
   vtkWriter.setFileNamePrefix("vonMisesTruss");
 
   /// Create loadcontrol
-  auto lc = ControlRoutineFactory(LoadControlConfig(loadSteps, 0.0, 0.5)).create(nr, denseFlatAssembler);
+  auto lc = ControlRoutineFactory::create(LoadControlConfig{loadSteps, 0.0, 0.5}, nr, denseFlatAssembler);
+
   auto nonLinearSolverObserver = NonLinearSolverLogger();
 
   nonLinearSolverObserver.subscribeTo(lc.nonlinearSolver());

@@ -154,8 +154,10 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
   dass.setTargetIterations(targetIterations);
 
   /// control routine with and without step sizing
-  auto crWSS  = ControlRoutineFactory(PathFollowingConfig(loadSteps, stepSize, pft, dass)).create(nr, sparseAssembler);
-  auto crWoSS = ControlRoutineFactory(PathFollowingConfig(loadSteps, stepSize, pft, nass)).create(nr2, sparseAssembler);
+  auto crWSS = ControlRoutineFactory::create(PathFollowingConfig{loadSteps, stepSize, pft, dass}, nr, sparseAssembler);
+  auto crWoSS =
+      ControlRoutineFactory::create(PathFollowingConfig{loadSteps, stepSize, pft, nass}, nr2, sparseAssembler);
+
   {
     // test argument deduction for PFConfig
     auto cf1 = PathFollowingConfig(loadSteps, stepSize);

@@ -14,7 +14,7 @@
 #include <Eigen/Dense>
 
 #include <ikarus/assembler/simpleassemblers.hh>
-#include "ikarus/controlroutines/loadcontrol.hh"
+#include <ikarus/controlroutines/loadcontrol.hh>
 #include <ikarus/finiteelements/febase.hh>
 #include <ikarus/finiteelements/fefactory.hh>
 #include <ikarus/finiteelements/ferequirements.hh>
@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
   NonlinearSolverFactory nrFactory(nrConfig);
   auto nr       = nrFactory.create(sparseFlatAssembler);
   auto nonLinOp = Ikarus::NonLinearOperatorFactory::op(sparseFlatAssembler);
-  auto lc       = ControlRoutineFactory(LoadControlConfig(1, 0.0, 1.0)).create(nr, sparseFlatAssembler);
+  auto lc       = ControlRoutineFactory::create(LoadControlConfig{1, 0.0, 1.0}, nr, sparseFlatAssembler);
 
   lc.notify(Ikarus::ControlMessages::CONTROL_STARTED);
   checkMatrixAndVector(10, testLocation());
