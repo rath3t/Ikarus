@@ -53,23 +53,24 @@ public:
   using GridView  = typename Traits::GridView;
   using Element   = typename Traits::Element;
   using Pre       = DummySkillPre;
-  using NRState   = NonlinearSolverStateType<Requirement>;
+  // using NRState   = NonlinearSolverStateType<Requirement>;
 
   explicit DummySkill(const Pre& pre) {}
 
 protected:
   // This returns a tuple functions to be registered
-  template <typename MT>
-  auto subscribeToImpl() {
+  template <typename MT, typename BC>
+  void subscribeToImpl(BC& bc) {
     if constexpr (std::same_as<MT, NonLinearSolverMessages>) {
-      return std::make_tuple([&](NonLinearSolverMessages message, NRState& state) {
+      using State = typename BC::State;
+      underlying().subscribe(bc, [&](NonLinearSolverMessages message, State& state) {
         this->updateState(message, state.solution, state.correction);
       });
     } else if constexpr (std::same_as<MT, UpdateMessages>) {
-      return std::make_tuple([&](UpdateMessages message, int val) { this->updateState(message, val); },
-                             [&](UpdateMessages message) { this->updateState(message); });
+      underlying().subscribe(bc, [&](UpdateMessages message, int val) { this->updateState(message, val); });
+      underlying().subscribe(bc, [&](UpdateMessages message) { this->updateState(message); });
     } else if constexpr (std::same_as<MT, ControlMessages>) {
-      return std::make_tuple([&](ControlMessages message) { this->updateState(message); });
+      underlying().subscribe(bc, [&](ControlMessages message) { this->updateState(message); });
     } else
       static_assert(Dune::AlwaysFalse<MT>::value, "No registration for MT");
   }
@@ -139,8 +140,10 @@ using NRStateDummy = NonlinearSolverState<const Eigen::VectorXd&, const Eigen::V
 struct DummyBroadcaster : public Broadcasters<void(NonLinearSolverMessages, NRStateDummy& state),
                                               void(UpdateMessages, int), void(UpdateMessages)>
 {
+  using State = NRStateDummy;
+
   void emitMessage(NonLinearSolverMessages message) {
-    auto state = NRStateDummy(x_, dx_);
+    auto state = State(x_, dx_);
     this->notify(message, state);
   }
   void emitMessage(UpdateMessages message, int val) { this->notify(message, val); }
@@ -263,6 +266,8 @@ int main(int argc, char** argv) {
   fe.unSubscribe(std::move(token));
   broadcaster.emitMessage(UpdateMessages::INCREMENT);
   t.check(i == 1) << testLocation();
+
+  static_assert(Concepts::PointerOrSmartPointer<std::shared_ptr<int>>);
 
   return t.exit();
 }

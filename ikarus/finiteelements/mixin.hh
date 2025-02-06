@@ -14,6 +14,7 @@
 #include <ikarus/finiteelements/fetraits.hh>
 #include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
 #include <ikarus/utils/broadcaster/broadcastermessages.hh>
+#include <ikarus/utils/functionhelper.hh>
 #include <ikarus/utils/listener/listener.hh>
 
 namespace Ikarus {
@@ -253,12 +254,11 @@ private:
     // For Clang-16: we need the this-> otherwise the code in the if clause will never be called. For Gcc-12.2: with the
     // this-> it throws a compiler error in certain cases
 #if defined(__clang__)
-    if constexpr (requires { this->Sk::template subscribeToImpl<MT>(); }) {
+    if constexpr (requires { this->Sk::template subscribeToImpl<MT>(bc); }) {
 #else
-    if constexpr (requires { Sk::template subscribeToImpl<MT>(); }) {
+    if constexpr (requires { Sk::template subscribeToImpl<MT>(bc); }) {
 #endif
-      auto fTuple = Sk::template subscribeToImpl<MT>();
-      Dune::Hybrid::forEach(fTuple, [&](auto& f) { this->subscribe(bc, std::move(f)); });
+      Sk::template subscribeToImpl<MT>(bc);
     }
   }
 
@@ -273,7 +273,9 @@ public:
    */
   template <typename MT, typename BC>
   auto subscribeTo(BC& bc) {
-    (invokeSubscribeTo<Skills<PreFE, typename PreFE::template FE<Skills...>>, BC, MT>(bc), ...);
+    (invokeSubscribeTo<Skills<PreFE, typename PreFE::template FE<Skills...>>, traits::MaybeDereferencedType<BC>, MT>(
+         utils::maybeDeref(bc)),
+     ...);
     return *this;
   }
 

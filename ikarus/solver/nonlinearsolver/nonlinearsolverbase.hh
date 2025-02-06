@@ -14,11 +14,11 @@
 namespace Ikarus {
 
 template <typename NLO, typename... Args>
-struct NonlinearSolverBase
-    : public Broadcasters<void(NonLinearSolverMessages), void(NonLinearSolverMessages, double),
-                          void(NonLinearSolverMessages, int),
-                          void(NonLinearSolverMessages, typename NonlinearSolverStateFactory<NLO>::type&), Args...>
+struct NonlinearSolverBase : public Broadcasters<void(NonLinearSolverMessages), void(NonLinearSolverMessages, double),
+                                                 void(NonLinearSolverMessages, int),
+                                                 void(NonLinearSolverMessages, NonlinearSolverStateType<NLO>&), Args...>
 {
+  using State = NonlinearSolverStateType<NLO>;
 };
 
 } // namespace Ikarus

@@ -10,6 +10,7 @@
 #include <memory>
 #include <vector>
 
+#include <ikarus/utils/functionhelper.hh>
 #include <ikarus/utils/traits.hh>
 
 namespace Ikarus {
@@ -41,7 +42,7 @@ struct Listener
   template <typename Broadcaster, typename F>
   auto subscribe(Broadcaster& broadcaster, F&& f) {
     using Signature = typename traits::FunctionTraits<F>::FreeSignature;
-    return subscribe<Broadcaster, Signature>(broadcaster, std::forward<F>(f));
+    return subscribe<Broadcaster, Signature>(utils::maybeDeref(broadcaster), std::forward<F>(f));
   }
 
   /**
@@ -55,11 +56,12 @@ struct Listener
    * \param f the function
    */
   template <typename Broadcaster, typename Signature, typename F>
+  requires(not Concepts::PointerOrSmartPointer<Broadcaster>)
   auto subscribe(Broadcaster& broadcaster, F&& f) {
-    if constexpr (requires { broadcaster.operator->(); })
-      t.push_back(broadcaster->template station<Signature>().registerListener(std::forward<F>(f)));
-    else
-      t.push_back(broadcaster.template station<Signature>().registerListener(std::forward<F>(f)));
+    // if constexpr (requires { broadcaster.operator->(); })
+    //   t.push_back(broadcaster->template station<Signature>().registerListener(std::forward<F>(f)));
+    // else
+    t.push_back(broadcaster.template station<Signature>().registerListener(std::forward<F>(f)));
     return t.back();
   }
 

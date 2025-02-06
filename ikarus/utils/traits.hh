@@ -8,13 +8,16 @@
 
 #pragma once
 #include <functional>
+#include <memory>
 #include <tuple>
 #include <type_traits>
+// namespace std {
+// template <class T>
+// class shared_ptr;
 
-namespace std {
-template <class T>
-class shared_ptr;
-}
+// template <class T, class Deleter>
+// class unique_ptr;
+// }
 
 #include <dune/common/hybridutilities.hh>
 namespace Ikarus::traits {
@@ -137,6 +140,28 @@ struct isSharedPtr : std::false_type
 #ifndef DOXYGEN
 template <typename T>
 struct isSharedPtr<std::shared_ptr<T>> : std::true_type
+{
+};
+#endif
+
+/**
+ * \brief Type trait to check if a type is a isUniquePtr.
+ * \ingroup traits
+ * \tparam T Class to check.
+ */
+template <typename T>
+struct isUniquePtr : std::false_type
+{
+};
+
+#ifndef DOXYGEN
+template <typename T>
+struct isUniquePtr<std::unique_ptr<T>> : std::true_type
+{
+};
+
+template <typename T, typename Deleter>
+struct isUniquePtr<std::unique_ptr<T, Deleter>> : std::true_type
 {
 };
 #endif

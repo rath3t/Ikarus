@@ -107,4 +107,19 @@ auto referenceElementVertexPositions(FE& fe) {
   return referenceElementSubEntityPositions(fe, FE::Traits::mydim);
 }
 
+/**
+ * \brief if T is a pointer type, return the dereferenced value, otherwise return the value itself.
+ *
+ * \tparam T
+ * \param t
+ * \return decltype(auto)
+ */
+template <typename T>
+decltype(auto) maybeDeref(T& t) {
+  if constexpr (Concepts::PointerOrSmartPointer<T>)
+    return *t;
+  else
+    return t;
+}
+
 } // namespace Ikarus::utils
