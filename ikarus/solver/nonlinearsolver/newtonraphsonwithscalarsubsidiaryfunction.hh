@@ -224,7 +224,7 @@ public:
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
 
-    auto solverState = NonlinearSolverStateType<NLO>{.correction = deltaD, .solution = x};
+    auto solverState = typename NewtonRaphsonWithSubsidiaryFunction::State{.correction = deltaD, .solution = x};
 
     /// Iterative solving scheme
     while (rNorm > settings_.tol && iter < settings_.maxIter) {

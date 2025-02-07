@@ -42,7 +42,8 @@ struct Listener
   template <typename Broadcaster, typename F>
   auto subscribe(Broadcaster& broadcaster, F&& f) {
     using Signature = typename traits::FunctionTraits<F>::FreeSignature;
-    return subscribe<Broadcaster, Signature>(utils::maybeDeref(broadcaster), std::forward<F>(f));
+    return subscribe<traits::MaybeDereferencedType<Broadcaster>, Signature>(utils::maybeDeref(broadcaster),
+                                                                            std::forward<F>(f));
   }
 
   /**

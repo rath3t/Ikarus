@@ -53,7 +53,6 @@ public:
   using GridView  = typename Traits::GridView;
   using Element   = typename Traits::Element;
   using Pre       = DummySkillPre;
-  // using NRState   = NonlinearSolverStateType<Requirement>;
 
   explicit DummySkill(const Pre& pre) {}
 
@@ -62,8 +61,8 @@ protected:
   template <typename MT, typename BC>
   void subscribeToImpl(BC& bc) {
     if constexpr (std::same_as<MT, NonLinearSolverMessages>) {
-      using State = typename BC::State;
-      underlying().subscribe(bc, [&](NonLinearSolverMessages message, State& state) {
+      using NLSState = typename BC::State;
+      underlying().subscribe(bc, [&](NonLinearSolverMessages message, NLSState& state) {
         this->updateState(message, state.solution, state.correction);
       });
     } else if constexpr (std::same_as<MT, UpdateMessages>) {

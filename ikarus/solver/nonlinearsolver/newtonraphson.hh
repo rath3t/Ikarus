@@ -190,7 +190,7 @@ public:
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
 
-    auto solverState = NonlinearSolverStateType<NLO>{.correction = correction_, .solution = x};
+    auto solverState = typename NewtonRaphson::State{.correction = correction_, .solution = x};
 
     while ((rNorm > settings_.tol && iter < settings_.maxIter) or iter < settings_.minIter) {
       this->notify(ITERATION_STARTED);

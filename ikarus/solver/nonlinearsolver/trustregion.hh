@@ -153,9 +153,6 @@ struct Stats
   int innerIterSum{0};
 };
 
-template <typename NLO>
-using TRSolverState = NonlinearSolverState<typename NLO::DerivativeType, typename NLO::template ParameterValue<0>>;
-
 /**
 * \class TrustRegion
 * \brief Trust Region solver for non-linear optimization problems.
@@ -169,7 +166,7 @@ using TRSolverState = NonlinearSolverState<typename NLO::DerivativeType, typenam
 * \tparam UF Type of the update function
 */
 template <typename NLO, PreConditioner preConditioner, typename UF>
-class TrustRegion : public NonlinearSolverBase<NLO, void(NonLinearSolverMessages, TRSolverState<NLO>&)>
+class TrustRegion : public NonlinearSolverBase<NLO>
 {
 public:
   using Settings  = TRSettings;                               ///< Type of the settings for the TrustRegion solver
@@ -240,7 +237,7 @@ public:
       updateFunction(x, dxPredictor);
     truncatedConjugateGradient_.analyzePattern(hessian());
 
-    auto solverState = TRSolverState<NLO>{.correction = eta_, .solution = x};
+    auto solverState = typename TrustRegion::State{.correction = eta_, .solution = x};
 
     innerInfo_.Delta = settings_.Delta0;
     spdlog::info(
@@ -386,7 +383,6 @@ public:
       solverState.dNorm = stats_.etaNorm;
       solverState.rNorm = stats_.gradNorm;
       this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, solverState);
-      // this->notify(NonLinearSolverMessages::CORRECTION_UPDATED, x, eta_);
 
       if (info_.acceptProposal) {
         stats_.energy = stats_.energyProposal;

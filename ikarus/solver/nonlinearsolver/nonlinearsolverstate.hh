@@ -32,24 +32,26 @@ struct NonlinearSolverState
   int iteration{};
 };
 
+namespace Impl {
+  template <typename T>
+  struct NonlinearSolverStateFactory;
+
+  template <typename NLO>
+  requires traits::isSpecialization<NonLinearOperator, NLO>::value
+  struct NonlinearSolverStateFactory<NLO>
+  {
+  private:
+    // For NLOs which have more than 2 functions, we use the derivative as P1 (e.g. TR)
+    static constexpr bool useDerivativeType = std::tuple_size_v<typename NLO::FunctionReturnValues> > 2;
+    using P1Type =
+        std::conditional_t<useDerivativeType, const typename NLO::DerivativeType&, const typename NLO::ValueType&>;
+
+  public:
+    using type = NonlinearSolverState<P1Type, const typename NLO::template ParameterValue<0>&>;
+  };
+} // namespace Impl
+
 template <typename T>
-struct NonlinearSolverStateFactory;
-
-template <typename NLO>
-requires traits::isSpecialization<NonLinearOperator, NLO>::value
-struct NonlinearSolverStateFactory<NLO>
-{
-  using type = NonlinearSolverState<const typename NLO::ValueType&, const typename NLO::template ParameterValue<0>&>;
-};
-
-template <typename FER>
-requires traits::isSpecializationNonTypeNonTypeAndTypes<FERequirements, FER>::value
-struct NonlinearSolverStateFactory<FER>
-{
-  using type = NonlinearSolverState<const typename FER::SolutionVectorType&>;
-};
-
-template <typename T>
-using NonlinearSolverStateType = NonlinearSolverStateFactory<T>::type;
+using NonlinearSolverStateType = Impl::NonlinearSolverStateFactory<T>::type;
 
 } // namespace Ikarus
