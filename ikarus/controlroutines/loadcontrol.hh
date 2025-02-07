@@ -57,7 +57,7 @@ auto createControlRoutine(const LoadControlConfig& config, NLS&& nonlinearSolver
  * \tparam NLS Type of the nonlinear solver used in the control routine.
  */
 template <typename NLS>
-class LoadControl : public ControlRoutineBase
+class LoadControl : public ControlRoutineBase<typename NLS::NonLinearOperator>
 {
 public:
   /** \brief The name of the LoadControl method. */

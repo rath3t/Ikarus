@@ -130,7 +130,7 @@ auto createControlRoutine(PFConfig&& config, NLS&& nonlinearSolver) {
  */
 template <typename NLS, typename PF = ArcLength, typename ASS = AdaptiveStepSizing::NoOp>
 requires(Impl::checkPathFollowingTemplates<NLS, PF, ASS>())
-class PathFollowing : public ControlRoutineBase
+class PathFollowing : public ControlRoutineBase<typename NLS::NonLinearOperator>
 
 {
 public:

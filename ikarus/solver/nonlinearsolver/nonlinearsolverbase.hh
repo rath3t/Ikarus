@@ -13,6 +13,12 @@
 
 namespace Ikarus {
 
+/**
+ * \brief Base for all nonlinear solvers. Defines the message interface that can be broadcasted to listeners.
+ *
+ * \tparam NLO The nonlinear operator
+ * \tparam Args Additional message signatures can be broadcasted
+ */
 template <typename NLO, typename... Args>
 struct NonlinearSolverBase : public Broadcasters<void(NonLinearSolverMessages), void(NonLinearSolverMessages, double),
                                                  void(NonLinearSolverMessages, int),

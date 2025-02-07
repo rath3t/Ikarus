@@ -29,6 +29,9 @@ ControlInformation LoadControl<NLS>::run() {
   this->notify(SOLUTION_CHANGED);
   this->notify(STEP_ENDED);
 
+  auto state     = typename LoadControl::State{.parameter = loadParameter};
+  state.stepSize = stepSize_;
+
   for (int ls = 0; ls < loadSteps_; ++ls) {
     this->notify(STEP_STARTED, ls, stepSize_);
     loadParameter += stepSize_;
@@ -37,6 +40,9 @@ ControlInformation LoadControl<NLS>::run() {
     info.totalIterations += solverInfo.iterations;
     if (not solverInfo.success)
       return info;
+
+    state.loadStep = ls;
+    this->notify(SOLUTION_CHANGED, state);
     this->notify(SOLUTION_CHANGED);
     this->notify(STEP_ENDED);
   }

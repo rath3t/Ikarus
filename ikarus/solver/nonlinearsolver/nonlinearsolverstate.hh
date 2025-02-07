@@ -13,19 +13,22 @@
 namespace Ikarus {
 
 // Forward declarations
+#ifndef DOXYGEN
 template <typename TypeListOne, typename TypeListTwo>
 class NonLinearOperator;
+#endif
 
-enum class FESolutions;
-enum class FEParameter;
-template <FESolutions sol, FEParameter para, typename SV, typename PM>
-class FERequirements;
-
-template <typename P1, typename SolType = P1>
+/**
+ * \brief State for nonlinear solvers
+ *
+ * \tparam Correction the type of the correction vector
+ * \tparam SolutionType the type of the solution vector
+ */
+template <typename Correction, typename SolutionType = Correction>
 struct NonlinearSolverState
 {
-  P1 correction;
-  SolType solution;
+  Correction correction;
+  SolutionType solution;
 
   double rNorm{};
   double dNorm{};
@@ -41,17 +44,23 @@ namespace Impl {
   struct NonlinearSolverStateFactory<NLO>
   {
   private:
-    // For NLOs which have more than 2 functions, we use the derivative as P1 (e.g. TR)
+    // For NLOs which have more than 2 functions, we use the derivative as Correction (e.g. TR)
     static constexpr bool useDerivativeType = std::tuple_size_v<typename NLO::FunctionReturnValues> > 2;
-    using P1Type =
+    using CorrectionType =
         std::conditional_t<useDerivativeType, const typename NLO::DerivativeType&, const typename NLO::ValueType&>;
+    using SolutionType = const typename NLO::template ParameterValue<0>&;
 
   public:
-    using type = NonlinearSolverState<P1Type, const typename NLO::template ParameterValue<0>&>;
+    using type = NonlinearSolverState<CorrectionType, SolutionType>;
   };
 } // namespace Impl
 
-template <typename T>
-using NonlinearSolverStateType = Impl::NonlinearSolverStateFactory<T>::type;
+/**
+ * \brief Helper to deduce the correct types for NonlinearSolverState
+ *
+ * \tparam NLO The nonlinear operator
+ */
+template <typename NLO>
+using NonlinearSolverStateType = Impl::NonlinearSolverStateFactory<NLO>::type;
 
 } // namespace Ikarus

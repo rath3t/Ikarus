@@ -12,5 +12,6 @@ install(
         pathfollowingfunctions.hh
         controlroutinebase.hh
         controlroutinefactory.hh
+        controlroutinestate.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/controlroutines
 )

@@ -44,6 +44,8 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
   this->notify(SOLUTION_CHANGED);
   this->notify(STEP_ENDED);
 
+  auto state = typename PathFollowing::State{.parameter = nonOp.lastParameter()};
+
   /// Calculate predictor for a particular step
   for (int ls = 1; ls < steps_; ++ls) {
     subsidiaryArgs_.currentStep = ls;
@@ -60,6 +62,10 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
     info.totalIterations += solverInfo.iterations;
     if (not solverInfo.success)
       return info;
+
+    state.loadStep = subsidiaryArgs_.currentStep;
+    state.stepSize = subsidiaryArgs_.stepSize;
+    this->notify(SOLUTION_CHANGED, state);
     this->notify(SOLUTION_CHANGED);
     this->notify(STEP_ENDED);
   }
