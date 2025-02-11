@@ -64,8 +64,7 @@ auto cantileverBeamTest(const MAT& reducedMat) {
     fes.back().bind(ge);
   }
 
-  auto basisP = std::make_shared<const decltype(basis)>(basis);
-  Ikarus::DirichletValues dirichletValues(basisP->flat());
+  Ikarus::DirichletValues dirichletValues(basis.flat());
 
   // fix left edge (x=0)
   dirichletValues.fixBoundaryDOFs([&](auto& dirichletFlags, auto&& localIndex, auto&& localView, auto&& intersection) {
@@ -73,9 +72,8 @@ auto cantileverBeamTest(const MAT& reducedMat) {
       dirichletFlags[localView.index(localIndex)] = true;
   });
 
-  using SparseAssembler = SparseFlatAssembler<decltype(fes), decltype(dirichletValues)>;
-  SparseAssembler sparseFlatAssembler(fes, dirichletValues);
-  auto sparseAssemblerAM = makeAssemblerManipulator(sparseFlatAssembler);
+  auto sparseFlatAssembler = makeSparseFlatAssembler(fes, dirichletValues);
+  auto sparseAssemblerAM   = makeAssemblerManipulator(*sparseFlatAssembler);
 
   Eigen::VectorXd d;
   d.setZero(basis.flat().size());
@@ -119,7 +117,7 @@ auto cantileverBeamTest(const MAT& reducedMat) {
 
   double expectedLambda = 1.0;
   double expectedMaxDisp =
-      std::is_same_v<typename MAT::Underlying, NeoHookeT<double>> ? 4.492526443429457 : 4.459851990227056;
+      std::is_same_v<typename MAT::Underlying, Materials::NeoHooke> ? 4.479930218997457 : 4.459851990257645;
 
   t.check(controlInfo.success);
   const auto maxDisp = std::ranges::max(d.cwiseAbs());
@@ -153,8 +151,8 @@ int main(int argc, char** argv) {
   Ikarus::init(argc, argv);
   Dune::TestSuite t("Nonlinear EAS Test");
   auto matParameter = toLamesFirstParameterAndShearModulus({.emodul = 100.0, .nu = 0.3});
-  StVenantKirchhoff matSVK(matParameter);
-  NeoHooke matNH(matParameter);
+  Materials::StVenantKirchhoff matSVK(matParameter);
+  Materials::NeoHooke matNH(matParameter);
   auto reducedMatSVK = planeStrain(matSVK);
   auto reducedMatNH  = planeStrain(matNH);
 

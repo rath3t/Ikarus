@@ -22,8 +22,8 @@ template <typename Assembler>
 requires(Concepts::FlatAssembler<Assembler>)
 void updateStates(std::shared_ptr<Assembler>& assembler,
                   const typename Assembler::FERequirement::SolutionVectorType& correction) {
-  auto fes = assembler->finiteElements();
-  auto req = assembler->requirement();
+  auto& fes = assembler->finiteElements();
+  auto& req = assembler->requirement();
   for (auto& fe : fes)
     fe.updateState(req, correction);
 }
