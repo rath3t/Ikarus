@@ -13,6 +13,7 @@
 #include <ikarus/assembler/dirichletbcenforcement.hh>
 #include <ikarus/finiteelements/ferequirements.hh>
 #include <ikarus/utils/nonlinearoperator.hh>
+#include <dune/functions/common/differentiablefunctionfromcallables.hh>
 
 namespace Ikarus {
 
@@ -30,38 +31,23 @@ struct NonLinearOperatorFactory
     }();
 
     using FERequirement             = typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FERequirement;
-    [[maybe_unused]] auto KFunction = [dbcOption, assembler = assemblerPtr, affordances](
-                                          typename FERequirement::SolutionVectorType& globalSol,
-                                          typename FERequirement::ParameterType& parameter) -> auto& {
-      FERequirement req;
-      req.insertGlobalSolution(globalSol).insertParameter(parameter);
-
+    [[maybe_unused]] auto KFunction = [dbcOption, assembler = assemblerPtr, affordances](FERequirement& req) -> auto& {
       return assembler->matrix(req, affordances.matrixAffordance(), dbcOption);
     };
 
-    [[maybe_unused]] auto residualFunction = [dbcOption, assembler = assemblerPtr, affordances](
-                                                 typename FERequirement::SolutionVectorType& globalSol,
-                                                 typename FERequirement::ParameterType& parameter) -> auto& {
-      FERequirement req;
-      req.insertGlobalSolution(globalSol).insertParameter(parameter);
+    [[maybe_unused]] auto residualFunction = [dbcOption, assembler = assemblerPtr, affordances](FERequirement& req) -> auto& {
       return assembler->vector(req, affordances.vectorAffordance(), dbcOption);
     };
 
     assert(req.populated() && " Before you calls this method you have to pass populated fe requirements");
     if constexpr (affordances.hasScalarAffordance) {
-      [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](
-                                                 typename FERequirement::SolutionVectorType& globalSol,
-                                                 typename FERequirement::ParameterType& parameter) -> auto& {
-        FERequirement req;
-        req.insertGlobalSolution(globalSol).insertParameter(parameter);
+      [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](FERequirement& req) -> auto& {
 
         return assembler->scalar(req, affordances.scalarAffordance());
       };
-      return NonLinearOperator(functions(std::move(energyFunction), std::move(residualFunction), std::move(KFunction)),
-                               parameter(req.globalSolution(), req.parameter()));
+      return Dune::Functions::DifferentiableFunctionFromCallables(std::move(energyFunction), std::move(residualFunction), std::move(KFunction));
     } else
-      return NonLinearOperator(functions(std::move(residualFunction), std::move(KFunction)),
-                               parameter(req.globalSolution(), req.parameter()));
+      return Dune::Functions::DifferentiableFunctionFromCallables(std::move(residualFunction), std::move(KFunction));
   }
 
   template <typename Assembler>
