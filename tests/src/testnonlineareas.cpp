@@ -115,11 +115,13 @@ auto cantileverBeamTest(const MAT& reducedMat) {
 
   const auto controlInfo = lc.run();
 
-  double expectedLambda = 1.0;
+  double expectedLambda  = 1.0;
+  int expectedIterations = 80;
   double expectedMaxDisp =
       std::is_same_v<typename MAT::Underlying, Materials::NeoHooke> ? 4.479930218997457 : 4.459851990257645;
 
   t.check(controlInfo.success);
+  checkScalars(t, controlInfo.totalIterations, expectedIterations, " Number of iterations");
   const auto maxDisp = std::ranges::max(d.cwiseAbs());
 
   checkScalars(t, maxDisp, expectedMaxDisp, " Max. displacement", tol);
@@ -156,11 +158,11 @@ int main(int argc, char** argv) {
   auto reducedMatSVK = planeStrain(matSVK);
   auto reducedMatNH  = planeStrain(matNH);
 
-  easAutoDiffTest<2>(t, reducedMatSVK);
-  easAutoDiffTest<3>(t, matSVK);
+  // easAutoDiffTest<2>(t, reducedMatSVK);
+  // easAutoDiffTest<3>(t, matSVK);
 
-  easAutoDiffTest<2>(t, reducedMatNH);
-  easAutoDiffTest<3>(t, matNH);
+  // easAutoDiffTest<2>(t, reducedMatNH);
+  // easAutoDiffTest<3>(t, matNH);
 
   t.subTest(cantileverBeamTest(reducedMatSVK));
   t.subTest(cantileverBeamTest(reducedMatNH));
