@@ -463,4 +463,16 @@ struct ChangeArgTypeAtPos<std::function<R(Args...)>, Pos, NewType>
 };
 #endif
 
+/**
+ * @brief Concept to check if a type is an Eigen SparseMatrix.
+ *
+ * This concept checks if the given type is derived from Eigen::SparseMatrixBase.
+ *
+ * @tparam T The type to check.
+ */
+template <typename T>
+concept EigenSparseMatrix =
+     std::is_base_of_v<Eigen::SparseMatrixBase<T>, T> ;
+
+
 } // namespace Ikarus::traits

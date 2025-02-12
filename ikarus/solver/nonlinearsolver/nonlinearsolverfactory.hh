@@ -53,8 +53,12 @@ struct NonlinearSolverFactory
   requires Concepts::FlatAssembler<typename std::remove_cvref_t<Assembler>::element_type>
   auto create(Assembler&& assembler) const {
     auto nonLinOp         = NonLinearOperatorFactory::op(assembler);
-    std::function updateF = [assembler, setting = settings](decltype(nonLinOp.firstParameter())& a,
-                                                            const decltype(nonLinOp.derivative())& b) {
+    using SignatureT           = typename Dune::Functions::SignatureTraits<typename decltype(nonLinOp)::Signature>;
+    using Domain           = typename SignatureT::Domain;
+    using DerivativeSignatureT           = typename Dune::Functions::SignatureTraits<typename decltype(nonLinOp)::Derivative::Signature>;
+    using CorrectionType           = typename DerivativeSignatureT::Range;
+    std::function updateF = [assembler, setting = settings](Domain& a,
+                                                            const CorrectionType& b) {
       if (assembler->dBCOption() == DBCOption::Reduced) {
         setting.updateFunction(a, assembler->createFullVector(b));
       } else

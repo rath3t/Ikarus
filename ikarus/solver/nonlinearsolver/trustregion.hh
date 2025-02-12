@@ -183,10 +183,9 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
 
   using NonLinearOperator = NLO; ///< Type of the non-linear operator
 
-  // using ScalarType = std::remove_cvref_t<typename NLO::template FunctionReturnType<0>>; ///< Type of the scalar
-  //                                                                                       ///< cost
+   using ScalarType = typename SignatureTraits::Range; ///< Type of the scalar cost
 
-  // using MatrixType = std::remove_cvref_t<typename NLO::template FunctionReturnType<2>>; ///< Type of the Hessian
+   using MatrixType = typename SecondDerivativeSignatureTraits::Range; ///< Type of the Hessian
 
   /**
    * \brief Constructs a TrustRegion solver instance.
@@ -194,12 +193,9 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
    * \param updateFunction Update function
    */
   template <typename UF2 = UF>
-  explicit TrustRegion(const NLO& nonLinearOperator, UF2&& updateFunction = {})
-      : energyFunction_{nonLinearOperator},
+  explicit TrustRegion(const NLO& energyF, UF2&& updateFunction = {})
+      : energyFunction_{energyF}, grad_{derivative(energyF)}, hess_{secondDerderivativeivative(grad_)},
         updateFunction_{std::forward<UF2>(updateFunction)} {
-    eta_.setZero(gradient().size());
-    Heta_.setZero(gradient().size());
-    truncatedConjugateGradient_.analyzePattern(hessian());
   }
 
   /**
@@ -220,23 +216,10 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
    * \param x the solutin.
    * \return NonLinearSolverInformation containing information about the solver result.
    */
-  template<typename SolutionType>
-  NonLinearSolverInformation solve( SolutionType& x) {
-    SolutionType& x_Old= x;
-    this->notify(NonLinearSolverMessages::INIT);
-    stats_ = Stats{};
-    info_  = AlgoInfo{};
+  NonLinearSolverInformation solve(typename SignatureTraits::Domain& x) {
+    init(x);
+    typename SignatureTraits::Domain x_Old= x;
 
-    NonLinearSolverInformation solverInformation;
-    updateAll(x);
-    eta_.resizeLike(grad_);
-    Heta_
-    stats_.energy   = energy_;
-    xOld_           = x;
-    stats_.gradNorm = norm(grad_);
-    truncatedConjugateGradient_.analyzePattern(hess_);
-
-    innerInfo_.Delta = settings_.Delta0;
     spdlog::info(
         "        | iter | inner_i |   rho |   energy | energy_p | energy_inc |  norm(g) |    Delta | norm(corr) | "
         "InnerBreakReason");
@@ -298,7 +281,7 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
       // Will we accept the proposal or not?
       // Check the performance of the quadratic model against the actual energy.
       auto rhonum = stats_.energy - stats_.energyProposal;
-      auto rhoden = -eta_.dot(gradient() + 0.5 * Heta_);
+      auto rhoden = -eta_.dot(grad_ + 0.5 * Heta_);
 
       /*  Close to convergence the proposed energy and the real energy almost coincide.
        *  Therefore, the performance check of our model becomes ill-conditioned
@@ -380,20 +363,22 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
       if (info_.acceptProposal) {
         stats_.energy = stats_.energyProposal;
         updateAll(x);
-        xOld_ = x;
+        x_Old = x;
         this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, stats_.etaNorm);
         this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, stats_.gradNorm);
         this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
       } else {
-        x = xOld_;
+        x = x_Old;
         eta_.setZero();
       }
       updateAll(x);
-      stats_.gradNorm = gradient().norm();
+      stats_.gradNorm = grad_.norm();
       this->notify(NonLinearSolverMessages::ITERATION_ENDED);
     }
     spdlog::info("{}", info_.reasonString);
     spdlog::info("Total iterations: {} Total CG Iterations: {}", stats_.outerIter, stats_.innerIterSum);
+
+    NonLinearSolverInformation solverInformation;
 
     solverInformation.success =
         (info_.stop == StopReason::correctionNormTolReached) or (info_.stop == StopReason::gradientNormTolReached);
@@ -411,6 +396,22 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
   auto& nonLinearOperator() { return energyFunction_; }
 
 private:
+
+void init(const typename SignatureTraits::Domain& x)
+{
+    this->notify(NonLinearSolverMessages::INIT);
+    stats_ = Stats{};
+    info_  = AlgoInfo{};
+
+    updateAll(x);
+    eta_.resizeLike(grad_);
+    Heta_.resizeLike(grad_);
+    stats_.energy   = energy_;
+    stats_.gradNorm = norm(grad_);
+    truncatedConjugateGradient_.analyzePattern(hess_);
+
+    innerInfo_.Delta = settings_.Delta0;
+}
 
 void updateAll(const typename SignatureTraits::Domain& x)
 {
@@ -480,7 +481,7 @@ void updateAll(const typename SignatureTraits::Domain& x)
   void solveInnerProblem() {
     truncatedConjugateGradient_.setInfo(innerInfo_);
     int attempts = 0;
-    truncatedConjugateGradient_.factorize(hessian());
+    truncatedConjugateGradient_.factorize(hess_);
     // If the preconditioner is IncompleteCholesky the factorization may fail if we have negative diagonal entries and
     // the initial shift is too small. Therefore, if the factorization fails we increase the initial shift by a factor
     // of 5.
@@ -488,7 +489,7 @@ void updateAll(const typename SignatureTraits::Domain& x)
       while (truncatedConjugateGradient_.info() != Eigen::Success) {
         choleskyInitialShift_ *= 5;
         truncatedConjugateGradient_.preconditioner().setInitialShift(choleskyInitialShift_);
-        truncatedConjugateGradient_.factorize(hessian());
+        truncatedConjugateGradient_.factorize(hess_);
         if (attempts > 5)
           DUNE_THROW(Dune::MathError, "Factorization of preconditioner failed!");
         ++attempts;
@@ -496,7 +497,7 @@ void updateAll(const typename SignatureTraits::Domain& x)
       if (truncatedConjugateGradient_.info() == Eigen::Success)
         choleskyInitialShift_ = 1e-3;
     }
-    eta_       = truncatedConjugateGradient_.solveWithGuess(-gradient(), eta_);
+    eta_       = truncatedConjugateGradient_.solveWithGuess(-grad_, eta_);
     innerInfo_ = truncatedConjugateGradient_.getInfo();
   }
 
