@@ -14,91 +14,12 @@
 #include <ikarus/finiteelements/ferequirements.hh>
 #include <ikarus/utils/nonlinearoperator.hh>
 #include <dune/functions/common/differentiablefunctionfromcallables.hh>
+#include <ikarus/utils/derivativetraits.hh>
 
 namespace Ikarus {
 
-        template<class Signature>
-    struct DerivativeTraitsDense
-    {
-      typedef Dune::Functions::InvalidRange Range;
-    };
-
-template<typename K>
-struct DerivativeTraitsDense< K(K) >
-{
-  typedef double Range;
-};
-
-template<typename K, Eigen::Index n>
-struct DerivativeTraitsDense<K(Eigen::Vector<K,n>)>
-{
-  typedef Eigen::Vector<K,n> Range;
-};
-
-template<typename K,  Eigen::Index n,  Eigen::Index m>
-struct DerivativeTraitsDense<Eigen::Vector<K,m>(Eigen::Vector<K,n>)>
-{
-  typedef Eigen::Matrix<K,m,n> Range;
-};
-
-template <typename K,  Eigen::Index n,FESolutions sol, FEParameter para, typename SV, typename PM>
-struct DerivativeTraitsDense<Eigen::Vector<K,n>(FERequirements<sol,para,SV,PM>)>
-{
-  typedef Eigen::Matrix<K,n,n> Range;
-};
-
-struct DerivativeTraitsDenseD
-{
-  template<typename D>
-  using Traits= DerivativeTraitsDense<D>;
-};
-
-
-      template<class Signature>
-    struct DerivativeTraitsSparse
-    {
-      typedef Dune::Functions::InvalidRange Range;
-    };
-
-template<typename K>
-struct DerivativeTraitsSparse< K(K) >
-{
-  typedef double Range;
-};
-
-template<typename K, Eigen::Index n>
-struct DerivativeTraitsSparse<K(Eigen::Vector<K,n>)>
-{
-  typedef Eigen::Vector<K,n> Range;
-};
-
-template<typename K,  Eigen::Index n,  Eigen::Index m>
-struct DerivativeTraitsSparse<Eigen::Vector<K,m>(Eigen::Vector<K,n>)>
-{
-  typedef Eigen::SparseMatrix<K> Range;
-};
-
-template <typename K,  Eigen::Index n,FESolutions sol, FEParameter para, typename SV, typename PM>
-struct DerivativeTraitsSparse<Eigen::Vector<K,n>(FERequirements<sol,para,SV,PM>)>
-{
-  typedef Eigen::SparseMatrix<K> Range;
-};
-
-struct DerivativeTraitsSparseD
-{
-  template<typename D>
-  using Traits= DerivativeTraitsSparse<D>;
-};
-
 struct NonLinearOperatorFactory
 {
-      template<class Signature>
-    struct DerivativeTraitsDense
-    {
-      typedef Dune::Functions::InvalidRange Range;
-    };
-
-
 
   template <typename Assembler, typename... Affordances>
   static auto op(Assembler&& as, typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FERequirement& req,
@@ -112,34 +33,34 @@ struct NonLinearOperatorFactory
     }();
 
     using FERequirement             = typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FERequirement;
-    [[maybe_unused]] auto KFunction = [dbcOption, assembler = assemblerPtr, affordances](FERequirement& req) -> auto& {
+    [[maybe_unused]] auto KFunction = [dbcOption, assembler = assemblerPtr, affordances](const FERequirement& req) -> auto& {
       return assembler->matrix(req, affordances.matrixAffordance(), dbcOption);
     };
 
-    [[maybe_unused]] auto residualFunction = [dbcOption, assembler = assemblerPtr, affordances](FERequirement& req) -> auto& {
+    [[maybe_unused]] auto residualFunction = [dbcOption, assembler = assemblerPtr, affordances](const FERequirement& req) -> auto& {
       return assembler->vector(req, affordances.vectorAffordance(), dbcOption);
     };
 
 
 
     assert(req.populated() && " Before you calls this method you have to pass populated fe requirements");
-    using DerivativeTraitsDummy = std::conditional_t<traits::EigenSparseMatrix<decltype(KFunction(req))>, DerivativeTraitsSparseD, DerivativeTraitsDenseD>;
+    using DerivativeTraitsDummy = std::conditional_t<traits::EigenSparseMatrix<std::remove_cvref_t<decltype(KFunction(req))>>, DerivativeTraitsSparseD, DerivativeTraitsDenseD>;
     if constexpr (affordances.hasScalarAffordance) {
-          [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](FERequirement& req) -> auto& {
+          [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](const FERequirement& req) -> auto& {
 
       return assembler->scalar(req, affordances.scalarAffordance());
     };
 
-      using EnergyFunctionSignature = Dune::Functions::SignatureTraits<decltype(energyFunction)>;
+      using EnergyFunctionSignature = typename Dune::Functions::SignatureTraits<decltype(energyFunction)>::RawSignature ;
       auto sigTag =Dune::Functions::SignatureTag<EnergyFunctionSignature,DerivativeTraitsDummy::template Traits>();
       return Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,std::move(energyFunction), std::move(residualFunction), std::move(KFunction));
     } else
      {
-            using ResidualFunctionSignature = Dune::Functions::SignatureTraits<decltype(residualFunction)>;
+            using ResidualFunctionSignature = typename Dune::Functions::SignatureTraits<decltype(residualFunction)>::RawSignature ;
 
             auto sigTag =Dune::Functions::SignatureTag<ResidualFunctionSignature,DerivativeTraitsDummy::template Traits>();
 
-       return Dune::Functions::DifferentiableFunctionFromCallables(sigTag,std::move(residualFunction), std::move(KFunction));}
+       return Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,std::move(residualFunction), std::move(KFunction));}
   }
 
   template <typename Assembler>

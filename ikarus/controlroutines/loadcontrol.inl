@@ -11,15 +11,22 @@
 
 namespace Ikarus {
 template <typename NLS>
-ControlInformation LoadControl<NLS>::run() {
+template<typename Domain>
+ControlInformation LoadControl<NLS>::run(Domain& x) {
+
+      static_assert(
+        requires {
+          x.parameter() = 0.0;
+          x.parameter() += 0.0;
+        }, "The last parameter (load factor) must be assignable and incrementable with a double!");
   ControlInformation info({false});
   auto& nonOp = nonLinearSolver_->nonLinearOperator();
   this->notify(ControlMessages::CONTROL_STARTED, static_cast<std::string>(this->name()));
-  auto& loadParameter = nonOp.lastParameter();
+  auto& loadParameter = x.parameter();
 
   loadParameter = 0.0;
   this->notify(ControlMessages::STEP_STARTED, 0, stepSize_);
-  auto solverInfo = nonLinearSolver_->solve();
+  auto solverInfo = nonLinearSolver_->solve(x);
   info.solverInfos.push_back(solverInfo);
   info.totalIterations += solverInfo.iterations;
   if (not solverInfo.success)
@@ -30,7 +37,7 @@ ControlInformation LoadControl<NLS>::run() {
   for (int ls = 0; ls < loadSteps_; ++ls) {
     this->notify(ControlMessages::STEP_STARTED, ls, stepSize_);
     loadParameter += stepSize_;
-    solverInfo = nonLinearSolver_->solve();
+    solverInfo = nonLinearSolver_->solve(x);
     info.solverInfos.push_back(solverInfo);
     info.totalIterations += solverInfo.iterations;
     if (not solverInfo.success)

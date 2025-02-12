@@ -12,6 +12,7 @@
 #include <iostream>
 
 #include <dune/common/float_cmp.hh>
+#include <dune/functions/common/signature.hh>
 
 #include <spdlog/spdlog.h>
 namespace Ikarus::utils {
@@ -43,20 +44,20 @@ struct CheckFlags
  * \details The checkgradient function is inspired by http://sma.epfl.ch/~nboumal/book/  Chapter 4.8 and
  * https://github.com/NicolasBoumal/manopt/blob/master/manopt/tools/checkdiff.m
  * \ingroup utils
- * \tparam NonlinearOperator Type of the nonlinear operator.
+ * \tparam NLO Type of the nonlinear operator.
  * \tparam UpdateType Type of the update.
  * \param nonLinOp The nonlinear operator.
+ * \param x the evaluation point.
  * \param checkFlags Flags for the check.
  * \param p_updateFunction Update function.
  * \return True if the check passed, false otherwise.
  */
-template <typename NonlinearOperator, typename UpdateType = typename NonlinearOperator::template ParameterValue<0>>
+template <typename NLO, typename UpdateType=typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range>
 bool checkGradient(
-    NonlinearOperator& nonLinOp, CheckFlags checkFlags = CheckFlags(),
-    std::function<void(typename NonlinearOperator::template ParameterValue<0>&, const UpdateType&)> p_updateFunction =
-        [](typename NonlinearOperator::template ParameterValue<0>& a, const UpdateType& b) { a += b; }) {
-  auto& x         = nonLinOp.firstParameter();
-  const auto xOld = x;
+    NLO& nonLinOp,const std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, CheckFlags checkFlags = CheckFlags(),
+    std::function<void(std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, const UpdateType&)> p_updateFunction =
+        [](std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain> a, const UpdateType& b) { a += b; }) {
+   auto x = p;
   UpdateType b;
   if constexpr (not std::is_floating_point_v<UpdateType>) {
     b.resizeLike(nonLinOp.derivative());
@@ -65,20 +66,21 @@ bool checkGradient(
   } else
     b = 1;
 
-  nonLinOp.updateAll();
-  const auto e = nonLinOp.value();
+  auto gradF = derivative(nonLinOp);
+  const auto e = nonLinOp(x);
+  const auto&& g = gradF(x);
 
   double gradfv;
   if constexpr (not std::is_floating_point_v<UpdateType>)
-    gradfv = nonLinOp.derivative().dot(b);
+    gradfv = g.dot(b);
   else
-    gradfv = nonLinOp.derivative() * b;
+    gradfv = g * b;
 
   auto ftfunc = [&](auto t) {
     p_updateFunction(x, t * b);
-    nonLinOp.template update<0>();
-    auto value = std::abs(nonLinOp.value() - e - t * gradfv);
-    x          = xOld;
+    const auto ept = nonLinOp(x);
+    auto value = std::abs(ept - e - t * gradfv);
+    x          = p;
     return value;
   };
 
@@ -95,7 +97,6 @@ bool checkGradient(
       spdlog::info("The gradient seems wrong.");
   }
 
-  nonLinOp.updateAll();
   return checkPassed;
 }
 
@@ -104,20 +105,20 @@ bool checkGradient(
  * \details The checkjacobian function is inspired by http://sma.epfl.ch/~nboumal/book/  Chapter 4.8 and
  * https://github.com/NicolasBoumal/manopt/blob/master/manopt/tools/checkdiff.m
  * \ingroup utils
- * \tparam NonlinearOperator Type of the nonlinear operator.
+ * \tparam NLO Type of the nonlinear operator.
  * \tparam UpdateType Type of the update.
  * \param nonLinOp The nonlinear operator.
+ * \param x the evaluation point.
  * \param checkFlags Flags for the check.
  * \param p_updateFunction Update function.
  * \return True if the check passed, false otherwise.
  */
-template <typename NonlinearOperator, typename UpdateType = typename NonlinearOperator::template ParameterValue<0>>
+template <typename NLO, typename UpdateType=typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range>
 bool checkJacobian(
-    NonlinearOperator& nonLinOp, CheckFlags checkFlags = CheckFlags(),
-    std::function<void(typename NonlinearOperator::template ParameterValue<0>&, const UpdateType&)> p_updateFunction =
-        [](typename NonlinearOperator::template ParameterValue<0>& a, const UpdateType& b) { a += b; }) {
-  auto& x         = nonLinOp.firstParameter();
-  const auto xOld = x;
+    NLO& nonLinOp,const std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, CheckFlags checkFlags = CheckFlags(),
+    std::function<void(std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>&, const UpdateType&)> p_updateFunction =
+        [](std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain> a, const UpdateType& b) { a += b; }) {
+   auto x = p;
   UpdateType b;
   b.resizeLike(nonLinOp.derivative().row(0).transpose());
   b.setRandom();
@@ -132,7 +133,7 @@ bool checkJacobian(
     p_updateFunction(x, t * b);
     nonLinOp.template update<0>();
     auto value = (nonLinOp.value() - e - t * jacofv).norm();
-    x          = xOld;
+    x          = p;
     return value;
   };
 
@@ -148,7 +149,6 @@ bool checkJacobian(
     else
       spdlog::info("The Jacobian seems wrong.");
   }
-  nonLinOp.updateAll();
   return checkPassed;
 }
 
@@ -157,20 +157,20 @@ bool checkJacobian(
  * \details  The checkHessian function is inspired by http://sma.epfl.ch/~nboumal/book/  Chapter 6.8 and
  * https://github.com/NicolasBoumal/manopt/blob/master/manopt/tools/checkhessian.m
  * \ingroup utils
- * \tparam NonlinearOperator Type of the nonlinear operator.
+ * \tparam NLO Type of the nonlinear operator.
  * \tparam UpdateType Type of the update.
  * \param nonLinOp The nonlinear operator.
+ * \param x the evaluation point.
  * \param checkFlags Flags for the check.
  * \param p_updateFunction Update function.
  * \return True if the check passed, false otherwise.
  */
-template <typename NonlinearOperator, typename UpdateType = typename NonlinearOperator::template ParameterValue<0>>
+template <typename NLO, typename UpdateType = typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range>
 bool checkHessian(
-    NonlinearOperator& nonLinOp, CheckFlags checkFlags = CheckFlags(),
-    std::function<void(typename NonlinearOperator::template ParameterValue<0>&, const UpdateType&)> p_updateFunction =
-        [](typename NonlinearOperator::template ParameterValue<0>& a, const UpdateType& b) { a += b; }) {
-  auto& x         = nonLinOp.firstParameter();
-  const auto xOld = x;
+    NLO& nonLinOp,const std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, CheckFlags checkFlags = CheckFlags(),
+    std::function<void(std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>&, const UpdateType&)> p_updateFunction =
+        [](std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& a, const UpdateType& b) { a += b; }) {
+   auto x = p;
   UpdateType b;
   if constexpr (not std::is_floating_point_v<UpdateType>) {
     b.resizeLike(nonLinOp.derivative());
@@ -195,7 +195,7 @@ bool checkHessian(
     p_updateFunction(x, t * b);
     nonLinOp.template update<0>();
     auto value = std::abs(nonLinOp.value() - e - t * gradfv - 0.5 * t * t * vhessv);
-    x          = xOld;
+    x          = p;
     return value;
   };
 
@@ -211,7 +211,6 @@ bool checkHessian(
     else
       spdlog::info("The Hessian seems wrong.");
   }
-  nonLinOp.updateAll();
   return checkPassed;
 }
 } // namespace Ikarus::utils

@@ -112,8 +112,8 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
 
   auto lc = Ikarus::LoadControl(tr, 1, {0, 50});
   lc.subscribeAll(vtkWriter);
-  const auto controlInfo = lc.run();
-  nonLinOp.template update<0>();
+  const auto controlInfo = lc.run(req);
+  auto actualEnergy= nonLinOp(req);
   const auto maxDisp = std::ranges::max(d);
   double energyExpected;
   if (std::is_same_v<Grid, Grids::Yasp>)
@@ -131,19 +131,19 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
   else /* std::is_same_v<Grid, Grids::Iga> */
     maxDispExpected = 0.061647849558021668159;
 
-  std::cout << std::setprecision(20) << nonLinOp.value() << std::endl;
+  std::cout << std::setprecision(20) << actualEnergy << std::endl;
   std::cout << "Maxdisp: " << maxDisp << std::endl;
   if constexpr (std::is_same_v<Material, Materials::StVenantKirchhoff>) {
-    t.check(Dune::FloatCmp::eq(energyExpected, nonLinOp.value()), "energyExpected == nonLinOp.value()")
-        << "energyExpected: " << energyExpected << "\nnonLinOp.value(): " << nonLinOp.value();
+    t.check(Dune::FloatCmp::eq(energyExpected, actualEnergy), "energyExpected == actualEnergy")
+        << "energyExpected: " << energyExpected << "\n actualEnergy: " << actualEnergy;
 
     t.check(std::abs(maxDispExpected - maxDisp) < 1e-12, "maxDispExpected-maxDisp")
         << "\nmaxDispExpected: \n"
         << maxDispExpected << "\nmaxDisp: \n"
         << maxDisp;
   } else { // using a Neohooke material yields a lower energy and larger displacements
-    t.check(Dune::FloatCmp::gt(energyExpected, nonLinOp.value()), "energyExpected > nonLinOp.value()")
-        << "energyExpected: " << energyExpected << "\nnonLinOp.value(): " << nonLinOp.value();
+    t.check(Dune::FloatCmp::gt(energyExpected, actualEnergy), "energyExpected > actualEnergy")
+        << "energyExpected: " << energyExpected << "\n actualEnergy: " << actualEnergy;
 
     t.check(maxDispExpected < maxDisp, "maxDispExpected<maxDisp") << "maxDispExpected: \n"
                                                                   << maxDispExpected << "\nmaxDisp: \n"
@@ -182,9 +182,9 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
       << "Test resultName: " << resultFunction5->name() << "should be PK2StressFull";
   t.check(resultFunction5->ncomps() == 6) << "Test result comps: " << resultFunction5->ncomps() << "should be 6";
 
-  nonLinOp.template update<1>();
+  auto grad= derivative(nonLinOp)(req);
   t.check(controlInfo.success, "Successful result");
-  t.check(gradTol >= nonLinOp.derivative().norm(), "Gradient Tolerance should be larger than actual tolerance");
+  t.check(gradTol >= grad.norm(), "Gradient Tolerance should be larger than actual tolerance");
   return t;
 }
 

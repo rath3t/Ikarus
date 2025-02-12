@@ -95,8 +95,8 @@ requires traits::isSpecializationNonTypeAndTypes<TrustRegionConfig, std::remove_
 auto createNonlinearSolver(TRConfig&& config, NLO&& nonLinearOperator) {
   static constexpr PreConditioner preConditioner = std::remove_cvref_t<TRConfig>::preConditionerType;
   using UF                                       = std::remove_cvref_t<TRConfig>::UpdateFunction;
-  static_assert(std::remove_cvref_t<NLO>::numberOfFunctions == 3,
-                "The number of derivatives in the nonlinear operator have to be exactly 3.");
+  // assert(std::remove_cvref_t<NLO>::numberOfFunctions == 3,
+  //               "The number of derivatives in the nonlinear operator have to be exactly 3.");
   auto solver = std::make_shared<TrustRegion<NLO, preConditioner, UF>>(nonLinearOperator,
                                                                        std::forward<TRConfig>(config).updateFunction);
 
@@ -194,7 +194,7 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
    */
   template <typename UF2 = UF>
   explicit TrustRegion(const NLO& energyF, UF2&& updateFunction = {})
-      : energyFunction_{energyF}, grad_{derivative(energyF)}, hess_{secondDerderivativeivative(grad_)},
+      : energyFunction_{energyF}, gradientFunction_{derivative(energyF)}, hessianFunction_{derivative(gradientFunction_)},
         updateFunction_{std::forward<UF2>(updateFunction)} {
   }
 
@@ -210,15 +210,17 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
            "options.Delta0 must be positive and smaller than Delta_bar.");
   }
 
+  using SolutionType = std::remove_cvref_t<Domain>; ///< Type of the solution vector
+
   /**
    * \brief Solves the nonlinear optimization problem using the TrustRegion algorithm.
    * \tparam SolutionType Type of the solution predictor (default is NoPredictor).
    * \param x the solutin.
    * \return NonLinearSolverInformation containing information about the solver result.
    */
-  NonLinearSolverInformation solve(typename SignatureTraits::Domain& x) {
+  NonLinearSolverInformation solve(SolutionType& x) {
     init(x);
-    typename SignatureTraits::Domain x_Old= x;
+    SolutionType x_Old= x;
 
     spdlog::info(
         "        | iter | inner_i |   rho |   energy | energy_p | energy_inc |  norm(g) |    Delta | norm(corr) | "
@@ -449,7 +451,7 @@ void updateAll(const typename SignatureTraits::Domain& x)
       return true;
     } else if (stats_.etaNorm < settings_.corr_tol && stats_.outerIter != 0) {
       logFinalState();
-      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(correction): {:1.16e}", nonLinearOperator().value(),
+      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(correction): {:1.16e}", energy_,
                    stats_.etaNorm);
       stream << "Displacement norm tolerance reached;  = " << settings_.corr_tol << "." << std::endl;
 
@@ -501,10 +503,8 @@ void updateAll(const typename SignatureTraits::Domain& x)
     innerInfo_ = truncatedConjugateGradient_.getInfo();
   }
 
-
-
   NLO energyFunction_;
-  typename NLO::DerivativeSignature gradientFunction_;
+  typename NLO::Derivative gradientFunction_;
   typename NLO::Derivative::Derivative  hessianFunction_;
 
     typename SignatureTraits::Range energy_;

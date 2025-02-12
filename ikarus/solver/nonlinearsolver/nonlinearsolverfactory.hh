@@ -60,9 +60,9 @@ struct NonlinearSolverFactory
     std::function updateF = [assembler, setting = settings](Domain& a,
                                                             const CorrectionType& b) {
       if (assembler->dBCOption() == DBCOption::Reduced) {
-        setting.updateFunction(a, assembler->createFullVector(b));
+        setting.updateFunction(a.globalSolution(), assembler->createFullVector(b));
       } else
-        setting.updateFunction(a, b);
+        setting.updateFunction(a.globalSolution(), b);
     };
     auto settingsNew = settings.rebindUpdateFunction(std::move(updateF));
     return createNonlinearSolver(std::move(settingsNew), std::move(nonLinOp));

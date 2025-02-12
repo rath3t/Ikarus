@@ -142,7 +142,7 @@ static auto NonLinearKLShellLoadControlTR() {
 
   auto lc = LoadControl(tr, 1, {0, 1});
   lc.subscribeAll(vtkWriter);
-  const auto controlInfo = lc.run();
+  const auto controlInfo = lc.run(req);
 
   t.check(controlInfo.success);
 
