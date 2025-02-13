@@ -171,9 +171,9 @@ class TrustRegion : public IObservable<NonLinearSolverMessages>
 public:
   using Settings  = TRSettings;                               ///< Type of the settings for the TrustRegion solver
 
-    using SignatureTraits= Dune::Functions::SignatureTraits<NLO>;
-    using DerivativeSignatureTraits = Dune::Functions::SignatureTraits<typename NLO::Derivative>;
-using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typename NLO::Derivative::Derivative>;
+    using SignatureTraits= Dune::Functions::SignatureTraits<NLO>; 
+using DerivativeSignatureTraits = Dune::Functions::SignatureTraits<typename NLO::Derivative>; 
+using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typename NLO::Derivative::Derivative>; 
   using Domain = typename SignatureTraits::Domain; ///< Type of the parameter vector of
                                                               ///< the nonlinear operator
   using CorrectionType = typename DerivativeSignatureTraits::Range;        ///< Type of the correction of x += deltaX.
@@ -183,9 +183,10 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
 
   using NonLinearOperator = NLO; ///< Type of the non-linear operator
 
-   using ScalarType = typename SignatureTraits::Range; ///< Type of the scalar cost
+  // using ScalarType = std::remove_cvref_t<typename NLO::template FunctionReturnType<0>>; ///< Type of the scalar
+  //                                                                                       ///< cost
 
-   using MatrixType = typename SecondDerivativeSignatureTraits::Range; ///< Type of the Hessian
+  // using MatrixType = std::remove_cvref_t<typename NLO::template FunctionReturnType<2>>; ///< Type of the Hessian
 
   /**
    * \brief Constructs a TrustRegion solver instance.
@@ -193,10 +194,9 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
    * \param updateFunction Update function
    */
   template <typename UF2 = UF>
-  explicit TrustRegion(const NLO& energyF, UF2&& updateFunction = {})
-      : energyFunction_{energyF}, gradientFunction_{derivative(energyF)}, hessianFunction_{derivative(gradientFunction_)},
-        updateFunction_{std::forward<UF2>(updateFunction)} {
-  }
+  explicit TrustRegion(const NLO& nonLinearOperator, UF2&& updateFunction = {})
+      : energyFunction_{nonLinearOperator},
+        updateFunction_{std::forward<UF2>(updateFunction)} {}
 
   /**
    * \brief Sets up the TrustRegion solver with the provided settings and checks feasibility.
@@ -210,18 +210,30 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
            "options.Delta0 must be positive and smaller than Delta_bar.");
   }
 
-  using SolutionType = std::remove_cvref_t<Domain>; ///< Type of the solution vector
-
   /**
    * \brief Solves the nonlinear optimization problem using the TrustRegion algorithm.
    * \tparam SolutionType Type of the solution predictor (default is NoPredictor).
    * \param x the solutin.
    * \return NonLinearSolverInformation containing information about the solver result.
    */
-  NonLinearSolverInformation solve(SolutionType& x) {
-    init(x);
-    SolutionType x_Old= x;
+  template<typename SolutionType>
+  NonLinearSolverInformation solve( SolutionType& x) {
+    SolutionType& x_Old= x;
+    this->notify(NonLinearSolverMessages::INIT);
+    stats_ = Stats{};
+    info_  = AlgoInfo{};
 
+    NonLinearSolverInformation solverInformation;
+    updateAll(x);
+    eta_.resizeLike(grad_);
+    Heta_.resizeLike(grad_);
+        truncatedConjugateGradient_.analyzePattern(hess_);
+    stats_.energy   = energy_;
+    xOld_           = x;
+    stats_.gradNorm = norm(grad_);
+    truncatedConjugateGradient_.analyzePattern(hess_);
+
+    innerInfo_.Delta = settings_.Delta0;
     spdlog::info(
         "        | iter | inner_i |   rho |   energy | energy_p | energy_inc |  norm(g) |    Delta | norm(corr) | "
         "InnerBreakReason");
@@ -283,7 +295,7 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
       // Will we accept the proposal or not?
       // Check the performance of the quadratic model against the actual energy.
       auto rhonum = stats_.energy - stats_.energyProposal;
-      auto rhoden = -eta_.dot(grad_ + 0.5 * Heta_);
+      auto rhoden = -eta_.dot(gradient() + 0.5 * Heta_);
 
       /*  Close to convergence the proposed energy and the real energy almost coincide.
        *  Therefore, the performance check of our model becomes ill-conditioned
@@ -365,22 +377,20 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
       if (info_.acceptProposal) {
         stats_.energy = stats_.energyProposal;
         updateAll(x);
-        x_Old = x;
+        xOld_ = x;
         this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, stats_.etaNorm);
         this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, stats_.gradNorm);
         this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
       } else {
-        x = x_Old;
+        x = xOld_;
         eta_.setZero();
       }
       updateAll(x);
-      stats_.gradNorm = grad_.norm();
+      stats_.gradNorm = gradient().norm();
       this->notify(NonLinearSolverMessages::ITERATION_ENDED);
     }
     spdlog::info("{}", info_.reasonString);
     spdlog::info("Total iterations: {} Total CG Iterations: {}", stats_.outerIter, stats_.innerIterSum);
-
-    NonLinearSolverInformation solverInformation;
 
     solverInformation.success =
         (info_.stop == StopReason::correctionNormTolReached) or (info_.stop == StopReason::gradientNormTolReached);
@@ -398,22 +408,6 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
   auto& nonLinearOperator() { return energyFunction_; }
 
 private:
-
-void init(const typename SignatureTraits::Domain& x)
-{
-    this->notify(NonLinearSolverMessages::INIT);
-    stats_ = Stats{};
-    info_  = AlgoInfo{};
-
-    updateAll(x);
-    eta_.resizeLike(grad_);
-    Heta_.resizeLike(grad_);
-    stats_.energy   = energy_;
-    stats_.gradNorm = norm(grad_);
-    truncatedConjugateGradient_.analyzePattern(hess_);
-
-    innerInfo_.Delta = settings_.Delta0;
-}
 
 void updateAll(const typename SignatureTraits::Domain& x)
 {
@@ -451,7 +445,7 @@ void updateAll(const typename SignatureTraits::Domain& x)
       return true;
     } else if (stats_.etaNorm < settings_.corr_tol && stats_.outerIter != 0) {
       logFinalState();
-      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(correction): {:1.16e}", energy_,
+      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(correction): {:1.16e}", nonLinearOperator().value(),
                    stats_.etaNorm);
       stream << "Displacement norm tolerance reached;  = " << settings_.corr_tol << "." << std::endl;
 
@@ -483,7 +477,7 @@ void updateAll(const typename SignatureTraits::Domain& x)
   void solveInnerProblem() {
     truncatedConjugateGradient_.setInfo(innerInfo_);
     int attempts = 0;
-    truncatedConjugateGradient_.factorize(hess_);
+    truncatedConjugateGradient_.factorize(hessian());
     // If the preconditioner is IncompleteCholesky the factorization may fail if we have negative diagonal entries and
     // the initial shift is too small. Therefore, if the factorization fails we increase the initial shift by a factor
     // of 5.
@@ -491,7 +485,7 @@ void updateAll(const typename SignatureTraits::Domain& x)
       while (truncatedConjugateGradient_.info() != Eigen::Success) {
         choleskyInitialShift_ *= 5;
         truncatedConjugateGradient_.preconditioner().setInitialShift(choleskyInitialShift_);
-        truncatedConjugateGradient_.factorize(hess_);
+        truncatedConjugateGradient_.factorize(hessian());
         if (attempts > 5)
           DUNE_THROW(Dune::MathError, "Factorization of preconditioner failed!");
         ++attempts;
@@ -499,12 +493,14 @@ void updateAll(const typename SignatureTraits::Domain& x)
       if (truncatedConjugateGradient_.info() == Eigen::Success)
         choleskyInitialShift_ = 1e-3;
     }
-    eta_       = truncatedConjugateGradient_.solveWithGuess(-grad_, eta_);
+    eta_       = truncatedConjugateGradient_.solveWithGuess(-gradient(), eta_);
     innerInfo_ = truncatedConjugateGradient_.getInfo();
   }
 
+
+
   NLO energyFunction_;
-  typename NLO::Derivative gradientFunction_;
+  typename NLO::DerivativeSignature gradientFunction_;
   typename NLO::Derivative::Derivative  hessianFunction_;
 
     typename SignatureTraits::Range energy_;

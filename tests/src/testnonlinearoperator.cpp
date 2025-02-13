@@ -210,17 +210,17 @@ static auto secondOrderVectorValuedOperatorTest() {
 
 using namespace autodiff;
 template <typename ScalarType>
-ScalarType f2vNL(const Eigen::VectorX<ScalarType>& x, Eigen::MatrixXd&, Eigen::VectorXd&) {
+ScalarType f2vNL(const Eigen::VectorX<ScalarType>& x, const Eigen::MatrixXd&, const Eigen::VectorXd&) {
   return x.array().sin().matrix().dot(x);
 }
 
-static Eigen::VectorXd df2vNL(Eigen::VectorX<autodiff::dual>& x, Eigen::MatrixXd& A,
-                              [[maybe_unused]] Eigen::VectorXd& b) {
+static Eigen::VectorXd df2vNL(const Eigen::VectorX<autodiff::dual>& x, const Eigen::MatrixXd& A,
+                              [[maybe_unused]] const Eigen::VectorXd& b) {
   return autodiff::gradient(f2vNL<autodiff::dual>, autodiff::wrt(x), autodiff::at(x, A, b));
 }
 
-static Eigen::MatrixXd ddf2vNL(Eigen::VectorX<autodiff::dual2nd>& x, Eigen::MatrixXd& A,
-                               [[maybe_unused]] Eigen::VectorXd& b) {
+static Eigen::MatrixXd ddf2vNL(const Eigen::VectorX<autodiff::dual2nd>& x, const Eigen::MatrixXd& A,
+                               [[maybe_unused]] const Eigen::VectorXd& b) {
   return autodiff::hessian(f2vNL<autodiff::dual2nd>, autodiff::wrt(x), autodiff::at(x, A, b));
 }
 

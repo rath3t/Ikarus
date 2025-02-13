@@ -13,6 +13,7 @@
 
 #include <dune/common/float_cmp.hh>
 #include <dune/functions/common/signature.hh>
+#include <ikarus/utils/defaultfunctions.hh>
 
 #include <spdlog/spdlog.h>
 namespace Ikarus::utils {
@@ -45,30 +46,32 @@ struct CheckFlags
  * https://github.com/NicolasBoumal/manopt/blob/master/manopt/tools/checkdiff.m
  * \ingroup utils
  * \tparam NLO Type of the nonlinear operator.
- * \tparam UpdateType Type of the update.
+ * \tparam UF Type of the update function.
  * \param nonLinOp The nonlinear operator.
  * \param x the evaluation point.
  * \param checkFlags Flags for the check.
  * \param p_updateFunction Update function.
  * \return True if the check passed, false otherwise.
  */
-template <typename NLO, typename UpdateType=typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range>
+template <typename NLO, typename UF= UpdateDefault>
 bool checkGradient(
     NLO& nonLinOp,const std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, CheckFlags checkFlags = CheckFlags(),
-    std::function<void(std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, const UpdateType&)> p_updateFunction =
-        [](std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain> a, const UpdateType& b) { a += b; }) {
+     UF&& p_updateFunction = { }) {
    auto x = p;
+   auto gradF = derivative(nonLinOp);
+   const auto e = nonLinOp(x);
+   decltype(auto) g = gradF(x);
+   using UpdateType =typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range;
+
   UpdateType b;
   if constexpr (not std::is_floating_point_v<UpdateType>) {
-    b.resizeLike(nonLinOp.derivative());
+    b.resizeLike(g);
     b.setRandom();
     b /= b.norm();
   } else
     b = 1;
 
-  auto gradF = derivative(nonLinOp);
-  const auto e = nonLinOp(x);
-  const auto&& g = gradF(x);
+
 
   double gradfv;
   if constexpr (not std::is_floating_point_v<UpdateType>)
@@ -106,33 +109,35 @@ bool checkGradient(
  * https://github.com/NicolasBoumal/manopt/blob/master/manopt/tools/checkdiff.m
  * \ingroup utils
  * \tparam NLO Type of the nonlinear operator.
- * \tparam UpdateType Type of the update.
+ * \tparam UF Type of the update function.
  * \param nonLinOp The nonlinear operator.
  * \param x the evaluation point.
  * \param checkFlags Flags for the check.
  * \param p_updateFunction Update function.
  * \return True if the check passed, false otherwise.
  */
-template <typename NLO, typename UpdateType=typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range>
+template <typename NLO, typename UF = UpdateDefault>
 bool checkJacobian(
     NLO& nonLinOp,const std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, CheckFlags checkFlags = CheckFlags(),
-    std::function<void(std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>&, const UpdateType&)> p_updateFunction =
-        [](std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain> a, const UpdateType& b) { a += b; }) {
+    UF&& p_updateFunction = { }) {
    auto x = p;
+
+  auto gradF = derivative(nonLinOp);
+  const auto e = nonLinOp(x);
+  decltype(auto) g = gradF(x);
+  using UpdateType =typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range;
+
   UpdateType b;
-  b.resizeLike(nonLinOp.derivative().row(0).transpose());
+  b.resizeLike(g.col(0));
   b.setRandom();
   b /= b.norm();
 
-  nonLinOp.updateAll();
-  const auto e = nonLinOp.value();
-
-  const auto jacofv = (nonLinOp.derivative() * b).eval();
+  const auto jacofv = (g * b).eval();
 
   auto ftfunc = [&](auto t) {
     p_updateFunction(x, t * b);
-    nonLinOp.template update<0>();
-    auto value = (nonLinOp.value() - e - t * jacofv).norm();
+    const auto etb = nonLinOp(x);
+    auto value = (etb - e - t * jacofv).norm();
     x          = p;
     return value;
   };
@@ -158,43 +163,48 @@ bool checkJacobian(
  * https://github.com/NicolasBoumal/manopt/blob/master/manopt/tools/checkhessian.m
  * \ingroup utils
  * \tparam NLO Type of the nonlinear operator.
- * \tparam UpdateType Type of the update.
+ * \tparam UF Type of the update function.
  * \param nonLinOp The nonlinear operator.
  * \param x the evaluation point.
  * \param checkFlags Flags for the check.
  * \param p_updateFunction Update function.
  * \return True if the check passed, false otherwise.
  */
-template <typename NLO, typename UpdateType = typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range>
+template <typename NLO, typename UF = UpdateDefault>
 bool checkHessian(
     NLO& nonLinOp,const std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, CheckFlags checkFlags = CheckFlags(),
-    std::function<void(std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>&, const UpdateType&)> p_updateFunction =
-        [](std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& a, const UpdateType& b) { a += b; }) {
+    UF&& p_updateFunction = { }) {
    auto x = p;
+  auto gradF = derivative(nonLinOp);
+  auto hessF = derivative(gradF);
+  const auto e = nonLinOp(x);
+  decltype(auto) g = gradF(x);
+  decltype(auto) h = hessF(x);
+  using UpdateType =typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range;
   UpdateType b;
+
   if constexpr (not std::is_floating_point_v<UpdateType>) {
-    b.resizeLike(nonLinOp.derivative());
+    b.resizeLike(g);
     b.setRandom();
     b /= b.norm();
   } else
     b = 1;
 
-  nonLinOp.updateAll();
-  const auto e = nonLinOp.value();
+
 
   double gradfv, vhessv;
   if constexpr (not std::is_floating_point_v<UpdateType>) {
-    gradfv = nonLinOp.derivative().dot(b);
-    vhessv = (nonLinOp.secondDerivative() * b).dot(b);
+    gradfv = g.dot(b);
+    vhessv = (h * b).dot(b);
   } else {
-    gradfv = nonLinOp.derivative() * b;
-    vhessv = nonLinOp.secondDerivative() * b * b;
+    gradfv = g * b;
+    vhessv = h * b * b;
   }
 
   auto ftfunc = [&](auto t) {
     p_updateFunction(x, t * b);
-    nonLinOp.template update<0>();
-    auto value = std::abs(nonLinOp.value() - e - t * gradfv - 0.5 * t * t * vhessv);
+    const auto etb = nonLinOp(x);
+    auto value = std::abs(etb - e - t * gradfv - 0.5 * t * t * vhessv);
     x          = p;
     return value;
   };

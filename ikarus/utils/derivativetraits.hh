@@ -20,6 +20,55 @@ namespace Ikarus {
   template <FESolutions sol, FEParameter para, typename SV, typename PM>
   class FERequirements;
 
+  /**
+ * \brief Represents a NonLinearOperator class for handling nonlinear operators.
+ * \ingroup utils
+ * \tparam TypeListOne The type list for the first set of functions.
+ * \tparam TypeListTwo The type list for the second set of functions.
+ */
+template <typename TypeListOne, typename TypeListTwo>
+class DerivativeTraitsFromCallables
+{
+public:
+DerivativeTraitsFromCallables([[maybe_unused]] const TypeListOne& derivativesFunctions,
+                    [[maybe_unused]] const TypeListTwo& args) {
+    static_assert(!sizeof(TypeListOne),
+                  "This type should not be instantiated. check that your arguments satisfies the template below");
+  }
+};
+
+template <typename... DerivativeArgs, typename... ParameterArgs>
+struct DerivativeTraitsFromCallables<Impl::Functions<DerivativeArgs...>, Impl::Parameter<ParameterArgs...>>
+{
+    /**
+   * \brief Constructor for DerivativeTraitsFromCallables.
+   *
+   * \param derivativesFunctions The Functions object for derivative arguments.
+   * \param parameterI The Parameter object for parameter arguments.
+   */
+  template <typename U = void>
+  requires(not std::is_rvalue_reference_v<DerivativeArgs> and ...)
+  explicit DerivativeTraitsFromCallables(const Impl::Functions<DerivativeArgs...>& derivativesFunctions,
+                             const Impl::Parameter<ParameterArgs...>& parameterI)
+      {}
+
+    using FunctionReturnValuesWrapper = std::tuple<std::invoke_result_t<DerivativeArgs, ParameterArgs...>...>;
+
+
+  using Signatures = std::tuple<std::invoke_result_t<DerivativeArgs, ParameterArgs...>(ParameterArgs...)...>;
+  template<int I>
+  using Signature = std::tuple_element_t<I,Signatures>;
+
+template<typename Signature>
+    struct DerivativeTraits
+    {
+        static constexpr int indexOfSignature = traits::Index<Signature,Signatures>::value;
+        using Range = std::conditional_t<indexOfSignature<std::tuple_size_v<FunctionReturnValuesWrapper> , std::tuple_element_t<indexOfSignature,FunctionReturnValuesWrapper>,Dune::Functions::InvalidRange>;
+    };
+  
+  
+
+};
         template<class Signature>
     struct DerivativeTraitsDense
     {

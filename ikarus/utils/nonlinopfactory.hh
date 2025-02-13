@@ -21,8 +21,8 @@ namespace Ikarus {
 struct NonLinearOperatorFactory
 {
 
-  template <typename Assembler, typename... Affordances>
-  static auto op(Assembler&& as, typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FERequirement& req,
+  template <typename Assembler,typename Parameter, typename... Affordances>
+  static auto op(Assembler&& as, const Parameter& arg,
                  AffordanceCollection<Affordances...> affordances, DBCOption dbcOption) {
     auto assemblerPtr = [as]() {
       if constexpr (std::is_pointer_v<std::remove_cvref_t<Assembler>> or
@@ -32,35 +32,32 @@ struct NonLinearOperatorFactory
         return std::make_shared<std::remove_cvref_t<Assembler>>(std::forward<Assembler>(as));
     }();
 
-    using FERequirement             = typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FERequirement;
-    [[maybe_unused]] auto KFunction = [dbcOption, assembler = assemblerPtr, affordances](const FERequirement& req) -> auto& {
-      return assembler->matrix(req, affordances.matrixAffordance(), dbcOption);
+    [[maybe_unused]] auto KFunction = [dbcOption, assembler = assemblerPtr, affordances](const Parameter& p) -> auto& {
+      return assembler->matrix(p, affordances.matrixAffordance(), dbcOption);
     };
 
-    [[maybe_unused]] auto residualFunction = [dbcOption, assembler = assemblerPtr, affordances](const FERequirement& req) -> auto& {
-      return assembler->vector(req, affordances.vectorAffordance(), dbcOption);
+    [[maybe_unused]] auto residualFunction = [dbcOption, assembler = assemblerPtr, affordances](const Parameter& p) -> auto& {
+      return assembler->vector(p, affordances.vectorAffordance(), dbcOption);
     };
 
-
-
-    assert(req.populated() && " Before you calls this method you have to pass populated fe requirements");
-    using DerivativeTraitsDummy = std::conditional_t<traits::EigenSparseMatrix<std::remove_cvref_t<decltype(KFunction(req))>>, DerivativeTraitsSparseD, DerivativeTraitsDenseD>;
+    assert(arg.populated() && " Before you calls this method you have to pass populated fe requirements");
     if constexpr (affordances.hasScalarAffordance) {
-          [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](const FERequirement& req) -> auto& {
-
-      return assembler->scalar(req, affordances.scalarAffordance());
+          [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](const Parameter& p) -> auto& {
+      return assembler->scalar(p, affordances.scalarAffordance());
     };
 
-      using EnergyFunctionSignature = typename Dune::Functions::SignatureTraits<decltype(energyFunction)>::RawSignature ;
-      auto sigTag =Dune::Functions::SignatureTag<EnergyFunctionSignature,DerivativeTraitsDummy::template Traits>();
-      return Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,std::move(energyFunction), std::move(residualFunction), std::move(KFunction));
+    DerivativeTraitsFromCallables t(functions(std::move(energyFunction), std::move(residualFunction), std::move(KFunction)),parameter(arg));
+    using DerivTraits= decltype(t);
+    auto sigTag =Dune::Functions::SignatureTag<DerivTraits::Signature<0>,DerivTraits::template DerivativeTraits>();
+
+      return Ikarus::NonLinearOperator(sigTag,std::move(energyFunction), std::move(residualFunction), std::move(KFunction));
     } else
      {
-            using ResidualFunctionSignature = typename Dune::Functions::SignatureTraits<decltype(residualFunction)>::RawSignature ;
-
-            auto sigTag =Dune::Functions::SignatureTag<ResidualFunctionSignature,DerivativeTraitsDummy::template Traits>();
-
-       return Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,std::move(residualFunction), std::move(KFunction));}
+  
+      DerivativeTraitsFromCallables t(functions( std::move(residualFunction), std::move(KFunction)),parameter(arg));
+      using DerivTraits= decltype(t);
+      auto sigTag =Dune::Functions::SignatureTag<DerivTraits::Signature<0>,DerivTraits::template DerivativeTraits>();
+      return Ikarus::NonLinearOperator(sigTag, std::move(residualFunction), std::move(KFunction));
   }
 
   template <typename Assembler>

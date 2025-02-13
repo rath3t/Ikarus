@@ -11,7 +11,7 @@
 #include <functional>
 
 #include <dune/common/hybridutilities.hh>
-
+#include <dune/functions/common/differentiablefunctionfromcallables.hh>
 #include <ikarus/utils/traits.hh>
 
 namespace Ikarus {
@@ -49,20 +49,6 @@ namespace Impl {
         std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
   }
 
-  /**
-   * \brief Helper function to forward as a reference wrapper if the type is a reference.
-   *
-   * \tparam T The type to be forwarded.
-   * \param t The value to be forwarded.
-   * \return auto The result after forwarding as a reference wrapper if the type is a reference.
-   */
-  template <typename T>
-  auto forwardasReferenceWrapperIfIsReference(T&& t) {
-    if constexpr (std::is_lvalue_reference_v<decltype(t)>)
-      return std::ref(t);
-    else
-      return t;
-  }
 
   /**
    * \brief Helper function to make a tuple of values and reference wrappers.
@@ -146,239 +132,20 @@ auto initResults(const std::tuple<DerivativeArgs...>& derivativesFunctions,
 }
 
 /**
- * \brief Represents a NonLinearOperator class for handling nonlinear operators.
- * \ingroup utils
- * \tparam TypeListOne The type list for the first set of functions.
- * \tparam TypeListTwo The type list for the second set of functions.
- */
-template <typename TypeListOne, typename TypeListTwo>
-class NonLinearOperator
-{
-public:
-  NonLinearOperator([[maybe_unused]] const TypeListOne& derivativesFunctions,
-                    [[maybe_unused]] const TypeListTwo& args) {
-    static_assert(!sizeof(TypeListOne),
-                  "This type should not be instantiated. check that your arguments satisfies the template below");
-  }
-};
-
-/**
  * \brief NonLinearOperator is a class taking linear algebra function and their arguments.
  * The function are assumed to be derivatives of each other w.r.t. the first parameter
  *
  * \tparam DerivativeArgs The types of derivative arguments.
  * \tparam ParameterArgs The types of parameter arguments.
  */
-template <typename... DerivativeArgs, typename... ParameterArgs>
-class NonLinearOperator<Impl::Functions<DerivativeArgs...>, Impl::Parameter<ParameterArgs...>>
+ template<class Range, class Domain, template<class> class DerivativeTraits, class F>
+class NonLinearOperator : public Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>
 {
-public:
-  using FunctionReturnValues =
-      std::tuple<Ikarus::traits::ReturnType<DerivativeArgs, ParameterArgs&...>...>; ///< Function return values
-  using ParameterValues = std::tuple<ParameterArgs...>;                             ///< Types of the parameters
+using Base= Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>;
+using Base::Base;
 
-  static constexpr int numberOfFunctions  = sizeof...(DerivativeArgs); ///< Number of functions
-  static constexpr int numberOfParameters = sizeof...(ParameterArgs);  ///< Number of parameters
 
-  /**
-   * \brief Alias for the return type of a function.
-   *
-   * \tparam n Index of the function.
-   */
-  template <int n>
-  using FunctionReturnType = std::tuple_element_t<n, FunctionReturnValues>;
 
-  /**
-   * \brief Alias for the parameter type.
-   *
-   * \tparam n Index of the parameter.
-   */
-  template <int n>
-  using ParameterValue = std::remove_cvref_t<std::tuple_element_t<n, ParameterValues>>;
-
-  using ValueType =
-      std::remove_cvref_t<std::tuple_element_t<0, FunctionReturnValues>>; ///< Return value of the first function
-  using DerivativeType =
-      std::remove_cvref_t<std::tuple_element_t<1, FunctionReturnValues>>; ///< Return value of the second function
-
-  /**
-   * \brief Constructor for NonLinearOperator.
-   *
-   * \param derivativesFunctions The Functions object for derivative arguments.
-   * \param parameterI The Parameter object for parameter arguments.
-   */
-  template <typename U = void>
-  requires(not std::is_rvalue_reference_v<DerivativeArgs> and ...)
-  explicit NonLinearOperator(const Impl::Functions<DerivativeArgs...>& derivativesFunctions,
-                             const Impl::Parameter<ParameterArgs...>& parameterI)
-      : derivatives_{derivativesFunctions.args},
-        args_{parameterI.args},
-        derivativesEvaluated_(initResults(derivatives_, args_)) {}
-
-  /**
-   * \brief Constructor for NonLinearOperator.
-   *
-   * \param derivativesFunctions The Functions object for derivative arguments.
-   * \param parameterI The Parameter object for parameter arguments.
-   */
-  template <typename Funcs>
-  explicit NonLinearOperator(const Funcs& derivativesFunctions, const Impl::Parameter<ParameterArgs...>& parameterI)
-      : derivatives_{derivativesFunctions.args},
-        args_{parameterI.args},
-        derivativesEvaluated_(initResults(derivatives_, args_)) {}
-
-  /**
-   * \brief Updates all functions.
-   *
-   * This function is usually called if the parameters change.
-   */
-  void updateAll() {
-    Dune::Hybrid::forEach(
-        Dune::Hybrid::integralRange(Dune::index_constant<sizeof...(DerivativeArgs)>()), [&](const auto i) {
-          std::get<i>(derivativesEvaluated_) = Impl::applyAndRemoveReferenceWrapper(std::get<i>(derivatives_), args_);
-        });
-  }
-
-  /**
-   * \brief Updates the n-th function.
-   *
-   * \tparam n Index of the function to update.
-   */
-  template <int n>
-  void update() {
-    std::get<n>(derivativesEvaluated_) = Impl::applyAndRemoveReferenceWrapper(std::get<n>(derivatives_), args_);
-  }
-
-  /**
-   * \brief Returns the value of the zeroth function.
-   *
-   * This corresponds to the energy value.
-   *
-   * \return auto& Reference to the zeroth function value.
-   */
-  auto& value()
-  requires(sizeof...(DerivativeArgs) > 0)
-  {
-    return nthDerivative<0>();
-  }
-
-  /**
-   * \brief Returns the derivative value.
-   *
-   * This corresponds to the gradient of an energy.
-   *
-   * \return auto& Reference to the derivative function value.
-   */
-  auto& derivative()
-  requires(sizeof...(DerivativeArgs) > 1)
-  {
-    return nthDerivative<1>();
-  }
-
-  /**
-   * \brief Returns the second derivative value.
-   *
-   * This corresponds to the Hessian of an energy.
-   *
-   * \return auto& Reference to the second derivative function value.
-   */
-  auto& secondDerivative()
-  requires(sizeof...(DerivativeArgs) > 2)
-  {
-    return nthDerivative<2>();
-  }
-
-  /**
-   * \brief Returns the n-th derivative value.
-   *
-   * \tparam n Index of the derivative to return.
-   * \return auto& Reference to the n-th derivative function value.
-   */
-  template <int n>
-  auto& nthDerivative()
-  requires(sizeof...(DerivativeArgs) > n)
-  {
-    if constexpr (requires { std::get<n>(derivativesEvaluated_).get(); })
-      return std::get<n>(derivativesEvaluated_).get();
-    else
-      return std::get<n>(derivativesEvaluated_);
-  }
-
-  /**
-   * \brief Returns the last parameter value.
-   *
-   * \return auto& Reference to the last parameter value.
-   */
-  auto& lastParameter() { return nthParameter<sizeof...(ParameterArgs) - 1>(); }
-  /**
-   * \brief Returns the first parameter value.
-   *
-   * \return auto& Reference to the first parameter value.
-   */
-  auto& firstParameter()
-  requires(sizeof...(ParameterArgs) > 0)
-  {
-    return nthParameter<0>();
-  }
-  /**
-   * \brief Returns the second parameter value.
-   *
-   * \return auto& Reference to the second parameter value.
-   */
-  auto& secondParameter()
-  requires(sizeof...(ParameterArgs) > 1)
-  {
-    return nthParameter<1>();
-  }
-  /**
-   * \brief Returns the n-th parameter value.
-   *
-   * \tparam n Index of the parameter to return.
-   * \return auto& Reference to the n-th parameter value.
-   */
-  template <int n>
-  auto& nthParameter()
-  requires(sizeof...(ParameterArgs) >= n)
-  {
-    return std::get<n>(args_).get();
-  }
-
-  /**
-   * \brief Returns a new NonLinearOperator from the given indices.
-   *
-   * \tparam Derivatives Indices of the functions to include.
-   * \return auto The new NonLinearOperator.
-   */
-  template <int... Derivatives>
-  auto subOperator() {
-    auto derivatives = derivatives_;
-    auto fs = functions([&derivatives]() -> decltype(auto) { return std::get<Derivatives>(derivatives); }()...);
-    Ikarus::NonLinearOperator<Impl::Functions<std::tuple_element_t<Derivatives, decltype(derivatives_)>...>,
-                              Impl::Parameter<ParameterArgs...>>
-        subOp(std::move(fs), Impl::applyAndRemoveReferenceWrapper(parameter<ParameterArgs...>, args_));
-
-    return subOp;
-  }
-
-private:
-  using FunctionReturnValuesWrapper = std::tuple<std::conditional_t<
-      std::is_reference_v<Ikarus::traits::ReturnType<DerivativeArgs, ParameterArgs&...>>,
-      std::reference_wrapper<std::remove_reference_t<Ikarus::traits::ReturnType<DerivativeArgs, ParameterArgs&...>>>,
-      std::remove_cvref_t<Ikarus::traits::ReturnType<DerivativeArgs, ParameterArgs&...>>>...>;
-
-  std::tuple<std::conditional_t<std::is_lvalue_reference_v<DerivativeArgs>,
-                                std::reference_wrapper<std::remove_reference_t<DerivativeArgs>>,
-                                std::remove_reference_t<DerivativeArgs>>...>
-      derivatives_;
-
-  std::tuple<std::conditional_t<std::is_lvalue_reference_v<ParameterArgs>,
-                                std::reference_wrapper<std::remove_reference_t<ParameterArgs>>,
-                                std::remove_reference_t<ParameterArgs>>...>
-      args_;
-  FunctionReturnValuesWrapper derivativesEvaluated_{};
 };
 
-template <typename... DerivativeArgs, typename... ParameterArgs>
-NonLinearOperator(const Impl::Functions<DerivativeArgs&&...>& a, const Impl::Parameter<ParameterArgs...>& b)
-    -> NonLinearOperator<Impl::Functions<DerivativeArgs...>, Impl::Parameter<ParameterArgs...>>;
 } // namespace Ikarus
