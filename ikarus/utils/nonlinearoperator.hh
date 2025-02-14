@@ -8,63 +8,17 @@
  */
 
 #pragma once
-#include <functional>
+#include <tuple>
 
+#include "dune/functions/common/differentiablefunctionfromcallables.hh"
 #include <dune/common/hybridutilities.hh>
-#include <dune/functions/common/differentiablefunctionfromcallables.hh>
+
+#include <ikarus/utils/derivativetraits.hh>
 #include <ikarus/utils/traits.hh>
 
 namespace Ikarus {
 
 namespace Impl {
-  /**
-   * \brief Helper function to apply a function and remove reference wrappers.
-   *
-   * \tparam F The function type.
-   * \tparam Tuple The tuple type.
-   * \tparam I Index sequence for tuple elements.
-   * \param f The function to be applied.
-   * \param t The tuple of arguments.
-   * \return constexpr decltype(auto) The result after applying the function and removing reference wrappers.
-   */
-  template <class F, class Tuple, std::size_t... I>
-  constexpr decltype(auto) applyAndRemoveRefererenceWrapper(F&& f, Tuple&& t, std::index_sequence<I...>) {
-    return std::invoke(std::forward<F>(f),
-                       std::get<I>(std::forward<Tuple>(t)).get()...); //.get gets the impl type of std::referenceWrapper
-  }
-
-  /**
-   * \brief Helper function to apply a function and remove reference wrappers.
-   *
-   * \tparam F The function type.
-   * \tparam Tuple The tuple type.
-   * \param f The function to be applied.
-   * \param t The tuple of arguments.
-   * \return constexpr decltype(auto) The result after applying the function and removing reference wrappers.
-   */
-  template <class F, class Tuple>
-  constexpr decltype(auto) applyAndRemoveReferenceWrapper(F&& f, Tuple&& t) {
-    return applyAndRemoveRefererenceWrapper(
-        std::forward<F>(f), std::forward<Tuple>(t),
-        std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
-  }
-
-
-  /**
-   * \brief Helper function to make a tuple of values and reference wrappers.
-   *
-   * \tparam Pars The tuple type.
-   * \tparam Tuple The tuple of arguments.
-   * \tparam I Index sequence for tuple elements.
-   * \param t The tuple of arguments.
-   * \param p The tuple of parameters.
-   * \return constexpr decltype(auto) The resulting tuple of values and reference wrappers.
-   */
-  template <class Pars, class Tuple, std::size_t... I>
-  constexpr decltype(auto) makeTupleOfValuesAndReferences(Tuple&& t, Pars&& p, std::index_sequence<I...>) {
-    return std::make_tuple(
-        forwardasReferenceWrapperIfIsReference(applyAndRemoveReferenceWrapper(std::get<I>(t), p))...);
-  }
 
   /**
    * \brief Represents a tuple of functions.
@@ -113,23 +67,43 @@ template <typename... Args>
 auto functions(Args&&... args) {
   return Impl::Functions<Args&&...>{std::forward_as_tuple(std::forward<Args>(args)...)};
 }
+#ifndef DOXYGEN
+template <class Signature, template <class> class DerivativeTraits, class... F>
+class NonLinearOperator;
 
-/**
- * \brief Initializes the results for functions and parameters.
- *
- * \tparam DerivativeArgs The types of derivative arguments.
- * \tparam ParameterArgs The types of parameter arguments.
- * \param derivativesFunctions The Functions object for derivative arguments.
- * \param parameter The Parameter object for parameter arguments.
- * \return auto The initialized results.
- */
-template <typename... DerivativeArgs, typename... ParameterArgs>
-auto initResults(const std::tuple<DerivativeArgs...>& derivativesFunctions,
-                 const std::tuple<ParameterArgs...>& parameter) {
-  return Impl::makeTupleOfValuesAndReferences(
-      derivativesFunctions, parameter,
-      std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<decltype(derivativesFunctions)>>>{});
-}
+
+#endif
+
+template <class Range, class Domain, template <class> class DerivativeTraits, class F>
+class NonLinearOperator<Range(Domain), DerivativeTraits, F>
+    : private Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>
+{
+  
+  using Base = Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>;
+  
+  public:
+  template<class FFF, Dune::disableCopyMove<NonLinearOperator, FFF> = 0>
+  NonLinearOperator(FFF&& f) :
+    Base(std::forward<FFF>(f))
+  {}
+  using Traits = DerivativeTraitsFromCallables<Impl::Functions<F>, Impl::Parameter<Domain>>;
+
+  using Derivative = NonLinearOperator<typename Traits::template Signature<1>, DerivativeTraits>;
+
+  Range operator() (const Domain& x) const
+  {
+    return Base::operator()(x );
+  }
+
+    /**
+   * \brief Get derivative of NonLinearOperator
+   *
+   */
+   friend Derivative derivative(const NonLinearOperator& t)
+   {
+     return derivative(static_cast<const Base&>(t));
+   }
+};
 
 /**
  * \brief NonLinearOperator is a class taking linear algebra function and their arguments.
@@ -138,14 +112,48 @@ auto initResults(const std::tuple<DerivativeArgs...>& derivativesFunctions,
  * \tparam DerivativeArgs The types of derivative arguments.
  * \tparam ParameterArgs The types of parameter arguments.
  */
- template<class Range, class Domain, template<class> class DerivativeTraits, class F>
-class NonLinearOperator : public Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>
+template <class Range, class Domain, template <class> class DerivativeTraits, class F,class... FF>
+class NonLinearOperator<Range(Domain), DerivativeTraits, F,FF...>
+    : private Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F,FF...>
 {
-using Base= Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>;
-using Base::Base;
+  
+  using Base = Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F,FF...>;
+  
+  public:
+  template<class... FFF>
+  NonLinearOperator(FFF&&... f) :
+    Base(std::forward<FFF>(f)...)
+  {}
+  using Traits = DerivativeTraitsFromCallables<Impl::Functions<F,FF...>, Impl::Parameter<Domain>>;
 
+  using Derivative = NonLinearOperator<typename Traits::template Signature<1>, DerivativeTraits, FF...>;
 
+  Range operator() (const Domain& x) const
+  {
+    return Base::operator()(x );
+  }
 
+    /**
+   * \brief Get derivative of NonLinearOperator
+   *
+   */
+   friend Derivative derivative(const NonLinearOperator& t)
+   {
+     auto df= derivative(static_cast<const Base&>(t));
+      return Derivative(df);
+   }
 };
+
+template <typename... DerivativeArgs, typename... ParameterArgs>
+auto makeNonLinearOperator(const Impl::Functions<DerivativeArgs...>& derivativesFunctions,
+                           const Impl::Parameter<ParameterArgs...>& parameters) {
+  DerivativeTraitsFromCallables t(derivativesFunctions, parameters);
+  using DerivTraits = decltype(t);
+  auto la           = []<typename... F>(F&&... f) {
+    return Ikarus::NonLinearOperator<typename DerivTraits::template Signature<0>,
+                                               DerivTraits::template DerivativeTraits, F...>(std::forward<F>(f)...);
+  };
+  return std::apply(la, derivativesFunctions.args);
+}
 
 } // namespace Ikarus

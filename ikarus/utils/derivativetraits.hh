@@ -3,24 +3,34 @@
 
 /**
  * \file derivativetraits.hh
- * \brief Contains derivative traits for common vbalue and derivative relations used for makeDifferentiableFunctionFromCallables
+ * \brief Contains derivative traits for common vbalue and derivative relations used for
+ * makeDifferentiableFunctionFromCallables
  */
 
 #pragma once
 
-
 #include <dune/functions/common/differentiablefunctionfromcallables.hh>
+
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
+#include <ikarus/utils/traits.hh>
+
 namespace Ikarus {
 
-  enum class FEParameter;
-  enum class FESolutions;
-  template <FESolutions sol, FEParameter para, typename SV, typename PM>
-  class FERequirements;
+namespace Impl {
+  template <typename... Args>
+  struct Functions;
+  template <typename... Args>
+  struct Parameter;
+} // namespace Impl
 
-  /**
+enum class FEParameter;
+enum class FESolutions;
+template <FESolutions sol, FEParameter para, typename SV, typename PM>
+class FERequirements;
+
+/**
  * \brief Represents a NonLinearOperator class for handling nonlinear operators.
  * \ingroup utils
  * \tparam TypeListOne The type list for the first set of functions.
@@ -30,8 +40,8 @@ template <typename TypeListOne, typename TypeListTwo>
 class DerivativeTraitsFromCallables
 {
 public:
-DerivativeTraitsFromCallables([[maybe_unused]] const TypeListOne& derivativesFunctions,
-                    [[maybe_unused]] const TypeListTwo& args) {
+  DerivativeTraitsFromCallables([[maybe_unused]] const TypeListOne& derivativesFunctions,
+                                [[maybe_unused]] const TypeListTwo& args) {
     static_assert(!sizeof(TypeListOne),
                   "This type should not be instantiated. check that your arguments satisfies the template below");
   }
@@ -40,7 +50,7 @@ DerivativeTraitsFromCallables([[maybe_unused]] const TypeListOne& derivativesFun
 template <typename... DerivativeArgs, typename... ParameterArgs>
 struct DerivativeTraitsFromCallables<Impl::Functions<DerivativeArgs...>, Impl::Parameter<ParameterArgs...>>
 {
-    /**
+  /**
    * \brief Constructor for DerivativeTraitsFromCallables.
    *
    * \param derivativesFunctions The Functions object for derivative arguments.
@@ -48,92 +58,32 @@ struct DerivativeTraitsFromCallables<Impl::Functions<DerivativeArgs...>, Impl::P
    */
   template <typename U = void>
   requires(not std::is_rvalue_reference_v<DerivativeArgs> and ...)
-  explicit DerivativeTraitsFromCallables(const Impl::Functions<DerivativeArgs...>& derivativesFunctions,
-                             const Impl::Parameter<ParameterArgs...>& parameterI)
-      {}
+  DerivativeTraitsFromCallables(const Impl::Functions<DerivativeArgs...>& derivativesFunctions,
+                                const Impl::Parameter<ParameterArgs...>& parameterI) {}
+  using Ranges = std::tuple<std::invoke_result_t<DerivativeArgs, ParameterArgs...>...,Dune::Functions::InvalidRange>;
+  using Parameters = std::tuple<ParameterArgs...>;
+  using Signatures = std::tuple<std::invoke_result_t<DerivativeArgs, ParameterArgs...>(ParameterArgs...)...,Dune::Functions::InvalidRange(ParameterArgs...)>;
+  using RawSignatures = std::tuple<std::remove_cvref_t<std::invoke_result_t<DerivativeArgs, ParameterArgs...>>(std::remove_cvref_t<ParameterArgs>...)...,Dune::Functions::InvalidRange(ParameterArgs...)>;
 
-    using FunctionReturnValuesWrapper = std::tuple<std::invoke_result_t<DerivativeArgs, ParameterArgs...>...>;
+  template <int I> 
+  using Signature = std::tuple_element_t<I/*(I <std::tuple_size_v<Signatures> ? I : std::tuple_size_v<Signatures>-1)*/, Signatures>;
 
+  template <int I>
+  using Range = std::tuple_element_t<I, Ranges>;
 
-  using Signatures = std::tuple<std::invoke_result_t<DerivativeArgs, ParameterArgs...>(ParameterArgs...)...>;
-  template<int I>
-  using Signature = std::tuple_element_t<I,Signatures>;
+  template <int I>
+  using Parameter = std::tuple_element_t<I, Parameters>;
 
-template<typename Signature>
-    struct DerivativeTraits
-    {
-        static constexpr int indexOfSignature = traits::Index<Signature,Signatures>::value;
-        using Range = std::conditional_t<indexOfSignature<std::tuple_size_v<FunctionReturnValuesWrapper> , std::tuple_element_t<indexOfSignature,FunctionReturnValuesWrapper>,Dune::Functions::InvalidRange>;
-    };
-  
-  
+  template <typename Signature>
+  struct DerivativeTraits
+  {
+  private:
+    static constexpr int indexOfSignatureImpl = traits::Index<Signature, RawSignatures>::value+1;
+    static constexpr int indexOfSignature = indexOfSignatureImpl;//<std::tuple_size_v<Ranges>? indexOfSignatureImpl: std::tuple_size_v<Ranges>-1;
 
+  public:
+    using Range = std::tuple_element_t<indexOfSignature, Ranges>;
+  };
 };
-        template<class Signature>
-    struct DerivativeTraitsDense
-    {
-      typedef Dune::Functions::InvalidRange Range;
-    };
-
-template<typename K> requires std::floating_point<K>
-struct DerivativeTraitsDense< K(K) >
-{
-  typedef double Range;
-};
-
-template<typename K, int n>
-struct DerivativeTraitsDense<K(Eigen::Vector<K,n>)>
-{
-  typedef Eigen::Vector<K,n> Range;
-};
-
-template <typename K, FESolutions sol, FEParameter para, typename SV, typename PM>
-struct DerivativeTraitsDense<K(FERequirements<sol,para,SV,PM>)>
-{
-  typedef FERequirements<sol,para,SV,PM>::SolutionVectorType Range;
-};
-
-template<typename K,  int n,  int m>
-struct DerivativeTraitsDense<Eigen::Vector<K,m>(Eigen::Vector<K,n> )>
-{
-  typedef Eigen::Matrix<K,m,n> Range;
-};
-
-template <typename K,  int n,FESolutions sol, FEParameter para, typename SV, typename PM>
-struct DerivativeTraitsDense<Eigen::Vector<K,n>(FERequirements<sol,para,SV,PM>)>
-{
-  typedef Eigen::Matrix<K,n,n> Range;
-};
-
-struct DerivativeTraitsDenseD
-{
-  template<typename D>
-  using Traits= DerivativeTraitsDense<D>;
-};
-
-
-      template<class Signature>
-    struct DerivativeTraitsSparse: DerivativeTraitsDense<Signature>
-    {
-    };
-
-template<typename K,  int n,  int m>
-struct DerivativeTraitsSparse<Eigen::Vector<K,m>(Eigen::Vector<K,n>)>
-{
-  typedef Eigen::SparseMatrix<K> Range;
-};
-
-template <typename K,  int n,FESolutions sol, FEParameter para, typename SV, typename PM>
-struct DerivativeTraitsSparse<Eigen::Vector<K,n>(FERequirements<sol,para,SV,PM>)>
-{
-  typedef Eigen::SparseMatrix<K> Range;
-};
-
-struct DerivativeTraitsSparseD
-{
-  template<typename D>
-  using Traits= DerivativeTraitsSparse<D>;
-};
-
 
 } // namespace Ikarus

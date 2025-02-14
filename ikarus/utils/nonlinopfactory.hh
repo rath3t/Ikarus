@@ -10,20 +10,20 @@
 
 #include <utility>
 
+#include <dune/functions/common/differentiablefunctionfromcallables.hh>
+
 #include <ikarus/assembler/dirichletbcenforcement.hh>
 #include <ikarus/finiteelements/ferequirements.hh>
-#include <ikarus/utils/nonlinearoperator.hh>
-#include <dune/functions/common/differentiablefunctionfromcallables.hh>
 #include <ikarus/utils/derivativetraits.hh>
+#include <ikarus/utils/nonlinearoperator.hh>
 
 namespace Ikarus {
 
 struct NonLinearOperatorFactory
 {
-
-  template <typename Assembler,typename Parameter, typename... Affordances>
-  static auto op(Assembler&& as, const Parameter& arg,
-                 AffordanceCollection<Affordances...> affordances, DBCOption dbcOption) {
+  template <typename Assembler, typename Parameter, typename... Affordances>
+  static auto op(Assembler&& as, const Parameter& arg, AffordanceCollection<Affordances...> affordances,
+                 DBCOption dbcOption) {
     auto assemblerPtr = [as]() {
       if constexpr (std::is_pointer_v<std::remove_cvref_t<Assembler>> or
                     traits::isSharedPtr<std::remove_cvref_t<Assembler>>::value)
@@ -36,28 +36,21 @@ struct NonLinearOperatorFactory
       return assembler->matrix(p, affordances.matrixAffordance(), dbcOption);
     };
 
-    [[maybe_unused]] auto residualFunction = [dbcOption, assembler = assemblerPtr, affordances](const Parameter& p) -> auto& {
+    [[maybe_unused]] auto residualFunction = [dbcOption, assembler = assemblerPtr,
+                                              affordances](const Parameter& p) -> auto& {
       return assembler->vector(p, affordances.vectorAffordance(), dbcOption);
     };
 
     assert(arg.populated() && " Before you calls this method you have to pass populated fe requirements");
     if constexpr (affordances.hasScalarAffordance) {
-          [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](const Parameter& p) -> auto& {
-      return assembler->scalar(p, affordances.scalarAffordance());
-    };
+      [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](const Parameter& p) -> auto& {
+        return assembler->scalar(p, affordances.scalarAffordance());
+      };
 
-    DerivativeTraitsFromCallables t(functions(std::move(energyFunction), std::move(residualFunction), std::move(KFunction)),parameter(arg));
-    using DerivTraits= decltype(t);
-    auto sigTag =Dune::Functions::SignatureTag<DerivTraits::Signature<0>,DerivTraits::template DerivativeTraits>();
-
-      return Ikarus::NonLinearOperator(sigTag,std::move(energyFunction), std::move(residualFunction), std::move(KFunction));
+      return makeNonLinearOperator(
+          functions(std::move(energyFunction), std::move(residualFunction), std::move(KFunction)), parameter(arg));
     } else
-     {
-  
-      DerivativeTraitsFromCallables t(functions( std::move(residualFunction), std::move(KFunction)),parameter(arg));
-      using DerivTraits= decltype(t);
-      auto sigTag =Dune::Functions::SignatureTag<DerivTraits::Signature<0>,DerivTraits::template DerivativeTraits>();
-      return Ikarus::NonLinearOperator(sigTag, std::move(residualFunction), std::move(KFunction));
+      return makeNonLinearOperator(functions(std::move(residualFunction), std::move(KFunction)), parameter(arg));
   }
 
   template <typename Assembler>

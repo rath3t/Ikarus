@@ -103,15 +103,16 @@ class NewtonRaphson : public IObservable<NonLinearSolverMessages>
 {
 public:
   using Settings = NRSettings;
-      using SignatureTraits= Dune::Functions::SignatureTraits<NLO>;
+      using SignatureTraits= typename NLO::Traits;
     using DerivativeSignatureTraits = Dune::Functions::SignatureTraits<typename NLO::Derivative>;
-  using CorrectionType = typename DerivativeSignatureTraits::Range;        ///< Type of the correction of x += deltaX.
+  using CorrectionType = typename SignatureTraits::template Range<0>;        ///< Type of the correction of x += deltaX.
+  using JacobianType = typename SignatureTraits::template Range<1>;
   ///< Compile-time boolean indicating if the linear solver satisfies the non-linear solver concept
   static constexpr bool isLinearSolver =
-      Ikarus::Concepts::LinearSolverCheck<LinearSolver, CorrectionType, typename SignatureTraits::Domain>;
+      Ikarus::Concepts::LinearSolverCheck<LinearSolver, JacobianType, CorrectionType>;
 
   ///< Type representing the parameter vector of the nonlinear operator.
-  using Domain = typename SignatureTraits::Domain;
+  using Domain = typename SignatureTraits::template Parameter<0>;
 
 
 

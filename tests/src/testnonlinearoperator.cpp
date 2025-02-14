@@ -53,9 +53,7 @@ static auto simple1DOperatorNewtonRaphsonTest() {
 
   auto fvLambda  = [&](auto&& x_) { return f(x_); };
   auto dfvLambda = [&](auto&& x_) { return df(x_); };
-      auto sigTag =Dune::Functions::SignatureTag<double(double),Ikarus::DerivativeTraitsDense>();
-    auto nonLinOp= Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,fvLambda, dfvLambda);
-
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
 
   // Newton method test
   const double eps       = 1e-14;
@@ -72,13 +70,14 @@ static auto simple1DOperatorNewtonRaphsonCheckThatThePerfectPredictorWorksTest()
 
   auto fvLambda  = [](auto&& x_) { return f(x_); };
   auto dfvLambda = [](auto&& x_) { return df(x_); };
-        auto sigTag =Dune::Functions::SignatureTag<double(double),Ikarus::DerivativeTraitsDense>();
-  auto nonLinOp= Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,fvLambda, dfvLambda);
+
 
   const double eps       = 1e-14;
   const int maxIter      = 20;
   const double xExpected = std::sqrt(5.0) - 1.0;
   double x = xExpected;
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
+
   Ikarus::NewtonRaphson nr(nonLinOp);
 
   t.subTest(checkNewtonRaphson(nr, x, eps, maxIter, 0, xExpected));
@@ -92,8 +91,8 @@ static auto simple1DOperatorNewtonRaphsonWithWrongDerivativeTest() {
 
   auto fvLambda  = [](auto&& x_) { return f(x_); };
   auto dfvLambda = [](auto&& x_) { return dfFail(x_); };
-  auto sigTag =Dune::Functions::SignatureTag<double(double),Ikarus::DerivativeTraitsDense>();
-  auto nonLinOp= Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,fvLambda, dfvLambda);
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
+
 
   // Newton method test
   const double eps  = 1e-14;
@@ -125,8 +124,7 @@ static auto simple1DOperatorNewtonRaphsonTestWithParamter() {
   for (int i = 0; i < 3; ++i) {
     auto fvLambda  = [&](auto&& x_) { return fp(x_, i); };
     auto dfvLambda = [&](auto&& x_) { return dfp(x_, i); };
-  auto sigTag =Dune::Functions::SignatureTag<double(double),Ikarus::DerivativeTraitsDense>();
-  auto nonLinOp= Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,fvLambda, dfvLambda);
+    auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
 
     // Newton method test
     const double eps       = 1e-14;
@@ -150,8 +148,8 @@ static auto vectorValuedOperatorNewtonRaphsonTest() {
 
   auto fvLambda  = [&](auto&& x_) { return fv(x_, A, b); };
   auto dfvLambda = [&](auto&& x_) { return dfv(x_, A, b); };
-  auto sigTag =Dune::Functions::SignatureTag<Eigen::Vector3d(Eigen::Vector3d),Ikarus::DerivativeTraitsDense>();
-  auto nonLinOp= Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,fvLambda, dfvLambda);
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
+
 
   // Newton method test
   const double eps  = 1e-14;
@@ -184,8 +182,7 @@ static auto secondOrderVectorValuedOperatorTest() {
   auto fvLambda   = [&](auto&& x_) { return f2v(x_, A, b); };
   auto dfvLambda  = [&](auto&& x_) { return df2v(x_, A, b); };
   auto ddfvLambda = [&](auto&& x_) { return ddf2v(x_, A, b); };
-    auto sigTag =Dune::Functions::SignatureTag<double(Eigen::VectorXd),Ikarus::DerivativeTraitsDense>();
-    auto nonLinOp= Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,fvLambda, dfvLambda, ddfvLambda);
+  NonLinearOperator nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda,ddfvLambda), parameter(x));
 
 
   t.check(Ikarus::utils::checkGradient(nonLinOp,x, {.draw = false, .writeSlopeStatementIfFailed = false}));
@@ -216,12 +213,14 @@ ScalarType f2vNL(const Eigen::VectorX<ScalarType>& x, const Eigen::MatrixXd&, co
 
 static Eigen::VectorXd df2vNL(const Eigen::VectorX<autodiff::dual>& x, const Eigen::MatrixXd& A,
                               [[maybe_unused]] const Eigen::VectorXd& b) {
-  return autodiff::gradient(f2vNL<autodiff::dual>, autodiff::wrt(x), autodiff::at(x, A, b));
+                auto xMutable = x;                
+  return autodiff::gradient(f2vNL<autodiff::dual>, autodiff::wrt(xMutable), autodiff::at(x, A, b));
 }
 
 static Eigen::MatrixXd ddf2vNL(const Eigen::VectorX<autodiff::dual2nd>& x, const Eigen::MatrixXd& A,
                                [[maybe_unused]] const Eigen::VectorXd& b) {
-  return autodiff::hessian(f2vNL<autodiff::dual2nd>, autodiff::wrt(x), autodiff::at(x, A, b));
+                                auto xMutable = x;   
+  return autodiff::hessian(f2vNL<autodiff::dual2nd>, autodiff::wrt(xMutable), autodiff::at(x, A, b));
 }
 
 static auto secondOrderVectorValuedOperatorNonlinearAutodiff() {
@@ -244,9 +243,7 @@ static auto secondOrderVectorValuedOperatorNonlinearAutodiff() {
     return ddf2vNL(xR, A, b);
   };
 
-  auto sigTag =Dune::Functions::SignatureTag<double(Eigen::Vector3d),Ikarus::DerivativeTraitsDense>();
-
-  auto nonLinOp= Dune::Functions::makeDifferentiableFunctionFromCallables(sigTag,fvLambda, dfvLambda, ddfvLambda);
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda,ddfvLambda), parameter(x));
 
   t.check(Ikarus::utils::checkGradient(nonLinOp,x, {.draw = false, .writeSlopeStatementIfFailed = false}));
   t.check(Ikarus::utils::checkHessian(nonLinOp,x, {.draw = false, .writeSlopeStatementIfFailed = false}));
