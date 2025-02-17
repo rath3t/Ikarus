@@ -16,13 +16,14 @@
 
   #include <ikarus/finiteelements/fehelper.hh>
   #include <ikarus/finiteelements/ferequirements.hh>
-  #include <ikarus/finiteelements/mechanics/easvariants.hh>
   #include <ikarus/finiteelements/mechanics/materials/tags.hh>
+  #include <ikarus/finiteelements/mechanics/strainenhancements/easvariants.hh>
   #include <ikarus/utils/concepts.hh>
 
 namespace Ikarus {
 
 template <typename PreFE, typename FE, StrainTags ES>
+requires(not(ES == StrainTags::BEGIN or ES == StrainTags::END))
 class EnhancedAssumedStrains;
 
 /**
@@ -30,6 +31,7 @@ class EnhancedAssumedStrains;
  * \tparam ES The strain tag that is enhanced.
  */
 template <StrainTags ES>
+requires(not(ES == StrainTags::BEGIN or ES == StrainTags::END))
 struct EnhancedAssumedStrainsPre
 {
   int numberOfParameters{};
@@ -50,6 +52,7 @@ struct EnhancedAssumedStrainsPre
  * \tparam ES The strain tag that is enhanced.
  */
 template <typename PreFE, typename FE, StrainTags ES>
+requires(not(ES == StrainTags::BEGIN or ES == StrainTags::END))
 class EnhancedAssumedStrains
     : public std::conditional_t<ES == StrainTags::linear,
                                 ResultTypeBase<ResultTypes::linearStress, ResultTypes::linearStressFull>,
@@ -269,7 +272,7 @@ protected:
   }
 
 private:
-  EAS::Impl::EASVariant<Geometry> easVariant_;
+  EAS::EASVariant<ES, Geometry> easVariant_;
   mutable Eigen::MatrixXd L_;
   mutable Eigen::VectorXd alpha_;
 

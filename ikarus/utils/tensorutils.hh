@@ -374,29 +374,26 @@ auto fromVoigt(const Eigen::Matrix<ScalarType, 6, 6>& CVoigt) {
  *
  * \tparam Geometry The geometry type.
  * \param geometry Reference to the geometry object.
+ * \param pos The position where the transformation matrix is to be evaluated.
  * \return The transformation matrix for 2D elements.
  */
-template <typename Geometry>
-Eigen::Matrix3d calcTransformationMatrix2D(const Geometry& geometry) {
-  const auto& referenceElement = Dune::ReferenceElements<double, 2>::general(geometry.type());
-  const auto quadPos0          = referenceElement.position(0, 0);
+template <typename GEO>
+requires(GEO::mydimension == 2)
+Eigen::Matrix3d transformationMatrix(const GEO& geometry, const Dune::FieldVector<double, 2>& pos) {
+  const auto jacobian = toEigen(geometry.jacobianTransposed(pos)).eval();
 
-  const auto jacobianinvT0 = toEigen(geometry.jacobianInverseTransposed(quadPos0));
-  const auto detJ0         = geometry.integrationElement(quadPos0);
+  const auto J11 = jacobian(0, 0);
+  const auto J12 = jacobian(0, 1);
+  const auto J21 = jacobian(1, 0);
+  const auto J22 = jacobian(1, 1);
 
-  auto jaco = (jacobianinvT0).inverse().eval();
-  auto J11  = jaco(0, 0);
-  auto J12  = jaco(0, 1);
-  auto J21  = jaco(1, 0);
-  auto J22  = jaco(1, 1);
-
-  Eigen::Matrix3d T0{
+  Eigen::Matrix3d T{
       {      J11 * J11,       J12 * J12,             J11 * J12},
       {      J21 * J21,       J22 * J22,             J21 * J22},
       {2.0 * J11 * J21, 2.0 * J12 * J22, J21 * J12 + J11 * J22}
   };
 
-  return T0.inverse() * detJ0;
+  return T;
 }
 
 /**
@@ -407,39 +404,36 @@ Eigen::Matrix3d calcTransformationMatrix2D(const Geometry& geometry) {
  *
  * \tparam Geometry The geometry type.
  * \param geometry Reference to the geometry object.
+ * \param pos The position where the transformation matrix is to be evaluated.
  * \return The transformation matrix for 3D elements.
  */
-template <typename Geometry>
-Eigen::Matrix<double, 6, 6> calcTransformationMatrix3D(const Geometry& geometry) {
-  const auto& referenceElement = Dune::ReferenceElements<double, 3>::general(geometry.type());
-  const auto quadPos0          = referenceElement.position(0, 0);
+template <typename GEO>
+requires(GEO::mydimension == 3)
+Eigen::Matrix<double, 6, 6> transformationMatrix(const GEO& geometry, const Dune::FieldVector<double, 3>& pos) {
+  const auto jacobian = toEigen(geometry.jacobianTransposed(pos)).eval();
 
-  const auto jacobianinvT0 = toEigen(geometry.jacobianInverseTransposed(quadPos0));
-  const auto detJ0         = geometry.integrationElement(quadPos0);
-
-  auto jaco = (jacobianinvT0).inverse().eval();
-  auto J11  = jaco(0, 0);
-  auto J12  = jaco(0, 1);
-  auto J13  = jaco(0, 2);
-  auto J21  = jaco(1, 0);
-  auto J22  = jaco(1, 1);
-  auto J23  = jaco(1, 2);
-  auto J31  = jaco(2, 0);
-  auto J32  = jaco(2, 1);
-  auto J33  = jaco(2, 2);
+  const auto J11 = jacobian(0, 0);
+  const auto J12 = jacobian(0, 1);
+  const auto J13 = jacobian(0, 2);
+  const auto J21 = jacobian(1, 0);
+  const auto J22 = jacobian(1, 1);
+  const auto J23 = jacobian(1, 2);
+  const auto J31 = jacobian(2, 0);
+  const auto J32 = jacobian(2, 1);
+  const auto J33 = jacobian(2, 2);
 
   // clang-format off
-  Eigen::Matrix<double, 6, 6> T0  {
-    {J11 * J11,       J12 * J12,       J13 * J13,             J11 * J12,             J11 * J13,             J12 * J13},
-    {J21 * J21,       J22 * J22,       J23 * J23,             J21 * J22,             J21 * J23,             J22 * J23},
-    {J31 * J31,       J32 * J32,       J33 * J33,             J31 * J32,             J31 * J33,             J32 * J33},
-    {2.0 * J11 * J21, 2.0 * J12 * J22, 2.0 * J13 * J23, J11 * J22 + J21 * J12, J11 * J23 + J21 * J13, J12 * J23 + J22 * J13},
-    {2.0 * J11 * J31, 2.0 * J12 * J32, 2.0 * J13 * J33, J11 * J32 + J31 * J12, J11 * J33 + J31 * J13, J12 * J33 + J32 * J13},
-    {2.0 * J31 * J21, 2.0 * J32 * J22, 2.0 * J33 * J23, J31 * J22 + J21 * J32, J31 * J23 + J21 * J33, J32 * J23 + J22 * J33}
-  };
+   Eigen::Matrix<double, 6, 6> T  {
+     {J11 * J11,       J12 * J12,       J13 * J13,             J11 * J12,             J11 * J13,             J12 * J13},
+     {J21 * J21,       J22 * J22,       J23 * J23,             J21 * J22,             J21 * J23,             J22 * J23},
+     {J31 * J31,       J32 * J32,       J33 * J33,             J31 * J32,             J31 * J33,             J32 * J33},
+     {2.0 * J11 * J21, 2.0 * J12 * J22, 2.0 * J13 * J23, J11 * J22 + J21 * J12, J11 * J23 + J21 * J13, J12 * J23 + J22 * J13},
+     {2.0 * J11 * J31, 2.0 * J12 * J32, 2.0 * J13 * J33, J11 * J32 + J31 * J12, J11 * J33 + J31 * J13, J12 * J33 + J32 * J13},
+     {2.0 * J31 * J21, 2.0 * J32 * J22, 2.0 * J33 * J23, J31 * J22 + J21 * J32, J31 * J23 + J21 * J33, J32 * J23 + J22 * J33}
+   };
   // clang-format on
 
-  return T0.inverse() * detJ0;
+  return T;
 }
 
 } // namespace Ikarus

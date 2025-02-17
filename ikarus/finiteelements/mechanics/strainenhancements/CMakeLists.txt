@@ -2,6 +2,6 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 
 # install headers
-install(FILES eas2d.hh eas3d.hh
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/eas
+install(FILES easvariants.hh linearandglstrains.hh
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikarus/finiteelements/mechanics/strainenhancements
 )
