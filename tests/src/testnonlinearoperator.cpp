@@ -214,7 +214,7 @@ ScalarType f2vNL(const Eigen::Vector3<ScalarType>& x, const Eigen::Matrix3d&, co
 static Eigen::Vector3d df2vNL(const Eigen::Vector3<autodiff::dual>& x, const Eigen::Matrix3d& A,
                               [[maybe_unused]] const Eigen::Vector3d& b) {
                 auto xMutable = x;
-  return autodiff::gradient(f2vNL<autodiff::dual>, autodiff::wrt(xMutable), autodiff::at(xMutable, A, b));
+  return autodiff::gradient(f2vNL<autodiff::dual>, autodiff::wrt(xMutable), autodiff::at(x, A, b));
 }
 
 static Eigen::Matrix3d ddf2vNL(const Eigen::VectorX<autodiff::dual2nd>& x, const Eigen::Matrix3d& A,
