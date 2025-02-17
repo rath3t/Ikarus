@@ -49,7 +49,7 @@ static auto df(double x) { return x + 1; }
 static auto simple1DOperatorNewtonRaphsonTest() {
   TestSuite t("simple1DOperatorNewtonRaphsonTest");
 
-  double x = 0;
+  double x = 13;
 
   auto fvLambda  = [&](auto&& x_) { return f(x_); };
   auto dfvLambda = [&](auto&& x_) { return df(x_); };
@@ -87,7 +87,7 @@ static auto simple1DOperatorNewtonRaphsonCheckThatThePerfectPredictorWorksTest()
 static auto dfFail(double x) { return x + 1000000; }
 
 static auto simple1DOperatorNewtonRaphsonWithWrongDerivativeTest() {
-  double x = 1000;
+  double x = 13;
 
   auto fvLambda  = [](auto&& x_) { return f(x_); };
   auto dfvLambda = [](auto&& x_) { return dfFail(x_); };
@@ -117,9 +117,9 @@ static Eigen::Matrix3d dfv(const Eigen::Vector3d&, const Eigen::Matrix3d& A, Eig
 static auto fp(double x, int i) { return 0.5 * x * x + x * i - 2; }
 static auto dfp(double x, int i) { return x + i; }
 
-static auto simple1DOperatorNewtonRaphsonTestWithParamter() {
-  TestSuite t("simple1DOperatorNewtonRaphsonTestWithParamter");
-  double x = 0;
+static auto simple1DOperatorNewtonRaphsonTestWithParameter() {
+  TestSuite t("simple1DOperatorNewtonRaphsonTestWithParameter");
+  double x = 13;
 
   for (int i = 0; i < 3; ++i) {
     auto fvLambda  = [&](auto&& x_) { return fp(x_, i); };
@@ -140,7 +140,7 @@ static auto simple1DOperatorNewtonRaphsonTestWithParamter() {
 
 static auto vectorValuedOperatorNewtonRaphsonTest() {
   Eigen::Vector3d x;
-  x =Eigen::Vector3d::Zero();
+  x << 1, 2, 3;
   Eigen::Vector3d b;
   b << 5, 7, 8;
   Eigen::Matrix3d A;
@@ -173,7 +173,7 @@ static auto secondOrderVectorValuedOperatorTest() {
   TestSuite t("SecondOrderVectorValuedOperatorTest");
   Eigen::VectorXd x(3);
 
-  x = Eigen::VectorXd::Zero(3);
+  x << 1, 2, 3;
   Eigen::VectorXd b(3);
   b << 5, 7, 8;
   Eigen::MatrixXd A(3, 3);
@@ -207,40 +207,40 @@ static auto secondOrderVectorValuedOperatorTest() {
 
 using namespace autodiff;
 template <typename ScalarType>
-ScalarType f2vNL(const Eigen::VectorX<ScalarType>& x, const Eigen::MatrixXd&, const Eigen::VectorXd&) {
+ScalarType f2vNL(const Eigen::Vector3<ScalarType>& x, const Eigen::Matrix3d&, const Eigen::Vector3d&) {
   return x.array().sin().matrix().dot(x);
 }
 
-static Eigen::VectorXd df2vNL(const Eigen::VectorX<autodiff::dual>& x, const Eigen::MatrixXd& A,
-                              [[maybe_unused]] const Eigen::VectorXd& b) {
-                auto xMutable = x;                
-  return autodiff::gradient(f2vNL<autodiff::dual>, autodiff::wrt(xMutable), autodiff::at(x, A, b));
+static Eigen::Vector3d df2vNL(const Eigen::Vector3<autodiff::dual>& x, const Eigen::Matrix3d& A,
+                              [[maybe_unused]] const Eigen::Vector3d& b) {
+                auto xMutable = x;
+  return autodiff::gradient(f2vNL<autodiff::dual>, autodiff::wrt(xMutable), autodiff::at(xMutable, A, b));
 }
 
-static Eigen::MatrixXd ddf2vNL(const Eigen::VectorX<autodiff::dual2nd>& x, const Eigen::MatrixXd& A,
-                               [[maybe_unused]] const Eigen::VectorXd& b) {
-                                auto xMutable = x;   
-  return autodiff::hessian(f2vNL<autodiff::dual2nd>, autodiff::wrt(xMutable), autodiff::at(x, A, b));
+static Eigen::Matrix3d ddf2vNL(const Eigen::VectorX<autodiff::dual2nd>& x, const Eigen::Matrix3d& A,
+                               [[maybe_unused]] const Eigen::Vector3d& b) {
+                                auto xMutable = x;
+  return autodiff::hessian(f2vNL<autodiff::dual2nd>, autodiff::wrt(xMutable), autodiff::at(xMutable, A, b));
 }
 
 static auto secondOrderVectorValuedOperatorNonlinearAutodiff() {
   TestSuite t("SecondOrderVectorValuedOperatorNonlinearAutodiff");
   Eigen::Vector3d x(3);
 
-  x =Eigen::VectorXd::Zero(3).eval();
+  x << 1, 2, 3;
   Eigen::Vector3d b(3);
   b << 5, 7, 8;
   Eigen::Matrix3d A(3, 3);
-  A = Eigen::MatrixXd::Identity(3, 3) * 13;
+  A = Eigen::Matrix3d::Identity() * 13;
 
-  auto fvLambda  = [&](auto&& x_) { return f2vNL<double>(x_, A, b); };
+  auto fvLambda  = [&](auto&& x_) { return f2vNL(x_, A, b); };
   auto dfvLambda = [&](auto&& x_) {
-    auto xR = x_.template cast<autodiff::dual>().eval();
-    return df2vNL(xR, A, b);
+    //auto xR = x_.template cast<autodiff::dual>().eval();
+    return df2vNL(x_, A, b);
   };
   auto ddfvLambda = [&](auto&& x_) {
-    auto xR = x_.template cast<autodiff::dual2nd>().eval();
-    return ddf2vNL(xR, A, b);
+//auto xR = x_.template cast<autodiff::dual2nd>().eval();
+    return ddf2vNL(x_, A, b);
   };
 
   auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda,ddfvLambda), parameter(x));
@@ -253,7 +253,7 @@ static auto secondOrderVectorValuedOperatorNonlinearAutodiff() {
   // Newton method test find root of first derivative
   const double eps  = 1e-14;
   const int maxIter = 20;
-  Ikarus::NewtonRaphson nr(subOperator, Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT));
+  Ikarus::NewtonRaphson nr(subOperator, [&](auto& r, auto& A_) { return A_.inverse() * r; });
 
   const Eigen::Vector3d xSol(-4.9131804394348836888, 2.0287578381104342236, 2.0287578381104342236);
   auto nonLinearSolverObserver = std::make_shared<NonLinearSolverLogger>();
@@ -270,12 +270,12 @@ int main(int argc, char** argv) {
   Ikarus::init(argc, argv);
   TestSuite t;
 
-  // t.subTest(simple1DOperatorNewtonRaphsonTest());
-  // t.subTest(simple1DOperatorNewtonRaphsonCheckThatThePerfectPredictorWorksTest());
-  // t.subTest(simple1DOperatorNewtonRaphsonWithWrongDerivativeTest());
-  // t.subTest(simple1DOperatorNewtonRaphsonTestWithParamter());
-  // t.subTest(vectorValuedOperatorNewtonRaphsonTest());
-  // t.subTest(secondOrderVectorValuedOperatorTest());
+  t.subTest(simple1DOperatorNewtonRaphsonTest());
+  t.subTest(simple1DOperatorNewtonRaphsonCheckThatThePerfectPredictorWorksTest());
+  t.subTest(simple1DOperatorNewtonRaphsonWithWrongDerivativeTest());
+  t.subTest(simple1DOperatorNewtonRaphsonTestWithParameter());
+  t.subTest(vectorValuedOperatorNewtonRaphsonTest());
+  t.subTest(secondOrderVectorValuedOperatorTest());
   t.subTest(secondOrderVectorValuedOperatorNonlinearAutodiff());
 
   return t.exit();
