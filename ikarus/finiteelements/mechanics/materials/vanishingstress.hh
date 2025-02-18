@@ -187,7 +187,7 @@ private:
     };
 
     auto Er    = E(fixedDiagonalVoigtIndices, fixedDiagonalVoigtIndices).eval().template cast<ScalarType>();
-    auto nonOp = Ikarus::NonLinearOperator(functions(f, df), parameter(Er));
+    auto nonOp = Ikarus::makeNonLinearOperator(functions(f, df), parameter(Er));
 
     auto linearSolver   = [](auto& r, auto& A) { return (A.inverse() * r).eval(); };
     auto updateFunction = [&](auto& /* Ex33 */, auto& ecomps) {
@@ -206,7 +206,7 @@ private:
     };
 
     auto nr = createNonlinearSolver(std::move(nrs), nonOp);
-    if (!static_cast<bool>(nr->solve()))
+    if (!static_cast<bool>(nr->solve(Er)))
       DUNE_THROW(Dune::MathError, "The stress reduction of material " << nameImpl() << " was unsuccessful\n"
                                                                       << "The strains are\n"
                                                                       << E << "\n The stresses are\n"

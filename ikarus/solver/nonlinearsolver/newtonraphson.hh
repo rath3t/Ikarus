@@ -71,15 +71,15 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
         nlo2, std::forward<LS2>(ls), std::forward<UF2>(uf));
   };
 
-  if constexpr (std::remove_cvref_t<NLO>::numberOfFunctions == 3) {
+  if constexpr (std::remove_cvref_t<NLO>::nDerivatives == 2) {
     auto solver =
         solverFactory(nonLinearOperator.template subOperator<1, 2>(), std::forward<NRConfig>(config).linearSolver,
                       std::forward<NRConfig>(config).updateFunction);
     solver->setup(config.parameters);
     return solver;
   } else {
-    static_assert(std::remove_cvref_t<NLO>::numberOfFunctions > 1,
-                  "The number of derivatives in the nonlinear operator have to be more than 1");
+    static_assert(std::remove_cvref_t<NLO>::nDerivatives > 0,
+                  "The number of derivatives in the nonlinear operator have to be more than 0");
     auto solver = solverFactory(nonLinearOperator, std::forward<NRConfig>(config).linearSolver,
                                 std::forward<NRConfig>(config).updateFunction);
     ;

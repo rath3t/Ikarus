@@ -78,10 +78,11 @@ template <class Range, class Domain, template <class> class DerivativeTraits, cl
 class NonLinearOperator<Range(Domain), DerivativeTraits, F>
     : private Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>
 {
-  
+
   using Base = Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>;
-  
   public:
+    static constexpr auto nDerivatives = 0;
+
   template<class FFF, Dune::disableCopyMove<NonLinearOperator, FFF> = 0>
   NonLinearOperator(FFF&& f) :
     Base(std::forward<FFF>(f))
@@ -116,10 +117,11 @@ template <class Range, class Domain, template <class> class DerivativeTraits, cl
 class NonLinearOperator<Range(Domain), DerivativeTraits, F,FF...>
     : private Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F,FF...>
 {
-  
+
   using Base = Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F,FF...>;
-  
   public:
+    static constexpr auto nDerivatives = sizeof...(FF);
+
   template<class... FFF>
   NonLinearOperator(FFF&&... f) :
     Base(std::forward<FFF>(f)...)

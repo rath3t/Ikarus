@@ -171,22 +171,20 @@ class TrustRegion : public IObservable<NonLinearSolverMessages>
 public:
   using Settings  = TRSettings;                               ///< Type of the settings for the TrustRegion solver
 
-    using SignatureTraits= Dune::Functions::SignatureTraits<NLO>; 
-using DerivativeSignatureTraits = Dune::Functions::SignatureTraits<typename NLO::Derivative>; 
-using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typename NLO::Derivative::Derivative>; 
-  using Domain = typename SignatureTraits::Domain; ///< Type of the parameter vector of
+    using NLOTraits= typename NLO::Traits;
+
+  using Domain = typename NLOTraits::template Parameter<0>; ///< Type of the parameter vector of
                                                               ///< the nonlinear operator
-  using CorrectionType = typename DerivativeSignatureTraits::Range;        ///< Type of the correction of x += deltaX.
+  using CorrectionType = typename NLOTraits::template Range<1>;        ///< Type of the correction of x += deltaX.
   using UpdateFunction = UF;                                  ///< Type of the update function.
 
 
 
   using NonLinearOperator = NLO; ///< Type of the non-linear operator
 
-  // using ScalarType = std::remove_cvref_t<typename NLO::template FunctionReturnType<0>>; ///< Type of the scalar
-  //                                                                                       ///< cost
-
-  // using MatrixType = std::remove_cvref_t<typename NLO::template FunctionReturnType<2>>; ///< Type of the Hessian
+  using EnergyType = typename NLOTraits::template Range<0>;   ///< Type of the scalar cost
+  using GradientType = typename NLOTraits::template Range<1>;   ///< Type of the gradient vector
+  using HessianType = typename NLOTraits::template Range<2>;   ///< Type of the Hessian matrix
 
   /**
    * \brief Constructs a TrustRegion solver instance.
@@ -216,22 +214,18 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
    * \param x the solutin.
    * \return NonLinearSolverInformation containing information about the solver result.
    */
-  template<typename SolutionType>
-  NonLinearSolverInformation solve( SolutionType& x) {
-    SolutionType& x_Old= x;
-    this->notify(NonLinearSolverMessages::INIT);
-    stats_ = Stats{};
-    info_  = AlgoInfo{};
+  NonLinearSolverInformation solve( Domain& x) {
+    Domain xOld = x;
+    init(x);
 
     NonLinearSolverInformation solverInformation;
-    updateAll(x);
-    eta_.resizeLike(grad_);
-    Heta_.resizeLike(grad_);
-        truncatedConjugateGradient_.analyzePattern(hess_);
-    stats_.energy   = energy_;
-    xOld_           = x;
-    stats_.gradNorm = norm(grad_);
-    truncatedConjugateGradient_.analyzePattern(hess_);
+    eta_.resizeLike(gradient());
+    Heta_.resizeLike(gradient());
+        truncatedConjugateGradient_.analyzePattern(hessian());
+    stats_.energy   = energy();
+    xOld           = x;
+    stats_.gradNorm = norm(gradient());
+    truncatedConjugateGradient_.analyzePattern(hessian());
 
     innerInfo_.Delta = settings_.Delta0;
     spdlog::info(
@@ -243,7 +237,7 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
       if (settings_.useRand) {
         if (stats_.outerIter == 0) {
           eta_.setRandom();
-          while (eta_.dot(hess_ * eta_) > innerInfo_.Delta * innerInfo_.Delta)
+          while (eta_.dot(hessian() * eta_) > innerInfo_.Delta * innerInfo_.Delta)
             eta_ *= eps_; // eps is sqrt(sqrt(maschine-precision))
         } else
           eta_.setZero();
@@ -254,26 +248,26 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
       stats_.innerIterSum += innerInfo_.numInnerIter;
 
       info_.stopReasonString = tcg_stop_reason_[static_cast<int>(innerInfo_.stop_tCG)];
-      Heta_                  = hess_ * eta_;
+      Heta_                  = hessian() * eta_;
       if (settings_.useRand and stats_.outerIter == 0) {
         info_.used_cauchy            = false;
         info_.randomPredictionString = " Used Random correction predictor";
         info_.cauchystr              = "                  ";
         double tauC;
         // Check the curvature
-        const Eigen::VectorXd Hg = hess_ * grad_;
-        const auto g_Hg          = grad_.dot(Hg);
+        const Eigen::VectorXd Hg = hessian() * gradient();
+        const auto g_Hg          = gradient().dot(Hg);
         if (g_Hg <= 0)
           tauC = 1;
         else
           tauC = std::min(Dune::power(stats_.gradNorm, 3) / (innerInfo_.Delta * g_Hg), 1.0);
 
         // generate the Cauchy point.
-        const Eigen::VectorXd etaC  = -tauC * innerInfo_.Delta / stats_.gradNorm * grad_;
+        const Eigen::VectorXd etaC  = -tauC * innerInfo_.Delta / stats_.gradNorm * gradient();
         const Eigen::VectorXd HetaC = -tauC * innerInfo_.Delta / stats_.gradNorm * Hg;
 
-        const double mdle  = stats_.energy + grad_.dot(eta_) + .5 * Heta_.dot(eta_);
-        const double mdlec = stats_.energy + grad_.dot(etaC) + .5 * HetaC.dot(etaC);
+        const double mdle  = stats_.energy + gradient().dot(eta_) + .5 * Heta_.dot(eta_);
+        const double mdlec = stats_.energy + gradient().dot(etaC) + .5 * HetaC.dot(etaC);
         if (mdlec < mdle && stats_.outerIter == 0) {
           eta_              = etaC;
           Heta_             = HetaC;
@@ -289,8 +283,8 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
       updateFunction_(x, eta_);
 
       // Calculate energy of our proposed update step
-      energy_= energyFunction_(x);
-      stats_.energyProposal = energy_;
+      energy() = energyFunction_(x);
+      stats_.energyProposal = energy();
 
       // Will we accept the proposal or not?
       // Check the performance of the quadratic model against the actual energy.
@@ -377,12 +371,12 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
       if (info_.acceptProposal) {
         stats_.energy = stats_.energyProposal;
         updateAll(x);
-        xOld_ = x;
+        xOld = x;
         this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, stats_.etaNorm);
         this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, stats_.gradNorm);
         this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
       } else {
-        x = xOld_;
+        x = xOld;
         eta_.setZero();
       }
       updateAll(x);
@@ -409,11 +403,36 @@ using SecondDerivativeSignatureTraits = Dune::Functions::SignatureTraits<typenam
 
 private:
 
-void updateAll(const typename SignatureTraits::Domain& x)
+template< class T > requires std::is_lvalue_reference_v<T>
+constexpr std::optional<std::decay_t<T>> make_optional( T&& value )
 {
-      energy_=energyFunction_(x);
-    grad_=gradientFunction_(x);
-    hess_=hessianFunction_(x);
+  return std::make_optional<std::decay_t<T>>(std::forward<T>(value));
+}
+
+template< class T > requires not std::is_reference_v<T>
+constexpr std::decay_t<T> make_optional( T&& value )
+{
+  return value;
+}
+
+
+
+
+void init(const Domain& x)
+{
+     this->notify(NonLinearSolverMessages::INIT);
+    stats_ = Stats{};
+    info_  = AlgoInfo{};
+    energy_=make_optional(energyFunction_(x));
+    grad_=make_optional(derivative(energyFunction_)(x));
+    hess_=make_optional(derivative(derivative(energyFunction_))(x));
+}
+
+void updateAll(const Domain& x)
+{
+      energy()=energyFunction_(x);
+    gradient()=derivative(energyFunction_)(x);
+    hessian()=derivative(derivative(energyFunction_))(x);
 }
   void logState() const {
     spdlog::info(
@@ -435,7 +454,7 @@ void updateAll(const typename SignatureTraits::Domain& x)
     /** Gradient correction tolerance reached  */
     if (stats_.gradNorm < settings_.grad_tol && stats_.outerIter != 0) {
       logFinalState();
-      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(gradient): {:1.16e}", energy_,
+      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(gradient): {:1.16e}", energy(),
                    stats_.gradNorm);
       stream << "Gradient norm tolerance reached; options.tolerance = " << settings_.grad_tol;
 
@@ -445,7 +464,7 @@ void updateAll(const typename SignatureTraits::Domain& x)
       return true;
     } else if (stats_.etaNorm < settings_.corr_tol && stats_.outerIter != 0) {
       logFinalState();
-      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(correction): {:1.16e}", nonLinearOperator().value(),
+      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(correction): {:1.16e}", energy(),
                    stats_.etaNorm);
       stream << "Displacement norm tolerance reached;  = " << settings_.corr_tol << "." << std::endl;
 
@@ -498,18 +517,46 @@ void updateAll(const typename SignatureTraits::Domain& x)
   }
 
 
+  template<class T>
+static constexpr T& resolveOptRef(T& gf) noexcept
+{
+  return gf;
+}
+
+template<class T>
+static constexpr T& resolveOptRef(std::optional<std::reference_wrapper<T>>& gf) noexcept
+{
+  return gf.value().get();
+}
+
+template<class T>
+static constexpr T& resolveOptRef(const std::optional<std::reference_wrapper<T>>& gf) noexcept
+{
+  return gf.value().get();
+}
+
+
+   auto& energy() const noexcept { return resolveOptRef(energy_); }
+   auto& energy() noexcept { return resolveOptRef(energy_); }
+   auto& gradient() const noexcept { return resolveOptRef(grad_); }
+   auto& gradient() noexcept  { return resolveOptRef(grad_); }
+   auto& hessian() const noexcept { return resolveOptRef(hess_); }
+   auto& hessian() noexcept { return resolveOptRef(hess_); }
+
+
 
   NLO energyFunction_;
-  typename NLO::DerivativeSignature gradientFunction_;
-  typename NLO::Derivative::Derivative  hessianFunction_;
+  // typename NLO::Derivative gradientFunction_;
+  // typename NLO::Derivative::Derivative  hessianFunction_;
 
-    typename SignatureTraits::Range energy_;
-  typename DerivativeSignatureTraits::Range grad_;
-    typename SecondDerivativeSignatureTraits::Range hess_;
+
+  std::conditional_t<std::is_lvalue_reference_v<EnergyType>,std::optional<std::reference_wrapper<std::remove_cvref_t<EnergyType>>>,EnergyType> energy_;
+  std::conditional_t<std::is_lvalue_reference_v<GradientType>,std::optional<std::reference_wrapper<std::remove_cvref_t<GradientType>>>,GradientType>   grad_;
+  std::conditional_t<std::is_lvalue_reference_v<HessianType>,std::optional<std::reference_wrapper<std::remove_cvref_t<HessianType>>>,HessianType>  hess_;
 
   UpdateFunction updateFunction_;
-  CorrectionType eta_;
-  CorrectionType Heta_;
+  std::remove_cvref_t<CorrectionType> eta_;
+  std::remove_cvref_t<CorrectionType> Heta_;
   Settings settings_;
   AlgoInfo info_;
   double choleskyInitialShift_ = 1e-3;
@@ -524,9 +571,9 @@ void updateAll(const typename SignatureTraits::Domain& x)
   using PreConditionerType =
       std::conditional_t<preConditioner == PreConditioner::IdentityPreconditioner, Eigen::IdentityPreconditioner,
                          std::conditional_t<preConditioner == PreConditioner::DiagonalPreconditioner,
-                                            typename Eigen::DiagonalPreconditioner<ScalarType>,
-                                            typename Eigen::IncompleteCholesky<ScalarType>>>;
-  Eigen::TruncatedConjugateGradient<MatrixType, Eigen::Lower | Eigen::Upper, PreConditionerType>
+                                            typename Eigen::DiagonalPreconditioner<std::decay_t<EnergyType>>,
+                                            typename Eigen::IncompleteCholesky<std::decay_t<EnergyType>>>>;
+  Eigen::TruncatedConjugateGradient<std::decay_t<HessianType>, Eigen::Lower | Eigen::Upper, PreConditionerType>
       truncatedConjugateGradient_;
 };
 

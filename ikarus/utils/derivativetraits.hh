@@ -56,16 +56,14 @@ struct DerivativeTraitsFromCallables<Impl::Functions<DerivativeArgs...>, Impl::P
    * \param derivativesFunctions The Functions object for derivative arguments.
    * \param parameterI The Parameter object for parameter arguments.
    */
-  template <typename U = void>
-  requires(not std::is_rvalue_reference_v<DerivativeArgs> and ...)
   DerivativeTraitsFromCallables(const Impl::Functions<DerivativeArgs...>& derivativesFunctions,
                                 const Impl::Parameter<ParameterArgs...>& parameterI) {}
   using Ranges = std::tuple<std::invoke_result_t<DerivativeArgs, ParameterArgs...>...,Dune::Functions::InvalidRange>;
-  using Parameters = std::tuple<ParameterArgs...>;
+  using Parameters = std::tuple<std::decay_t<ParameterArgs>...>;
   using Signatures = std::tuple<std::invoke_result_t<DerivativeArgs, ParameterArgs...>(ParameterArgs...)...,Dune::Functions::InvalidRange(ParameterArgs...)>;
   using RawSignatures = std::tuple<std::remove_cvref_t<std::invoke_result_t<DerivativeArgs, ParameterArgs...>>(std::remove_cvref_t<ParameterArgs>...)...,Dune::Functions::InvalidRange(ParameterArgs...)>;
 
-  template <int I> 
+  template <int I>
   using Signature = std::tuple_element_t<I/*(I <std::tuple_size_v<Signatures> ? I : std::tuple_size_v<Signatures>-1)*/, Signatures>;
 
   template <int I>
