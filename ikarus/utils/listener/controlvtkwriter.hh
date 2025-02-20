@@ -7,13 +7,15 @@
  */
 
 #pragma once
-#include "observer.hh"
-#include "observermessages.hh"
-
 #include <string>
 
 #include <dune/functions/gridfunctions/discreteglobalbasisfunction.hh>
 #include <dune/grid/io/file/vtk/subsamplingvtkwriter.hh>
+
+#include <Eigen/Core>
+
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
+#include <ikarus/utils/listener/listener.hh>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-enum"
@@ -23,12 +25,12 @@ namespace Ikarus {
 /**
  * \brief ControlSubsamplingVertexVTKWriter class for writing VTK files with subsampling based on control messages.
  *
- * \details It inherits from the IObserver class and is specifically designed for handling SOLUTION_CHANGED messages.
+ * \details It inherits from the Listener class and is specifically designed for handling SOLUTION_CHANGED messages.
  *
  * \tparam B The type of the grid basis.
  */
 template <typename B>
-class ControlSubsamplingVertexVTKWriter : public IObserver<ControlMessages>
+class ControlSubsamplingVertexVTKWriter : public Listener
 {
   using Basis                     = B;
   static constexpr int components = Basis::LocalView::Tree::degree() == 0 ? 1 : Basis::LocalView::Tree::degree();
@@ -47,6 +49,12 @@ public:
       : basis_{&basis},
         vtkWriter_(basis.gridView(), Dune::refinementLevels(refinementLevels)),
         solution_{&sol} {}
+
+  template <typename BC>
+  ControlSubsamplingVertexVTKWriter& subscribeTo(BC& bc) {
+    this->subscribe(bc, [&](ControlMessages message) { this->updateImpl(message); });
+    return *this;
+  }
 
   /**
    * \brief Set field information for the VTK file.
@@ -78,7 +86,7 @@ public:
    *
    * \param message The received control message.
    */
-  void updateImpl(ControlMessages message) final {
+  void updateImpl(ControlMessages message) {
     assert(isFieldInfoSet_ && "You need to call setFieldInfo first!");
     switch (message) {
       case ControlMessages::SOLUTION_CHANGED: {

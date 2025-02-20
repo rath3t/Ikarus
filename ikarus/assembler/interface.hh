@@ -86,7 +86,13 @@ public:
    * \brief Returns the container of finite elements.
    * \return Reference to the finite element container.
    */
-  auto& finiteElements() const { return Dune::resolveRef(feContainer_); }
+  const auto& finiteElements() const { return Dune::resolveRef(feContainer_); }
+
+  /**
+   * \brief Returns the container of finite elements.
+   * \return Reference to the finite element container.
+   */
+  auto& finiteElements() { return Dune::resolveRef(feContainer_); }
 
   /**
    * \brief Returns the dirichlet value object.

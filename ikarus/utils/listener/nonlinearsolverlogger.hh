@@ -7,8 +7,8 @@
  */
 
 #pragma once
-#include "observer.hh"
-#include "observermessages.hh"
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
+#include <ikarus/utils/listener/listener.hh>
 
 namespace Ikarus {
 /**
@@ -17,15 +17,23 @@ namespace Ikarus {
  * This class inherits from the IObserver class and provides specific
  * implementations for updating based on NonLinearSolverMessages.
  */
-class NonLinearSolverLogger : public IObserver<NonLinearSolverMessages>
+class NonLinearSolverLogger : public Listener
 {
 public:
+  template <typename BC>
+  NonLinearSolverLogger& subscribeTo(BC& bc) {
+    this->subscribe(bc, [&](NonLinearSolverMessages message) { this->updateImpl(message); });
+    this->subscribe(bc, [&](NonLinearSolverMessages message, double val) { this->updateImpl(message, val); });
+    this->subscribe(bc, [&](NonLinearSolverMessages message, int intVal) { this->updateImpl(message, intVal); });
+    return *this;
+  }
+
   /**
    * \brief Handles the update when a NonLinearSolverMessages is received.
    *
    * \param message The NonLinearSolverMessages received.
    */
-  void updateImpl(NonLinearSolverMessages message) final;
+  void updateImpl(NonLinearSolverMessages message);
 
   /**
    * \brief Handles the update when a NonLinearSolverMessages with a double value is received.
@@ -33,7 +41,7 @@ public:
    * \param message The NonLinearSolverMessages received.
    * \param val The double value associated with the message.
    */
-  void updateImpl(NonLinearSolverMessages message, double val) final;
+  void updateImpl(NonLinearSolverMessages message, double val);
 
   /**
    * \brief Handles the update when a NonLinearSolverMessages with an integer value is received.
@@ -41,7 +49,7 @@ public:
    * \param message The NonLinearSolverMessages received.
    * \param intVal The integer value associated with numberOfIterations.
    */
-  void updateImpl(NonLinearSolverMessages message, int intVal) final;
+  void updateImpl(NonLinearSolverMessages message, int intVal);
 
 private:
   int iters_{0};

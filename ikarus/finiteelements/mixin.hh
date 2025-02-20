@@ -12,6 +12,10 @@
 #include <dune/common/tuplevector.hh>
 
 #include <ikarus/finiteelements/fetraits.hh>
+#include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
+#include <ikarus/utils/functionhelper.hh>
+#include <ikarus/utils/listener/listener.hh>
 
 namespace Ikarus {
 /**
@@ -24,7 +28,7 @@ namespace Ikarus {
  * @tparam Skills A template parameter pack for additional skills to be mixed into the finite element.
  */
 template <typename PreFE, template <typename, typename> class... Skills>
-struct FEMixin : Skills<PreFE, typename PreFE::template FE<Skills...>>...
+struct FEMixin : public Listener, Skills<PreFE, typename PreFE::template FE<Skills...>>...
 {
   /**
    * @brief Constructor for the FEMixin class.
@@ -242,6 +246,37 @@ public:
     (Skills<PreFE, typename PreFE::template FE<Skills...>>::template calculateMatrixImpl<ScalarType>(par, affordance, K,
                                                                                                      dx),
      ...);
+  }
+
+private:
+  template <typename Sk, typename BC, typename MT>
+  auto invokeSubscribeTo(BC& bc) {
+    // For Clang-16: we need the this-> otherwise the code in the if clause will never be called. For Gcc-12.2: with the
+    // this-> it throws a compiler error in certain cases
+#if defined(__clang__)
+    if constexpr (requires { this->Sk::template subscribeToImpl<MT>(bc); }) {
+#else
+    if constexpr (requires { Sk::template subscribeToImpl<MT>(bc); }) {
+#endif
+      Sk::template subscribeToImpl<MT>(bc);
+    }
+  }
+
+public:
+  /**
+   * \brief Subscribes the elements to listen to functions provided from the skills emitted by the given broadcaster
+   *
+   * \tparam MT the message type (for example NonlinerSolverMessages or ControlMessages)
+   * \tparam BC the type of the broadcaster
+   * \param bc the broadcaster (for example a nonlinearsolver or control routine)
+   * \return auto
+   */
+  template <typename MT, typename BC>
+  auto subscribeTo(BC& bc) {
+    (invokeSubscribeTo<Skills<PreFE, typename PreFE::template FE<Skills...>>, traits::MaybeDereferencedType<BC>, MT>(
+         utils::maybeDeref(bc)),
+     ...);
+    return *this;
   }
 
 protected:

@@ -37,6 +37,7 @@ set(programSourceFiles
     testtrustregion.cpp
     testresultfunction.cpp
     testtruss.cpp
+    testelementsaslisteners.cpp
     testvtkwriter.cpp
     testhyperelasticity.cpp
     testmaterialswithad.cpp

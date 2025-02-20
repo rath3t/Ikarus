@@ -26,9 +26,9 @@
 #include <ikarus/solver/nonlinearsolver/trustregion.hh>
 #include <ikarus/utils/basis.hh>
 #include <ikarus/utils/dirichletvalues.hh>
+#include <ikarus/utils/listener/controlvtkwriter.hh>
 #include <ikarus/utils/nonlinearoperator.hh>
 #include <ikarus/utils/nonlinopfactory.hh>
-#include <ikarus/utils/observer/controlvtkwriter.hh>
 
 using Dune::TestSuite;
 
@@ -105,13 +105,14 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
   Ikarus::NonlinearSolverFactory trFactory(trConfig);
   auto tr = trFactory.create(sparseAssembler);
 
-  auto vtkWriter = std::make_shared<ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>>(
-      basis.flat(), d, 2);
-  vtkWriter->setFileNamePrefix("Test2DSolid");
-  vtkWriter->setFieldInfo("Displacement", Dune::VTK::FieldInfo::Type::vector, 2);
+  auto vtkWriter = ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>(basis.flat(), d, 2);
+  vtkWriter.setFileNamePrefix("Test2DSolid");
+  vtkWriter.setFieldInfo("Displacement", Dune::VTK::FieldInfo::Type::vector, 2);
 
-  auto lc = Ikarus::LoadControl(tr, 1, {0, 50});
-  lc.subscribeAll(vtkWriter);
+  auto lc = ControlRoutineFactory::create(LoadControlConfig{1, 0, 50}, tr, sparseAssembler);
+
+  vtkWriter.subscribeTo(lc);
+
   const auto controlInfo = lc.run();
   nonLinOp.template update<0>();
   const auto maxDisp = std::ranges::max(d);

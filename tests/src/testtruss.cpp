@@ -24,9 +24,9 @@
 #include <ikarus/utils/basis.hh>
 #include <ikarus/utils/dirichletvalues.hh>
 #include <ikarus/utils/init.hh>
-#include <ikarus/utils/observer/controlvtkwriter.hh>
-#include <ikarus/utils/observer/genericobserver.hh>
-#include <ikarus/utils/observer/nonlinearsolverlogger.hh>
+#include <ikarus/utils/listener/controlvtkwriter.hh>
+#include <ikarus/utils/listener/genericlistener.hh>
+#include <ikarus/utils/listener/nonlinearsolverlogger.hh>
 
 using namespace Ikarus;
 using Dune::TestSuite;
@@ -114,14 +114,12 @@ static auto vonMisesTrussTest() {
   /// Choose linear solver
   auto linSolver = LinearSolver(SolverTypeTag::d_LDLT);
 
-  NewtonRaphsonConfig<decltype(linSolver)> nrConfig{.linearSolver = linSolver};
-
+  NewtonRaphsonConfig nrConfig({}, linSolver);
   NonlinearSolverFactory nrFactory(nrConfig);
   auto nr = nrFactory.create(denseFlatAssembler);
 
   /// Create Observer to write information of the non-linear solver
-  auto nonLinearSolverObserver = std::make_shared<NonLinearSolverLogger>();
-  auto nonLinOp                = Ikarus::NonLinearOperatorFactory::op(denseFlatAssembler);
+  auto nonLinOp = Ikarus::NonLinearOperatorFactory::op(denseFlatAssembler);
 
   t.check(utils::checkGradient(nonLinOp, {.draw = false, .writeSlopeStatementIfFailed = true}))
       << "Check gradient failed";
@@ -133,23 +131,25 @@ static auto vonMisesTrussTest() {
   Eigen::Matrix3Xd lambdaAndDisp;
   lambdaAndDisp.setZero(Eigen::NoChange, loadSteps + 1);
   /// Create Observer which executes when control routines messages
-  auto lvkObserver =
-      std::make_shared<GenericObserver<ControlMessages>>(ControlMessages::SOLUTION_CHANGED, [&](int step) {
-        lambdaAndDisp(0, step) = lambda; // load factor
-        lambdaAndDisp(1, step) = d[2];   // horizontal displacement at center node
-        lambdaAndDisp(2, step) = d[3];   // vertical displacement at center node
-      });
+  auto lvkObserver = GenericListener<ControlMessages>(ControlMessages::SOLUTION_CHANGED, [&](int step) {
+    lambdaAndDisp(0, step) = lambda; // load factor
+    lambdaAndDisp(1, step) = d[2];   // horizontal displacement at center node
+    lambdaAndDisp(2, step) = d[3];   // vertical displacement at center node
+  });
 
   /// Create Observer which writes vtk files when control routines messages
-  auto vtkWriter = std::make_shared<ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>>(
-      basis.flat(), d, 2);
-  vtkWriter->setFieldInfo("displacement", Dune::VTK::FieldInfo::Type::vector, 2);
-  vtkWriter->setFileNamePrefix("vonMisesTruss");
+  auto vtkWriter = ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>(basis.flat(), d, 2);
+  vtkWriter.setFieldInfo("displacement", Dune::VTK::FieldInfo::Type::vector, 2);
+  vtkWriter.setFileNamePrefix("vonMisesTruss");
 
   /// Create loadcontrol
-  auto lc = LoadControl(nr, loadSteps, {0, 0.5});
-  lc.nonlinearSolver().subscribeAll(nonLinearSolverObserver);
-  lc.subscribeAll({vtkWriter, lvkObserver});
+  auto lc = ControlRoutineFactory::create(LoadControlConfig{loadSteps, 0.0, 0.5}, nr, denseFlatAssembler);
+
+  auto nonLinearSolverObserver = NonLinearSolverLogger();
+
+  nonLinearSolverObserver.subscribeTo(lc.nonlinearSolver());
+  vtkWriter.subscribeTo(lc);
+  lvkObserver.subscribeTo(lc);
 
   /// Execute!
   auto controlInfo = lc.run();

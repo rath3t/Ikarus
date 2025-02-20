@@ -12,9 +12,9 @@
 
 #include <ikarus/controlroutines/pathfollowing.hh>
 #include <ikarus/utils/init.hh>
+#include <ikarus/utils/listener/controllogger.hh>
+#include <ikarus/utils/listener/nonlinearsolverlogger.hh>
 #include <ikarus/utils/nonlinearoperator.hh>
-#include <ikarus/utils/observer/controllogger.hh>
-#include <ikarus/utils/observer/nonlinearsolverlogger.hh>
 
 using namespace Ikarus::Concepts;
 using Dune::TestSuite;
@@ -42,15 +42,14 @@ static auto simple2DOperatorArcLengthTest(NonLinearOperator& nonLinOp, double st
   auto linSolver = Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT);
   auto pft       = Ikarus::ArcLength{}; // Type of path following technique
 
-  auto nrSettings = Ikarus::NewtonRaphsonWithSubsidiaryFunctionConfig<decltype(linSolver)>{.linearSolver = linSolver};
+  auto nrSettings = Ikarus::NewtonRaphsonWithSubsidiaryFunctionConfig({}, linSolver);
   auto nr         = Ikarus::createNonlinearSolver(nrSettings, nonLinOp);
 
   auto alc = Ikarus::PathFollowing(nr, loadSteps, stepSize, pft);
 
-  auto nonLinearSolverObserver = std::make_shared<Ikarus::NonLinearSolverLogger>();
-  auto pathFollowingObserver   = std::make_shared<Ikarus::ControlLogger>();
-  nr->subscribeAll(nonLinearSolverObserver);
-  alc.subscribeAll(pathFollowingObserver);
+  auto nonLinearSolverObserver = Ikarus::NonLinearSolverLogger().subscribeTo(nr);
+  auto pathFollowingObserver   = Ikarus::ControlLogger().subscribeTo(alc);
+
   const auto controlInfo              = alc.run();
   std::vector<int> expectedIterations = {1, 3, 3, 3, 3};
   Eigen::Vector2d expectedDisplacement;
@@ -69,14 +68,13 @@ static auto simple2DOperatorArcLengthTest(NonLinearOperator& nonLinOp, double st
 template <typename NonLinearOperator>
 static auto simple2DOperatorArcLengthTestAsDefault(NonLinearOperator& nonLinOp, double stepSize, int loadSteps) {
   resetNonLinearOperatorParametersToZero(nonLinOp);
-  auto linSolver  = Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT);
-  auto nrSettings = Ikarus::NewtonRaphsonWithSubsidiaryFunctionConfig<decltype(linSolver)>{.linearSolver = linSolver};
-  auto nr         = Ikarus::createNonlinearSolver(nrSettings, nonLinOp);
-  auto alc        = Ikarus::PathFollowing(nr, loadSteps, stepSize);
-  auto nonLinearSolverObserver = std::make_shared<Ikarus::NonLinearSolverLogger>();
-  auto pathFollowingObserver   = std::make_shared<Ikarus::ControlLogger>();
-  nr->subscribeAll(nonLinearSolverObserver);
-  alc.subscribeAll(pathFollowingObserver);
+  auto linSolver               = Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT);
+  auto nrSettings              = Ikarus::NewtonRaphsonWithSubsidiaryFunctionConfig({}, linSolver);
+  auto nr                      = Ikarus::createNonlinearSolver(nrSettings, nonLinOp);
+  auto alc                     = Ikarus::PathFollowing(nr, loadSteps, stepSize);
+  auto nonLinearSolverObserver = Ikarus::NonLinearSolverLogger().subscribeTo(nr);
+  auto pathFollowingObserver   = Ikarus::ControlLogger().subscribeTo(alc);
+
   const auto controlInfo              = alc.run();
   std::vector<int> expectedIterations = {1, 3, 3, 3, 3};
   Eigen::Vector2d expectedDisplacement;
@@ -98,13 +96,12 @@ static auto simple2DOperatorLoadControlTest(NonLinearOperator& nonLinOp, double 
   auto linSolver = Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT);
   auto pft       = Ikarus::LoadControlSubsidiaryFunction{}; // Type of path following technique
 
-  auto nrSettings = Ikarus::NewtonRaphsonWithSubsidiaryFunctionConfig<decltype(linSolver)>{.linearSolver = linSolver};
-  auto nr         = Ikarus::createNonlinearSolver(nrSettings, nonLinOp);
-  auto lc         = Ikarus::PathFollowing(nr, loadSteps, stepSize, pft);
-  auto nonLinearSolverObserver = std::make_shared<Ikarus::NonLinearSolverLogger>();
-  auto pathFollowingObserver   = std::make_shared<Ikarus::ControlLogger>();
-  nr->subscribeAll(nonLinearSolverObserver);
-  lc.subscribeAll(pathFollowingObserver);
+  auto nrSettings              = Ikarus::NewtonRaphsonWithSubsidiaryFunctionConfig({}, linSolver);
+  auto nr                      = Ikarus::createNonlinearSolver(nrSettings, nonLinOp);
+  auto lc                      = Ikarus::PathFollowing(nr, loadSteps, stepSize, pft);
+  auto nonLinearSolverObserver = Ikarus::NonLinearSolverLogger().subscribeTo(nr);
+  auto pathFollowingObserver   = Ikarus::ControlLogger().subscribeTo(lc);
+
   const auto controlInfo              = lc.run();
   std::vector<int> expectedIterations = {2, 3, 3, 3, 3};
   Eigen::Vector2d expectedDisplacement;
@@ -128,13 +125,12 @@ static auto simple2DOperatorDisplacementControlTest(NonLinearOperator& nonLinOp,
 
   auto pft = Ikarus::DisplacementControl{controlledIndices}; // Type of path following technique
 
-  auto nrSettings = Ikarus::NewtonRaphsonWithSubsidiaryFunctionConfig<decltype(linSolver)>{.linearSolver = linSolver};
-  auto nr         = Ikarus::createNonlinearSolver(nrSettings, nonLinOp);
-  auto dc         = Ikarus::PathFollowing(nr, loadSteps, stepSize, pft);
-  auto nonLinearSolverObserver = std::make_shared<Ikarus::NonLinearSolverLogger>();
-  auto pathFollowingObserver   = std::make_shared<Ikarus::ControlLogger>();
-  nr->subscribeAll(nonLinearSolverObserver);
-  dc.subscribeAll(pathFollowingObserver);
+  auto nrSettings              = Ikarus::NewtonRaphsonWithSubsidiaryFunctionConfig({}, linSolver);
+  auto nr                      = Ikarus::createNonlinearSolver(nrSettings, nonLinOp);
+  auto dc                      = Ikarus::PathFollowing(nr, loadSteps, stepSize, pft);
+  auto nonLinearSolverObserver = Ikarus::NonLinearSolverLogger().subscribeTo(nr);
+  auto pathFollowingObserver   = Ikarus::ControlLogger().subscribeTo(dc);
+
   const auto controlInfo              = dc.run();
   std::vector<int> expectedIterations = {3, 3, 3, 3, 3};
   Eigen::Vector2d expectedDisplacement;

@@ -8,6 +8,7 @@
  */
 
 #pragma once
+#include <vector>
 
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 

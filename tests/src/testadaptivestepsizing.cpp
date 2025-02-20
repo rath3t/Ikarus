@@ -23,11 +23,11 @@
 #include <ikarus/utils/basis.hh>
 #include <ikarus/utils/dirichletvalues.hh>
 #include <ikarus/utils/init.hh>
+#include <ikarus/utils/listener/controllogger.hh>
+#include <ikarus/utils/listener/controlvtkwriter.hh>
+#include <ikarus/utils/listener/nonlinearsolverlogger.hh>
 #include <ikarus/utils/nonlinearoperator.hh>
 #include <ikarus/utils/nonlinopfactory.hh>
-#include <ikarus/utils/observer/controllogger.hh>
-#include <ikarus/utils/observer/controlvtkwriter.hh>
-#include <ikarus/utils/observer/nonlinearsolverlogger.hh>
 
 using Dune::TestSuite;
 
@@ -143,7 +143,7 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
 
   int loadSteps = 6;
 
-  auto nrConfig = NewtonRaphsonWithSubsidiaryFunctionConfig<decltype(linSolver)>{.linearSolver = linSolver};
+  auto nrConfig = NewtonRaphsonWithSubsidiaryFunctionConfig({}, linSolver);
 
   NonlinearSolverFactory nrFactory(nrConfig);
   auto nr  = nrFactory.create(sparseAssembler);
@@ -154,33 +154,32 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
   dass.setTargetIterations(targetIterations);
 
   /// control routine with and without step sizing
-  auto crWSS  = Ikarus::PathFollowing(nr, loadSteps, stepSize, pft, dass);
-  auto crWoSS = Ikarus::PathFollowing(nr2, loadSteps, stepSize, pft, nass);
+  auto crWSS = ControlRoutineFactory::create(PathFollowingConfig{loadSteps, stepSize, pft, dass}, nr, sparseAssembler);
+  auto crWoSS =
+      ControlRoutineFactory::create(PathFollowingConfig{loadSteps, stepSize, pft, nass}, nr2, sparseAssembler);
 
-  auto nonLinearSolverObserver = std::make_shared<NonLinearSolverLogger>();
-  auto pathFollowingObserver   = std::make_shared<ControlLogger>();
-  crWSS.nonlinearSolver().subscribeAll(nonLinearSolverObserver);
-  crWoSS.nonlinearSolver().subscribeAll(nonLinearSolverObserver);
+  {
+    // test argument deduction for PFConfig
+    auto cf1 = PathFollowingConfig(loadSteps, stepSize);
+    auto cf2 = PathFollowingConfig(loadSteps, stepSize, pft);
+    auto cf3 = PathFollowingConfig(loadSteps, stepSize, {}, dass);
+  }
 
-  t.checkThrow<Dune::InvalidStateException>(
-      [&]() { nonLinearSolverObserver->update(Ikarus::NonLinearSolverMessages::BEGIN); },
-      "nonLinearSolverObserver should have failed for the BEGIN message");
-
-  t.checkThrow<Dune::InvalidStateException>(
-      [&]() { nonLinearSolverObserver->update(Ikarus::NonLinearSolverMessages::END); },
-      "nonLinearSolverObserver should have failed for the END message");
+  auto nonLinearSolverObserver =
+      NonLinearSolverLogger().subscribeTo(crWSS.nonlinearSolver()).subscribeTo(crWoSS.nonlinearSolver());
+  auto pathFollowingObserver = ControlLogger();
 
   /// Create Observer which writes vtk files when control routines messages
-  /// SOLUTION_CHANGED
-  auto vtkWriter = std::make_shared<ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>>(
-      basis.flat(), d, 2);
-  vtkWriter->setFieldInfo("displacement", Dune::VTK::FieldInfo::Type::vector, 3);
-  vtkWriter->setFileNamePrefix("testAdaptiveStepSizing" + pft.name());
+  auto vtkWriter = ControlSubsamplingVertexVTKWriter<std::remove_cvref_t<decltype(basis.flat())>>(basis.flat(), d, 2);
+  vtkWriter.setFieldInfo("displacement", Dune::VTK::FieldInfo::Type::vector, 3);
+  vtkWriter.setFileNamePrefix("testAdaptiveStepSizing" + pft.name());
+  vtkWriter.subscribeTo(crWoSS);
 
-  crWoSS.subscribeAll({vtkWriter, pathFollowingObserver});
-  crWoSS.unSubscribeAll(vtkWriter);
-  crWSS.subscribeAll({pathFollowingObserver});
-  crWSS.subscribe(ControlMessages::SOLUTION_CHANGED, vtkWriter);
+  pathFollowingObserver.subscribeTo(crWoSS);
+  vtkWriter.subscribeTo(crWoSS);
+
+  vtkWriter.unSubscribeAll();
+  pathFollowingObserver.subscribeTo(crWSS);
 
   const std::string& message1 = " --> " + pft.name() + " with default adaptive step sizing";
   const std::string& message2 = " --> " + pft.name() + " without default adaptive step sizing";

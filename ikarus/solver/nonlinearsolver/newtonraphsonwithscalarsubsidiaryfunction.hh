@@ -11,12 +11,13 @@
 #include <iosfwd>
 #include <utility>
 
-#include "ikarus/assembler/dirichletbcenforcement.hh"
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
+#include <ikarus/solver/nonlinearsolver/nonlinearsolverbase.hh>
+#include <ikarus/solver/nonlinearsolver/nonlinearsolverstate.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
+#include <ikarus/utils/broadcaster/broadcaster.hh>
+#include <ikarus/utils/broadcaster/broadcastermessages.hh>
 #include <ikarus/utils/concepts.hh>
-#include <ikarus/utils/observer/observer.hh>
-#include <ikarus/utils/observer/observermessages.hh>
 
 namespace Ikarus {
 
@@ -38,9 +39,9 @@ struct NewtonRaphsonWithSubsidiaryFunctionConfig
 {
   using LinearSolver   = LS;
   using UpdateFunction = UF;
-  NewtonRaphsonWithSubsidiaryFunctionSettings parameters;
-  LS linearSolver;
-  UF updateFunction;
+  NewtonRaphsonWithSubsidiaryFunctionSettings parameters{};
+  LS linearSolver{};
+  UF updateFunction{};
 
   template <typename UF2>
   auto rebindUpdateFunction(UF2&& updateFunction) const {
@@ -53,6 +54,26 @@ struct NewtonRaphsonWithSubsidiaryFunctionConfig
   using Solver = NewtonRaphsonWithSubsidiaryFunction<NLO, LS, UF>;
 };
 
+// THE CTAD is broken for designated initializers in clang 16, when we drop support this can be simplified
+#ifndef DOXYGEN
+NewtonRaphsonWithSubsidiaryFunctionConfig()
+    -> NewtonRaphsonWithSubsidiaryFunctionConfig<utils::SolverDefault, utils::UpdateDefault>;
+
+NewtonRaphsonWithSubsidiaryFunctionConfig(NewtonRaphsonWithSubsidiaryFunctionSettings)
+    -> NewtonRaphsonWithSubsidiaryFunctionConfig<utils::SolverDefault, utils::UpdateDefault>;
+
+template <typename LS>
+NewtonRaphsonWithSubsidiaryFunctionConfig(NewtonRaphsonWithSubsidiaryFunctionSettings,
+                                          LS) -> NewtonRaphsonWithSubsidiaryFunctionConfig<LS, utils::UpdateDefault>;
+
+template <typename LS, typename UF>
+NewtonRaphsonWithSubsidiaryFunctionConfig(NewtonRaphsonWithSubsidiaryFunctionSettings, LS,
+                                          UF) -> NewtonRaphsonWithSubsidiaryFunctionConfig<LS, UF>;
+
+template <typename UF>
+NewtonRaphsonWithSubsidiaryFunctionConfig(NewtonRaphsonWithSubsidiaryFunctionSettings, utils::SolverDefault,
+                                          UF) -> NewtonRaphsonWithSubsidiaryFunctionConfig<utils::SolverDefault, UF>;
+#endif
 /**
  * \brief Function to create a NewtonRaphson with subsidiary function solver instance.
  * \tparam NLO Type of the nonlinear operator to solve.
@@ -101,7 +122,7 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
  * \tparam UF Type of the update function (default is UpdateDefault).
  */
 template <typename NLO, typename LS, typename UF>
-class NewtonRaphsonWithSubsidiaryFunction : public IObservable<NonLinearSolverMessages>
+class NewtonRaphsonWithSubsidiaryFunction : public NonlinearSolverBase<NLO>
 {
 public:
   using Settings = NewtonRaphsonWithSubsidiaryFunctionSettings;
@@ -160,7 +181,9 @@ public:
       "it was successful")]] NonLinearSolverInformation
   solve(SubsidiaryType&& subsidiaryFunction, SubsidiaryArgs& subsidiaryArgs,
         const SolutionType& dxPredictor = NoPredictor{}) {
-    this->notify(NonLinearSolverMessages::INIT);
+    using enum NonLinearSolverMessages;
+
+    this->notify(INIT);
 
     /// Initializations
     Ikarus::NonLinearSolverInformation solverInformation;
@@ -201,9 +224,11 @@ public:
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
 
+    auto solverState = typename NewtonRaphsonWithSubsidiaryFunction::State{.correction = deltaD, .solution = x};
+
     /// Iterative solving scheme
     while (rNorm > settings_.tol && iter < settings_.maxIter) {
-      this->notify(NonLinearSolverMessages::ITERATION_STARTED);
+      this->notify(ITERATION_STARTED);
 
       /// Two-step solving procedure
       residual2d.resize(rx.rows(), 2);
@@ -223,6 +248,11 @@ public:
                                  (subsidiaryArgs.dfdDD.dot(sol2d.col(1)) + subsidiaryArgs.dfdDlambda);
       deltaD = sol2d.col(0) + deltalambda * sol2d.col(1);
 
+      solverState.dNorm     = static_cast<double>(dNorm);
+      solverState.rNorm     = static_cast<double>(rNorm);
+      solverState.iteration = iter;
+      this->notify(CORRECTION_UPDATED, solverState);
+
       updateFunction_(x, deltaD);
       updateFunction_(subsidiaryArgs.DD, deltaD);
 
@@ -233,10 +263,10 @@ public:
       nonLinearOperator().updateAll();
       rNorm = sqrt(rx.dot(rx) + subsidiaryArgs.f * subsidiaryArgs.f);
 
-      this->notify(NonLinearSolverMessages::SOLUTION_CHANGED, static_cast<double>(lambda));
-      this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
-      this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, static_cast<double>(rNorm));
-      this->notify(NonLinearSolverMessages::ITERATION_ENDED);
+      this->notify(SOLUTION_CHANGED, static_cast<double>(lambda));
+      this->notify(CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
+      this->notify(RESIDUALNORM_UPDATED, static_cast<double>(rNorm));
+      this->notify(ITERATION_ENDED);
 
       ++iter;
     }
@@ -247,7 +277,7 @@ public:
     solverInformation.residualNorm   = rNorm;
     solverInformation.correctionNorm = dNorm;
     if (solverInformation.success)
-      this->notify(NonLinearSolverMessages::FINISHED_SUCESSFULLY, iter);
+      this->notify(FINISHED_SUCESSFULLY, iter);
 
     return solverInformation;
   }
