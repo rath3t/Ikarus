@@ -12,10 +12,11 @@
 #include <dune/common/tuplevector.hh>
 
 #include <ikarus/finiteelements/fetraits.hh>
+#include <ikarus/finiteelements/mechanics/enhancedassumedstrains.hh>
 
 namespace Ikarus {
 /**
- * @brief CRTP mixin class for finite elements with additional skills.
+ * \brief CRTP mixin class for finite elements with additional skills.
  *
  * This mixin class is designed for finite elements and provides the ability to include additional skills
  * through the CRTP (Curiously Recurring Template Pattern).
@@ -27,7 +28,7 @@ template <typename PreFE, template <typename, typename> class... Skills>
 struct FEMixin : Skills<PreFE, typename PreFE::template FE<Skills...>>...
 {
   /**
-   * @brief Constructor for the FEMixin class.
+   * \brief Constructor for the FEMixin class.
    *
    * @param skillsArgs Variadic arguments for initializing the additional skills.
    */
@@ -36,7 +37,7 @@ struct FEMixin : Skills<PreFE, typename PreFE::template FE<Skills...>>...
             std::forward<typename Skills<PreFE, typename PreFE::template FE<Skills...>>::Pre>(skillsArgs))... {}
 
   /**
-   * @brief Checks if the mixin class has a specific skill.
+   * \brief Checks if the mixin class has a specific skill.
    *
    * @tparam Skill The skill to check for.
    * @return True if the skill is present, false otherwise.
@@ -58,7 +59,7 @@ private:
 
 public:
   /**
-   * @brief Type alias for the supported result types by the mixin.
+   * \brief Type alias for the supported result types by the mixin.
    */
   using SupportedResultTypes =
       decltype(std::tuple_cat(computeSupportedResultTypes<Skills<PreFE, typename PreFE::template FE<Skills...>>>()...));
@@ -90,8 +91,11 @@ public:
   using LocalView               = typename Traits::LocalView;
   static constexpr int worldDim = Traits::worlddim;
 
+  template <StrainTags ES>
+  static constexpr bool hasEAS = hasSkill<EnhancedAssumedStrainsPre<ES>::template Skill>();
+
   /**
-   * @brief Create a Requirement object.
+   * \brief Create a Requirement object.
    *
    * @return The created Requirement object.
    */
@@ -135,7 +139,7 @@ public:
   using Skills<PreFE, typename PreFE::template FE<Skills...>>::calculateAtImpl...;
 
   /**
-   * @brief Calculate the element values at a specific location for a given ResultType.
+   * \brief Calculate the element values at a specific location for a given ResultType.
    *
    * @tparam RT The ResultType to calculate.
    * @param req The Requirement object specifying the requirements for the calculation.
@@ -166,12 +170,12 @@ private:
 
 public:
   /**
-   * @brief Call all bind functions if the skill implements it
+   * \brief Call all bind functions if the skill implements it
    */
   void bind() { (invokeBind<Skills<PreFE, typename PreFE::template FE<Skills...>>>(), ...); }
 
   /**
-   * @brief Calculate the scalar value in each skill and joins them by `+`.
+   * \brief Calculate the scalar value in each skill and joins them by `+`.
    *
    * @tparam ScalarType The scalar type for the calculation.
    * @param par The Requirement object specifying the requirements for the calculation.
@@ -199,7 +203,7 @@ private:
 
 public:
   /**
-   * @brief Calculate the vector for each skill
+   * \brief Calculate the vector for each skill
    *
    * @tparam ScalarType The scalar type for the calculation.
    * @param par The Requirement object specifying the requirements for the calculation.
@@ -227,7 +231,7 @@ private:
 
 public:
   /**
-   * @brief Calculate the matrix for each skill
+   * \brief Calculate the matrix for each skill
    *
    * @tparam ScalarType The scalar type for the calculation.
    * @param par The Requirement object specifying the requirements for the calculation.
@@ -244,15 +248,38 @@ public:
      ...);
   }
 
+private:
+  template <typename Sk>
+  auto invokeUpdateState(const Requirement& par,
+                         const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
+    if constexpr (requires { Sk::updateStateImpl(par, correction); })
+      Sk::updateStateImpl(par, correction);
+  }
+
+public:
+  /**
+   * \brief  Call all updateStateImpl functions if the skill implements it.
+   *
+   * \details Update the state variables related to a particular skill.
+   *
+   * \param req The Requirement object specifying the requirements for the update itself.
+   * \param force A correction vector (for example, the displacement increment) based on which the state variables are
+   * to be updated.
+   */
+  void updateState(const Requirement& par,
+                   const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
+    (invokeUpdateState<Skills<PreFE, typename PreFE::template FE<Skills...>>>(par, correction), ...);
+  }
+
 protected:
   /**
-   * @brief Get a reference to the underlying finite element object.
+   * \brief Get a reference to the underlying finite element object.
    *
    * @return A reference to the underlying finite element object.
    */
   const auto& underlying() const { return static_cast<const typename PreFE::template FE<Skills...>&>(*this); }
   /**
-   * @brief Get a reference to the underlying finite element object.
+   * \brief Get a reference to the underlying finite element object.
    *
    * @return A reference to the underlying finite element object.
    */
@@ -260,7 +287,7 @@ protected:
 };
 
 /**
- * @brief Struct representing a collection of skills.
+ * \brief Struct representing a collection of skills.
  *
  * @tparam ARGS Variadic template parameters representing the skills.
  */
@@ -272,7 +299,7 @@ struct Skills
 };
 
 /**
- * @brief Function to create a Skills instance with the given skills.
+ * \brief Function to create a Skills instance with the given skills.
  *
  * @tparam Args Variadic template parameters representing the skills.
  * @param args Variadic arguments representing the skills.
@@ -284,7 +311,7 @@ auto skills(const Args&... args) {
 }
 
 /**
- * @brief Function to merge two Skills instances.
+ * \brief Function to merge two Skills instances.
  *
  * @tparam Args1 Variadic template parameters representing the skills of the first instance.
  * @tparam Args2 Variadic template parameters representing the skills of the second instance.

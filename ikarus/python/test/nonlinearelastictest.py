@@ -6,15 +6,22 @@ import debug_info
 debug_info.setDebugFlags()
 
 import ikarus as iks
-from ikarus import finite_elements, utils, assembler
+from ikarus import finite_elements, utils, assembler, materials
 import numpy as np
 import scipy as sp
 from scipy.optimize import minimize
+from helperfunctions import (
+    updateAllElements,
+    solveWithSciPyMinimize,
+    solveWithSciPyRoot,
+    solveWithNewtonRaphson,
+)
 
 import dune.grid
 import dune.functions
 
-if __name__ == "__main__":
+
+def nonlinElasticTest(easBool):
     lowerLeft = []
     upperRight = []
     elements = []
@@ -59,12 +66,20 @@ if __name__ == "__main__":
     svkPS = svk.asPlaneStress()
 
     nonLinElastic = iks.finite_elements.nonLinearElastic(svkPS)
+    easF = iks.finite_elements.eas(4, materials.StrainTags.greenLagrangian)
 
     fes = []
     for e in grid.elements:
-        fes.append(
-            iks.finite_elements.makeFE(basisLagrange1, nonLinElastic, vLoad, nBLoad)
-        )
+        if easBool:
+            fes.append(
+                iks.finite_elements.makeFE(
+                    basisLagrange1, nonLinElastic, easF, vLoad, nBLoad
+                )
+            )
+        else:
+            fes.append(
+                iks.finite_elements.makeFE(basisLagrange1, nonLinElastic, vLoad, nBLoad)
+            )
         fes[-1].bind(e)
 
     dirichletValues = iks.dirichletValues(flatBasis)
@@ -84,61 +99,97 @@ if __name__ == "__main__":
     dirichletValues.fixBoundaryDOFs(fixAnotherVertex)
     dirichletValues.fixBoundaryDOFs(fixLeftHandEdge)
 
-    assembler = iks.assembler.sparseFlatAssembler(fes, dirichletValues)
+    sparseAssembler = iks.assembler.sparseFlatAssembler(fes, dirichletValues)
 
-    dRed = np.zeros(assembler.reducedSize())
+    dRed = np.zeros(sparseAssembler.reducedSize())
 
     lambdaLoad = iks.Scalar(3.0)
 
     feReq = fes[0].createRequirement()
+    feReq.insertGlobalSolution(np.zeros(sparseAssembler.size))
 
     def energy(dRedInput):
         feReq = fes[0].createRequirement()
         feReq.insertParameter(lambdaLoad)
-        dBig = assembler.createFullVector(dRedInput)
+        dBig = sparseAssembler.createFullVector(dRedInput)
         feReq.insertGlobalSolution(dBig)
         feReq.globalSolution()
-        return assembler.scalar(feReq, iks.ScalarAffordance.mechanicalPotentialEnergy)
+        return sparseAssembler.scalar(
+            feReq, iks.ScalarAffordance.mechanicalPotentialEnergy
+        )
 
     def gradient(dRedInput):
         feReq = fes[0].createRequirement()
         feReq.insertParameter(lambdaLoad)
-        dBig = assembler.createFullVector(dRedInput)
+        dBig = sparseAssembler.createFullVector(dRedInput)
         feReq.insertGlobalSolution(dBig)
-        return assembler.vector(
+        return sparseAssembler.vector(
             feReq, iks.VectorAffordance.forces, iks.DBCOption.Reduced
         )
 
     def hess(dRedInput):
         feReq = fes[0].createRequirement()
         feReq.insertParameter(lambdaLoad)
-        dBig = assembler.createFullVector(dRedInput)
+        dBig = sparseAssembler.createFullVector(dRedInput)
         feReq.insertGlobalSolution(dBig)
-        return assembler.matrix(
+        return sparseAssembler.matrix(
             feReq, iks.MatrixAffordance.stiffness, iks.DBCOption.Reduced
         ).todense()  # this is slow, but for this test we don't care
 
-    resultd = minimize(energy, x0=dRed, options={"disp": True}, tol=1e-14)
-    resultd2 = minimize(
-        energy, x0=dRed, jac=gradient, options={"disp": True}, tol=1e-14
+    def updateElements(intermediate_result: sp.optimize.OptimizeResult):
+        dx = (
+            sparseAssembler.createFullVector(intermediate_result.x)
+            - feReq.globalSolution()
+        )
+        updateAllElements(fes, feReq, dx)
+
+    def updateElementsForRoot(x, _):
+        dx = sparseAssembler.createFullVector(x) - feReq.globalSolution()
+        updateAllElements(fes, feReq, dx)
+
+    # The callback/update function has no effect for non-eas Elements (for now)
+    if not easBool:
+        resultd1 = solveWithSciPyMinimize(energy, dRed, callBackFun=updateElements)
+        resultd2 = solveWithSciPyMinimize(
+            energy, dRed, jacFun=gradient, callBackFun=updateElements
+        )
+        resultd3 = solveWithSciPyMinimize(
+            energy, dRed, jacFun=gradient, hessFun=hess, callBackFun=updateElements
+        )
+        resultd4 = solveWithSciPyRoot(gradient, dRed, callBackFun=updateElementsForRoot)
+
+        assert resultd1.success
+        assert resultd2.success
+        assert resultd3.success
+        assert resultd4.success
+
+        assert np.allclose(resultd1.x, resultd2.x, atol=1e-6)
+        assert np.allclose(resultd3.x, resultd4.x)
+        assert np.all(abs(resultd3.grad) < 1e-8)
+        assert np.all(abs(resultd4.fun) < 1e-8)
+
+        feReq.insertGlobalSolution(sparseAssembler.createFullVector(resultd4.x))
+        fes[0].calculateAt(feReq, np.array([0.5, 0.5]), "PK2Stress")
+
+    else:
+        resultd4 = solveWithSciPyRoot(gradient, dRed, callBackFun=updateElementsForRoot)
+        assert np.all(abs(resultd4.fun) < 1e-8)
+        assert resultd4.success
+
+        feReq.insertGlobalSolution(sparseAssembler.createFullVector(resultd4.x))
+
+    [successNR, resultNR] = solveWithNewtonRaphson(
+        gradient, hess, sparseAssembler, fes, feReq
     )
-    resultd3 = minimize(
-        energy,
-        method="trust-constr",
-        x0=dRed,
-        jac=gradient,
-        hess=hess,
-        options={"disp": True},
-    )
-    resultd4 = sp.optimize.root(gradient, jac=hess, x0=dRed, tol=1e-10)
+    assert successNR
+    assert np.allclose(resultd4.x, resultNR)
 
-    assert np.allclose(resultd.x, resultd2.x, atol=1e-6)
-    assert np.allclose(resultd3.x, resultd4.x)
-    assert np.all(abs(resultd3.grad) < 1e-8)
-    assert np.all(abs(resultd4.fun) < 1e-8)
+    return resultNR
 
-    feReq = fes[0].createRequirement()
-    fullD = assembler.createFullVector(resultd2.x)
-    feReq.insertGlobalSolution(fullD)
 
-    res1 = fes[0].calculateAt(feReq, np.array([0.5, 0.5]), "PK2Stress")
+if __name__ == "__main__":
+    dNonLin = nonlinElasticTest(easBool=False)
+    dEAS = nonlinElasticTest(easBool=True)
+
+    # Sanity check -> EAS shouldn't have the same result
+    assert not np.allclose(dNonLin, dEAS)

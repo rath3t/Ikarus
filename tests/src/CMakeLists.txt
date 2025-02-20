@@ -27,6 +27,7 @@ set(programSourceFiles
     testlinearelasticity.cpp
     testmanifolds.cpp
     testmaterial.cpp
+    testnonlineareas.cpp
     testnonlinearelasticityneohooke.cpp
     testnonlinearelasticitysvk.cpp
     testnonlinearoperator.cpp

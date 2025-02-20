@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file newtonraphson.hh
- * \brief Implementation of the Newton-Raphson method for solving nonlinear equations.
+ * \file newtonraphsonwithscalarsubsidiaryfunction.hh
+ * \brief Implementation of the Newton-Raphson method for solving nonlinear equations with an additional subsidiary
+ * function.
  */
 
 #pragma once
@@ -11,8 +12,8 @@
 #include <iosfwd>
 #include <utility>
 
-#include "ikarus/assembler/dirichletbcenforcement.hh"
 #include <ikarus/controlroutines/pathfollowingfunctions.hh>
+#include <ikarus/solver/nonlinearsolver/helperfunctions.hh>
 #include <ikarus/solver/nonlinearsolver/solverinfos.hh>
 #include <ikarus/utils/concepts.hh>
 #include <ikarus/utils/observer/observer.hh>
@@ -223,6 +224,7 @@ public:
                                  (subsidiaryArgs.dfdDD.dot(sol2d.col(1)) + subsidiaryArgs.dfdDlambda);
       deltaD = sol2d.col(0) + deltalambda * sol2d.col(1);
 
+      updateStates(nonLinearOperator().assembler(), deltaD);
       updateFunction_(x, deltaD);
       updateFunction_(subsidiaryArgs.DD, deltaD);
 

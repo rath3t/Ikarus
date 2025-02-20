@@ -16,24 +16,28 @@
 
   #include <ikarus/finiteelements/fehelper.hh>
   #include <ikarus/finiteelements/ferequirements.hh>
-  #include <ikarus/finiteelements/mechanics/easvariants.hh>
-  #include <ikarus/finiteelements/mixin.hh>
+  #include <ikarus/finiteelements/mechanics/materials/tags.hh>
+  #include <ikarus/finiteelements/mechanics/strainenhancements/easvariants.hh>
   #include <ikarus/utils/concepts.hh>
 
 namespace Ikarus {
 
-template <typename PreFE, typename FE>
+template <typename PreFE, typename FE, StrainTags ES>
+requires(not(ES == StrainTags::BEGIN or ES == StrainTags::END))
 class EnhancedAssumedStrains;
 
 /**
  * \brief A PreFE struct for Enhanced Assumed Strains.
+ * \tparam ES The strain tag that is enhanced.
  */
+template <StrainTags ES>
+requires(not(ES == StrainTags::BEGIN or ES == StrainTags::END))
 struct EnhancedAssumedStrainsPre
 {
   int numberOfParameters{};
 
   template <typename PreFE, typename FE>
-  using Skill = EnhancedAssumedStrains<PreFE, FE>;
+  using Skill = EnhancedAssumedStrains<PreFE, FE, ES>;
 };
 
 /**
@@ -45,9 +49,14 @@ struct EnhancedAssumedStrainsPre
  *
  * \tparam PreFE Type of the pre finite element.
  * \tparam FE Type of the finite element.
+ * \tparam ES The strain tag that is enhanced.
  */
-template <typename PreFE, typename FE>
+template <typename PreFE, typename FE, StrainTags ES>
+requires(not(ES == StrainTags::BEGIN or ES == StrainTags::END))
 class EnhancedAssumedStrains
+    : public std::conditional_t<ES == StrainTags::linear,
+                                ResultTypeBase<ResultTypes::linearStress, ResultTypes::linearStressFull>,
+                                ResultTypeBase<ResultTypes::PK2Stress, ResultTypes::PK2StressFull>>
 {
 public:
   using Traits = PreFE::Traits;
@@ -56,7 +65,15 @@ public:
   using LocalView = typename Traits::LocalView;
   using Geometry  = typename Traits::Geometry;
   using GridView  = typename Traits::GridView;
-  using Pre       = EnhancedAssumedStrainsPre;
+  using Pre       = EnhancedAssumedStrainsPre<ES>;
+
+  static constexpr auto enhancedStrain = ES;
+
+  template <typename ST>
+  using VectorXOptRef = std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>;
+
+  template <template <typename, int, int> class RT>
+  using RTWrapperType = ResultWrapper<RT<typename Traits::ctype, Traits::mydim, Traits::worlddim>, ResultShape::Vector>;
 
   /**
    * \brief Constructor for Enhanced Assumed Strains elements.
@@ -100,29 +117,26 @@ public:
    * \tparam RT The type representing the requested result.
    */
   template <template <typename, int, int> class RT>
+  requires(EnhancedAssumedStrains::template supportsResultType<RT>())
   auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<2>) const {
-    if (isDisplacementBased())
-      return underlying().template calculateAtImpl<RT>(req, local, Dune::PriorityTag<1>());
+    if constexpr (isSameResultType<RT, ResultTypes::linearStress> or isSameResultType<RT, ResultTypes::PK2Stress> or
+                  isSameResultType<RT, ResultTypes::linearStressFull> or
+                  isSameResultType<RT, ResultTypes::PK2StressFull>) {
+      auto strainFunction  = underlying().strainFunction(req);
+      const auto ufunc     = underlying().displacementFunction(req);
+      const auto rFunction = underlying().template resultFunction<RT>();
+      auto disp            = Dune::viewAsFlatEigenVector(ufunc.coefficientsRef());
 
-    using namespace Dune::Indices;
-    using namespace Dune::DerivativeDirections;
-    auto resultVector = underlying().template calculateAtImpl<RT>(req, local, Dune::PriorityTag<1>());
-    if constexpr (isSameResultType<RT, ResultTypes::linearStress>) {
-      using RTWrapper = ResultWrapper<RT<typename Traits::ctype, Traits::mydim, Traits::worlddim>, ResultShape::Vector>;
-      RTWrapper resultWrapper;
-
+      RTWrapperType<RT> resultWrapper{};
       auto calculateAtContribution = [&]<typename EAST>(const EAST& easFunction) {
-        typename EAST::DType D;
-        calculateDAndLMatrix(easFunction, req, D, L_);
-        const auto ufunc = underlying().displacementFunction(req);
-        const auto disp  = Dune::viewAsFlatEigenVector(ufunc.coefficientsRef());
-        const auto C     = underlying().materialTangentFunction(req);
-        const auto alpha = (-D.inverse() * L_ * disp).eval();
-        const auto M     = easFunction.calcM(local);
-        const auto CEval = C(local);
-        auto easStress   = (CEval * M * alpha).eval();
-        resultWrapper    = resultVector.asVec() + easStress;
+        if constexpr (EAST::enhancedStrainSize != 0) { // compile-time check
+          typename EAST::DType D;
+          calculateDAndLMatrix(easFunction, req, D, L_);
+          this->alpha_ = (-D.inverse() * L_ * disp).eval();
+        }
+        const auto enhancedStrain = enhancedStrainFunction(easFunction, strainFunction, local);
+        resultWrapper             = rFunction(enhancedStrain);
       };
       easVariant_(calculateAtContribution);
       return resultWrapper;
@@ -138,144 +152,230 @@ public:
     if (numberOfEASParameters != 0)
       easApplicabilityCheck();
     easVariant_.setEASType(numberOfEASParameters);
+    initializeState();
   }
+
+  /**
+   * \brief Gets the internal state variable alpha for the EAS element.
+   *
+   * \return Internal state variable (alpha).
+   */
+  const auto& alpha() const { return alpha_; }
 
 protected:
   void bindImpl() {
     assert(underlying().localView().bound());
     easVariant_.bind(underlying().localView().element().geometry());
+    initializeState();
   }
 
-public:
-protected:
+  /**
+   * \brief Updates the internal state variable alpha_ at the end of an iteration before the update of the displacements
+   * done by the non-linear solver. See \cite bieberLockingHourglassingNonlinear2024 for implementation details and
+   * further references.
+   *
+   * \param par The Requirement object.
+   * \param correction The correction in displacement (DeltaD) vector passed based on which the internal state variable
+   * alpha is to be updated.
+   */
+  void updateStateImpl(const Requirement& par,
+                       const std::remove_reference_t<typename Traits::template VectorType<>>& correction) const {
+    using ScalarType = Traits::ctype;
+    easApplicabilityCheck();
+    auto correctAlpha = [&]<typename EAST>(const EAST& easFunction) {
+      if constexpr (EAST::enhancedStrainSize != 0) { // compile-time check
+        const auto& Rtilde      = calculateRtilde<ScalarType>(par);
+        const auto localdxBlock = Ikarus::FEHelper::localSolutionBlockVector<Traits, Eigen::VectorXd, double>(
+            correction, underlying().localView());
+        const auto localdx               = Dune::viewAsFlatEigenVector(localdxBlock);
+        decltype(auto) LMat              = LMatFunc<ScalarType>();
+        constexpr int enhancedStrainSize = EAST::enhancedStrainSize;
+        Eigen::Matrix<double, enhancedStrainSize, enhancedStrainSize> D;
+        calculateDAndLMatrix(easFunction, par, D, LMat);
+        const auto updateAlpha = (D.inverse() * (Rtilde + (LMat * localdx))).eval();
+        this->alpha_ -= updateAlpha;
+      }
+    };
+
+    easVariant_(correctAlpha);
+  }
+
   inline void easApplicabilityCheck() const {
     const auto& numberOfNodes = underlying().numberOfNodes();
-    assert(not(not((numberOfNodes == 4 and Traits::mydim == 2) or (numberOfNodes == 8 and Traits::mydim == 3)) and
-               (not isDisplacementBased())) &&
-           "EAS only supported for Q1 or H1 elements");
+    if (not((numberOfNodes == 4 and Traits::mydim == 2) or (numberOfNodes == 8 and Traits::mydim == 3)) and
+        (not isDisplacementBased()))
+      DUNE_THROW(Dune::NotImplemented, "EAS is only supported for Q1 or H1 elements");
   }
 
   template <typename ScalarType>
-  void calculateMatrixImpl(
-      const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
-    using namespace Dune::DerivativeDirections;
-    using namespace Dune;
+  void calculateMatrixImpl(const Requirement& par, const MatrixAffordance& affordance,
+                           typename Traits::template MatrixType<> K,
+                           const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
+    if (affordance != MatrixAffordance::stiffness)
+      DUNE_THROW(Dune::NotImplemented, "MatrixAffordance not implemented: " + toString(affordance));
     easApplicabilityCheck();
-    if (isDisplacementBased())
-      return;
 
-    decltype(auto) LMat = [this]() -> decltype(auto) {
-      if constexpr (Concepts::AutodiffScalar<ScalarType>)
-        return Eigen::MatrixX<ScalarType>{};
-      else
-        return [this]() -> Eigen::MatrixXd& { return L_; }();
-    }();
+    auto strainFunction  = underlying().strainFunction(par, dx);
+    const auto kFunction = underlying().template stiffnessMatrixFunction<ScalarType>(par, K, dx);
 
     auto calculateMatrixContribution = [&]<typename EAST>(const EAST& easFunction) {
-      typename EAST::DType D;
-      calculateDAndLMatrix(easFunction, par, D, LMat, dx);
+      for (const auto& [gpIndex, gp] : strainFunction.viewOverIntegrationPoints()) {
+        const auto enhancedStrain = enhancedStrainFunction(easFunction, strainFunction, gp.position());
+        kFunction(enhancedStrain, gpIndex, gp);
+      }
 
-      K.template triangularView<Eigen::Upper>() -= LMat.transpose() * D.inverse() * LMat;
-      K.template triangularView<Eigen::StrictlyLower>() = K.transpose();
+      if constexpr (EAST::enhancedStrainSize != 0) { // compile-time check
+        typename EAST::DType D;
+        decltype(auto) LMat = LMatFunc<ScalarType>();
+        calculateDAndLMatrix(easFunction, par, D, LMat, dx);
+        K.template triangularView<Eigen::Upper>() -= LMat.transpose() * D.inverse() * LMat;
+        K.template triangularView<Eigen::StrictlyLower>() = K.transpose();
+      }
     };
     easVariant_(calculateMatrixContribution);
   }
 
   template <typename ScalarType>
-  inline ScalarType calculateScalarImpl(
-      const Requirement& par, ScalarAffordance affordance,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  inline ScalarType calculateScalarImpl(const Requirement& par, ScalarAffordance affordance,
+                                        const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     easApplicabilityCheck();
     if (isDisplacementBased())
-      return 0.0;
+      return underlying().template energyFunction<ScalarType>(par, dx)();
+
     DUNE_THROW(Dune::NotImplemented,
                "EAS element do not support any scalar calculations, i.e. they are not derivable from a potential");
   }
 
   template <typename ScalarType>
-  void calculateVectorImpl(
-      const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  void calculateVectorImpl(const Requirement& par, VectorAffordance affordance,
+                           typename Traits::template VectorType<ScalarType> force,
+                           const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
+    if (affordance != VectorAffordance::forces)
+      DUNE_THROW(Dune::NotImplemented, "VectorAffordance not implemented: " + toString(affordance));
     easApplicabilityCheck();
-    using namespace Dune;
-    using namespace Dune::DerivativeDirections;
-    const auto uFunction      = underlying().displacementFunction(par, dx);
-    auto strainFunction       = underlying().strainFunction(par, dx);
-    const auto& numberOfNodes = underlying().numberOfNodes();
+    auto strainFunction     = underlying().strainFunction(par, dx);
+    const auto fIntFunction = underlying().template internalForcesFunction<ScalarType>(par, force, dx);
 
     auto calculateForceContribution = [&]<typename EAST>(const EAST& easFunction) {
-      typename EAST::DType D;
-      calculateDAndLMatrix(easFunction, par, D, L_);
-
-      decltype(auto) LMat = [this]() -> decltype(auto) {
-        if constexpr (Concepts::AutodiffScalar<ScalarType>)
-          return Eigen::MatrixX<ScalarType>{};
-        else
-          return [this]() -> Eigen::MatrixXd& { return L_; }();
-      }();
-      const auto disp  = Dune::viewAsFlatEigenVector(uFunction.coefficientsRef());
-      const auto alpha = (-D.inverse() * L_ * disp).eval();
-      const auto geo   = underlying().localView().element().geometry();
-      auto C           = underlying().materialTangentFunction(par);
-
       for (const auto& [gpIndex, gp] : strainFunction.viewOverIntegrationPoints()) {
-        const auto M            = easFunction.calcM(gp.position());
-        const double intElement = geo.integrationElement(gp.position()) * gp.weight();
-        const auto CEval        = C(gpIndex);
-        auto stresses           = (CEval * M * alpha).eval();
-        for (size_t i = 0; i < numberOfNodes; ++i) {
-          const auto bopI = strainFunction.evaluateDerivative(gpIndex, wrt(coeff(i)), on(gridElement));
-          force.template segment<Traits::worlddim>(Traits::worlddim * i) += bopI.transpose() * stresses * intElement;
-        }
+        const auto enhancedStrain = enhancedStrainFunction(easFunction, strainFunction, gp.position());
+        fIntFunction(enhancedStrain, gpIndex, gp);
+      }
+      if constexpr (EAST::enhancedStrainSize != 0) { // compile-time check
+        typename EAST::DType D;
+        calculateDAndLMatrix(easFunction, par, D, L_);
+        const auto& Rtilde = calculateRtilde(par, dx);
+        force -= L_.transpose() * D.inverse() * Rtilde;
       }
     };
     easVariant_(calculateForceContribution);
   }
 
 private:
-  EAS::Impl::EASVariant<Geometry> easVariant_;
+  EAS::EASVariant<ES, Geometry> easVariant_;
   mutable Eigen::MatrixXd L_;
+  mutable Eigen::VectorXd alpha_;
 
   //> CRTP
   const auto& underlying() const { return static_cast<const FE&>(*this); }
   auto& underlying() { return static_cast<FE&>(*this); }
 
+  /**
+   * \brief Initializes the internal state variable alpha_ based on the number of EAS parameters.
+   */
+  void initializeState() {
+    alpha_.resize(numberOfEASParameters());
+    alpha_.setZero();
+  }
+
+  template <typename ScalarType>
+  decltype(auto) LMatFunc() const {
+    if constexpr (Concepts::AutodiffScalar<ScalarType>)
+      return Eigen::MatrixX<ScalarType>{};
+    else
+      return [this]() -> Eigen::MatrixXd& { return L_; }();
+  }
+
+  template <typename EAST, typename SF, typename POS>
+  auto enhancedStrainFunction(const EAST& easFunction, const SF& strainFunction, const POS& gpPos) const {
+    if constexpr (Concepts::Formulations::TotalLagrangian<FE::strainType, FE::stressType>) {
+      if constexpr (enhancedStrain == StrainTags::linear or enhancedStrain == StrainTags::greenLagrangian) {
+        using namespace Dune;
+        using namespace Dune::DerivativeDirections;
+        const auto M              = easFunction.calcM(gpPos);
+        const auto EVoigt         = strainFunction.evaluate(gpPos, on(gridElement));
+        const auto easStrain      = (M * alpha_).eval();
+        const auto enhancedStrain = (EVoigt + easStrain).eval();
+        return enhancedStrain;
+      } else {
+        static_assert(Dune::AlwaysFalse<FE>::value,
+                      "EAS method is not implemented for the provided strain tag that is to be enhanced.");
+      }
+    } else {
+      static_assert(Dune::AlwaysFalse<FE>::value,
+                    "EAS method is not implemented for the provided stress and strain measure.");
+    }
+  }
+
   template <typename ScalarType, int enhancedStrainSize>
-  void calculateDAndLMatrix(
-      const auto& easFunction, const auto& par, Eigen::Matrix<double, enhancedStrainSize, enhancedStrainSize>& DMat,
-      Eigen::MatrixX<ScalarType>& LMat,
-      const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
+  void calculateDAndLMatrix(const auto& easFunction, const auto& par,
+                            Eigen::Matrix<double, enhancedStrainSize, enhancedStrainSize>& DMat,
+                            Eigen::MatrixX<ScalarType>& LMat,
+                            const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
     using namespace Dune;
     using namespace Dune::DerivativeDirections;
 
     auto strainFunction      = underlying().strainFunction(par, dx);
-    const auto C             = underlying().materialTangentFunction(par);
     const auto geo           = underlying().localView().element().geometry();
     const auto numberOfNodes = underlying().numberOfNodes();
     DMat.setZero();
     LMat.setZero(enhancedStrainSize, underlying().localView().size());
     for (const auto& [gpIndex, gp] : strainFunction.viewOverIntegrationPoints()) {
-      const auto M            = easFunction.calcM(gp.position());
-      const auto CEval        = C(gpIndex);
-      const double detJTimesW = geo.integrationElement(gp.position()) * gp.weight();
-      DMat += M.transpose() * CEval * M * detJTimesW;
+      const auto enhancedStrain = enhancedStrainFunction(easFunction, strainFunction, gp.position());
+      const auto M              = easFunction.calcM(gp.position());
+      const auto CEval          = underlying().materialTangent(enhancedStrain);
+      const double intElement   = geo.integrationElement(gp.position()) * gp.weight();
+      DMat += M.transpose() * CEval * M * intElement;
       for (size_t i = 0U; i < numberOfNodes; ++i) {
         const size_t I = Traits::worlddim * i;
         const auto Bi  = strainFunction.evaluateDerivative(gpIndex, wrt(coeff(i)), on(gridElement));
-        LMat.template block<enhancedStrainSize, Traits::worlddim>(0, I) += M.transpose() * CEval * Bi * detJTimesW;
+        LMat.template block<enhancedStrainSize, Traits::worlddim>(0, I) += M.transpose() * CEval * Bi * intElement;
       }
     }
+  }
+
+  template <typename ScalarType>
+  Eigen::VectorX<ScalarType> calculateRtilde(const Requirement& par,
+                                             const VectorXOptRef<ScalarType>& dx = std::nullopt) const {
+    const auto geo      = underlying().localView().element().geometry();
+    auto strainFunction = underlying().strainFunction(par, dx);
+    Eigen::VectorX<ScalarType> Rtilde;
+    Rtilde.setZero(numberOfEASParameters());
+
+    auto calculateRtildeContribution = [&]<typename EAST>(const EAST& easFunction) {
+      for (const auto& [gpIndex, gp] : strainFunction.viewOverIntegrationPoints()) {
+        const auto enhancedStrain = enhancedStrainFunction(easFunction, strainFunction, gp.position());
+        const auto M              = easFunction.calcM(gp.position());
+        const double intElement   = geo.integrationElement(gp.position()) * gp.weight();
+        auto stresses             = underlying().stress(enhancedStrain);
+        Rtilde += (M.transpose() * stresses).eval() * intElement;
+      }
+    };
+
+    easVariant_(calculateRtildeContribution);
+    return Rtilde;
   }
 };
 
 /**
  * \brief A helper function to create an enhanced assumed strain pre finite element.
+ * \tparam ES The strain tag that is enhanced.
  * \param numberOfEASParameters Number of EAS parameters
  * \return An enhanced assumed strain pre finite element.
  */
+template <StrainTags ES = StrainTags::linear>
 auto eas(int numberOfEASParameters = 0) {
-  EnhancedAssumedStrainsPre pre(numberOfEASParameters);
+  EnhancedAssumedStrainsPre<ES> pre(numberOfEASParameters);
 
   return pre;
 }

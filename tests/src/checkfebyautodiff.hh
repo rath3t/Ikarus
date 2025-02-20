@@ -16,22 +16,27 @@
 
 template <typename GridView, typename BasisHandler, typename Skills, typename AffordanceColl, typename VectorType>
 auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis, Skills&& skills,
-                            AffordanceColl affordance, VectorType& d, const std::string& messageIfFailed = "",
+                            AffordanceColl affordance, VectorType& d, const std::string& testName = "",
                             double tol = 1e-10) {
   double lambda = 7.3;
   auto fe       = Ikarus::makeFE(basis, std::forward<Skills>(skills));
   using FE      = decltype(fe);
 
   auto req = typename FE::Requirement();
-  req.insertGlobalSolution(d).insertParameter(lambda);
-  Dune::TestSuite t("Check calculateScalarImpl() and calculateVectorImpl() by Automatic Differentiation" +
-                    messageIfFailed);
+  VectorType dZero;
+  dZero.setZero(d.size());
+
+  req.insertGlobalSolution(dZero).insertParameter(lambda);
+  Dune::TestSuite t("Check calculateMatrixImpl() and calculateVectorImpl() by Automatic Differentiation" + testName);
   for (auto element : elements(gridView)) {
     auto localView = basis.flat().localView();
     localView.bind(element);
     auto nDOF = localView.size();
 
     fe.bind(element);
+
+    fe.updateState(req, d); // here d = correction vector (DeltaD)
+    req.insertGlobalSolution(d).insertParameter(lambda);
 
     const std::string feClassName = Dune::className(fe);
 
@@ -49,14 +54,35 @@ auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis,
     calculateMatrix(fe, req, affordance.matrixAffordance(), K);
     calculateMatrix(feAutoDiff, req, affordance.matrixAffordance(), KAutoDiff);
 
-    calculateVector(fe, req, affordance.vectorAffordance(), R);
-    calculateVector(feAutoDiff, req, affordance.vectorAffordance(), RAutoDiff);
-
-    checkScalars(t, calculateScalar(fe, req, affordance.scalarAffordance()),
-                 calculateScalar(feAutoDiff, req, affordance.scalarAffordance()),
-                 testLocation() + "Incorrect Energies." + feClassName, tol);
-    checkApproxVectors(t, R, RAutoDiff, testLocation() + "Incorrect residual vectors." + feClassName, tol);
     checkApproxMatrices(t, K, KAutoDiff, testLocation() + "Incorrect stiffness matrices." + feClassName, tol);
+    checkSymmetricMatrix(t, K, tol, "K");
+    checkSymmetricMatrix(t, KAutoDiff, tol, "KAutoDiff");
+
+    if constexpr (requires { fe.numberOfEASParameters(); }) {
+      checkScalars(t, fe.numberOfEASParameters(), feAutoDiff.realFE().numberOfEASParameters(),
+                   "Incorrect number of EAS parameters");
+      checkApproxVectors(t, fe.alpha(), feAutoDiff.alpha(),
+                         testLocation() + "Incorrect internal variable alpha." + feClassName, tol);
+
+      if (fe.numberOfEASParameters() != 0) {
+        t.checkThrow<Dune::NotImplemented>(
+            [&]() { calculateVector(feAutoDiff, req, affordance.vectorAffordance(), RAutoDiff); },
+            "calculateVector with AutoDiff should throw a Dune::NotImplemented");
+
+        t.checkThrow<Dune::NotImplemented>(
+            [&]() { auto energyAutoDiff = calculateScalar(feAutoDiff, req, affordance.scalarAffordance()); },
+            "calculateScalar with AutoDiff should throw a Dune::NotImplemented");
+      }
+
+    } else {
+      calculateVector(fe, req, affordance.vectorAffordance(), R);
+      calculateVector(feAutoDiff, req, affordance.vectorAffordance(), RAutoDiff);
+
+      checkApproxVectors(t, R, RAutoDiff, testLocation() + "Incorrect residual vectors." + feClassName, tol);
+      checkScalars(t, calculateScalar(fe, req, affordance.scalarAffordance()),
+                   calculateScalar(feAutoDiff, req, affordance.scalarAffordance()),
+                   testLocation() + "Incorrect Energies." + feClassName, tol);
+    }
   }
 
   return t;

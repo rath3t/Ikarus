@@ -60,7 +60,9 @@ void registerCalculateAt(pybind11::handle scope, pybind11::class_<FE, options...
         Dune::Hybrid::forEach(resultTypesTuple, [&]<typename RT>(RT i) {
           if (resType == toString(i)) {
             success = true;
-            result  = self.template calculateAt<RT::template Rebind>(req, local).asVec();
+            std::cout << "Type of result: " << resType << " "
+                      << Dune::className(self.template calculateAt<RT::template Rebind>(req, local)) << std::endl;
+            result = self.template calculateAt<RT::template Rebind>(req, local).asVec();
           }
         });
         if (success)
@@ -100,6 +102,8 @@ void registerFE(pybind11::handle scope, pybind11::class_<FE, options...> cls) {
           pybind11::keep_alive<1, 2>());
 
   cls.def("bind", [](FE& self, const GridElement& e) { self.bind(e); });
+  cls.def("updateState",
+          [](FE& self, const Requirement& req, Eigen::Ref<Eigen::VectorXd> dx) { self.updateState(req, dx); });
   cls.def("calculateScalar", [](FE& self, const Requirement& req, Ikarus::ScalarAffordance affordance) {
     return calculateScalar(self, req, affordance);
   });
