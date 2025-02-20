@@ -9,6 +9,7 @@
 #pragma once
 
 #include <iosfwd>
+#include <type_traits>
 #include <utility>
 
 #include "ikarus/assembler/dirichletbcenforcement.hh"
@@ -106,18 +107,19 @@ class NewtonRaphsonWithSubsidiaryFunction : public IObservable<NonLinearSolverMe
 public:
   using Settings = NewtonRaphsonWithSubsidiaryFunctionSettings;
    using SignatureTraits= typename NLO::Traits;
+     ///< Type representing the parameter vector of the nonlinear operator.
+  using Domain = typename SignatureTraits::Domain;
+  using CorrectionType = std::remove_cvref_t<typename SignatureTraits::template Range<0>>;        ///< Type of the correction of x += deltaX.
   ///< Compile-time boolean indicating if the linear solver satisfies the non-linear solver concept
   static constexpr bool isLinearSolver =
-      Ikarus::Concepts::LinearSolverCheck<LS, typename NLO::DerivativeType, typename NLO::ValueType>;
+      Ikarus::Concepts::LinearSolverCheck<LS, CorrectionType, Domain>;
 
-  ///< Type representing the parameter vector of the nonlinear operator.
-  using Domain = typename SignatureTraits::Domain;
+
   ///< Type representing the update function.
   using UpdateFunctionType = UF;
   using NonLinearOperator  = NLO; ///< Type of the non-linear operator
-  using CorrectionType = typename SignatureTraits::template Range<0>;        ///< Type of the correction of x += deltaX.
+
   using JacobianType = typename SignatureTraits::template Range<1>;
-  using SolutionType = std::remove_cvref_t<Domain>; ///< Type of the solution vector
 
   /**
    * \brief Constructor for NewtonRaphsonWithSubsidiaryFunction.
@@ -152,7 +154,7 @@ public:
   [[nodiscard(
       "The solve method returns information of the solution process. You should store this information and check if "
       "it was successful")]] NonLinearSolverInformation
-  solve(SolutionType& x,SubsidiaryType&& subsidiaryFunction, SubsidiaryArgs& subsidiaryArgs) {
+  solve(Domain& x,SubsidiaryType&& subsidiaryFunction, SubsidiaryArgs& subsidiaryArgs) {
     this->notify(NonLinearSolverMessages::INIT);
 
     /// Initializations

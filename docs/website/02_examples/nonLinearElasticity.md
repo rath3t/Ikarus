@@ -85,7 +85,7 @@ This is then used to create functors to get the stiffness matrix, residual vecto
 A non-linear operator and the linear solver used by the `solverType` are defined as:
 
 ```cpp
-auto nonLinOp = Ikarus::NonLinearOperator(functions(energyFunction, residualFunction, KFunction), parameter(d, lambda));
+auto nonLinOp = Ikarus::makeNonLinearOperator(functions(energyFunction, residualFunction, KFunction), d);
 auto linSolver = Ikarus::LinearSolver(Ikarus::SolverTypeTag::sd_UmfPackLU);
 ```
 

@@ -7,9 +7,6 @@
  */
 
 #pragma once
-#include "findlinesegment.hh"
-
-#include <iostream>
 
 #include <dune/common/float_cmp.hh>
 #include <dune/functions/common/signature.hh>
@@ -55,13 +52,13 @@ struct CheckFlags
  */
 template <typename NLO, typename UF= UpdateDefault>
 bool checkGradient(
-    NLO& nonLinOp,const std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, CheckFlags checkFlags = CheckFlags(),
+    NLO& nonLinOp,const typename NLO::Domain& p, CheckFlags checkFlags = CheckFlags(),
      UF&& p_updateFunction = { }) {
    auto x = p;
    auto gradF = derivative(nonLinOp);
    const auto e = nonLinOp(x);
    decltype(auto) g = gradF(x);
-   using UpdateType =typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range;
+   using UpdateType =std::remove_cvref_t<decltype(g)>;
 
   UpdateType b;
   if constexpr (not std::is_floating_point_v<UpdateType>) {
@@ -118,14 +115,14 @@ bool checkGradient(
  */
 template <typename NLO, typename UF = UpdateDefault>
 bool checkJacobian(
-    NLO& nonLinOp,const std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, CheckFlags checkFlags = CheckFlags(),
+    NLO& nonLinOp,const typename NLO::Domain& p, CheckFlags checkFlags = CheckFlags(),
     UF&& p_updateFunction = { }) {
    auto x = p;
 
   auto gradF = derivative(nonLinOp);
   const auto e = nonLinOp(x);
   decltype(auto) g = gradF(x);
-  using UpdateType =typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range;
+  using UpdateType =std::remove_cvref_t<decltype(g.col(0).eval())>;
 
   UpdateType b;
   b.resizeLike(g.col(0));
@@ -172,7 +169,7 @@ bool checkJacobian(
  */
 template <typename NLO, typename UF = UpdateDefault>
 bool checkHessian(
-    NLO& nonLinOp,const std::remove_cvref_t<typename Dune::Functions::SignatureTraits<NLO>::Domain>& p, CheckFlags checkFlags = CheckFlags(),
+    NLO& nonLinOp,const typename NLO::Domain& p, CheckFlags checkFlags = CheckFlags(),
     UF&& p_updateFunction = { }) {
    auto x = p;
   auto gradF = derivative(nonLinOp);
@@ -180,7 +177,7 @@ bool checkHessian(
   const auto e = nonLinOp(x);
   decltype(auto) g = gradF(x);
   decltype(auto) h = hessF(x);
-  using UpdateType =typename Dune::Functions::SignatureTraits<typename NLO::Derivative>::Range;
+  using UpdateType =std::remove_cvref_t<decltype(g)>;
   UpdateType b;
 
   if constexpr (not std::is_floating_point_v<UpdateType>) {

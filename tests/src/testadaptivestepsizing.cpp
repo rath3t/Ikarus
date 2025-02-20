@@ -190,23 +190,26 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
         auto dass2                 = AdaptiveStepSizing::IterationBased{};
         auto nr3                   = nrFactory.create(sparseAssembler);
         auto crWSS2                = Ikarus::PathFollowing(nr3, loadSteps, stepSize, pft, dass2);
-        const auto controlInfoWSS2 = crWSS2.run();
+        const auto controlInfoWSS2 = crWSS2.run(req);
       },
       "IterationBased should fail for targetIterations being 0");
 
-  resetNonLinearOperatorParametersToZero(crWSS.nonlinearSolver().nonLinearOperator());
+  d.setZero();
+  lambda = 0.0;
   const auto controlInfoWSS = crWSS.run();
   const double tolDisp      = 1e-13;
   const double tolLoad      = 1e-12;
   checkScalars(t, std::ranges::max(d), expectedResults[0][0], message1 + " <Max Displacement>", tolDisp);
   checkScalars(t, lambda, expectedResults[0][1], message1 + " <Lambda>", tolLoad);
-  resetNonLinearOperatorParametersToZero(crWSS.nonlinearSolver().nonLinearOperator());
+  d.setZero();
+  lambda = 0.0;
 
-  const auto controlInfoWoSS = crWoSS.run();
+  const auto controlInfoWoSS = crWoSS.run(req);
 
   checkScalars(t, std::ranges::max(d), expectedResults[1][0], message2 + " <Max Displacement>", tolDisp);
   checkScalars(t, lambda, expectedResults[1][1], message2 + " <Lambda>", tolLoad);
-  resetNonLinearOperatorParametersToZero(crWSS.nonlinearSolver().nonLinearOperator());
+  d.setZero();
+  lambda = 0.0;
 
   const int controlInfoWSSIterations =
       std::accumulate(controlInfoWSS.solverInfos.begin(), controlInfoWSS.solverInfos.end(), 0,
@@ -227,8 +230,8 @@ auto KLShellAndAdaptiveStepSizing(const PathFollowingType& pft, const std::vecto
   checkSolverInfos(t, expectedIterations[1], controlInfoWoSS, loadSteps, message2);
 
   auto nonLinOp = NonLinearOperatorFactory::op(sparseAssembler);
-  t.check(utils::checkGradient(nonLinOp, {.draw = false})) << "Check gradient failed";
-  t.check(utils::checkHessian(nonLinOp, {.draw = false})) << "Check hessian failed";
+  t.check(utils::checkGradient(nonLinOp,req, {.draw = false})) << "Check gradient failed";
+  t.check(utils::checkHessian(nonLinOp,req, {.draw = false})) << "Check hessian failed";
 
   return t;
 }

@@ -119,9 +119,9 @@ static auto NonLinearKLShellLoadControlTR() {
   sparseAssembler->bind(req, Ikarus::AffordanceCollections::elastoStatics);
   auto nonLinOp = Ikarus::NonLinearOperatorFactory::op(sparseAssembler);
 
-  t.check(utils::checkGradient(nonLinOp, {.draw = false, .writeSlopeStatementIfFailed = true}))
+  t.check(utils::checkGradient(nonLinOp,req, {.draw = false, .writeSlopeStatementIfFailed = true}))
       << "Check gradient failed";
-  t.check(utils::checkHessian(nonLinOp, {.draw = false, .writeSlopeStatementIfFailed = true}))
+  t.check(utils::checkHessian(nonLinOp,req, {.draw = false, .writeSlopeStatementIfFailed = true}))
       << "Check Hessian failed";
 
   const double gradTol = 1e-14;

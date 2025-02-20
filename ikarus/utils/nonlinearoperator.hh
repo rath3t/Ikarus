@@ -97,7 +97,6 @@ class NonLinearOperator<Range(D), DerivativeTraits, F,FF...>
     : private Dune::Functions::DifferentiableFunctionFromCallables<Range(D), DerivativeTraits, F,FF...>
 {
 
-
   using Base = Dune::Functions::DifferentiableFunctionFromCallables<Range(D), DerivativeTraits, F,FF...>;
   public:
     using Domain = std::remove_cvref_t<D>;

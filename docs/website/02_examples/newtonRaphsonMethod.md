@@ -42,7 +42,7 @@ as shown below:
 ```cpp
 auto fvLambda  = [&](auto &&x) { return f(x); };
 auto dfvLambda = [&](auto &&x) { return df(x); };
-Ikarus::NonLinearOperator nonLinOp(Ikarus::functions(fvLambda, dfvLambda), x);
+auto nonLinOp=Ikarus::makeNonLinearOperator(Ikarus::functions(fvLambda, dfvLambda), x);
 ```
 
 The standard implementation of the Newton-Raphson method is illustrated in this function, which also uses `nonLinOp`.

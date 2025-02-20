@@ -92,14 +92,13 @@ struct ArcLength
    *
    * \tparam NLO Type of the nonlinear operator.
    * \param nonLinearOperator The nonlinear operator.
-   * \tparam SolutionType Type of the solution.
    * \param args The subsidiary function arguments.
    * \param d The solution vector.
    * \param lambda The load factor.
    * \ingroup  controlroutines
    */
-  template <typename NLO,typename SolutionType>
-  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
+  template <typename NLO>
+  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, typename NLO::Domain& d,  double& lambda) {
     SolverTypeTag solverTag;
     using JacobianType = std::remove_cvref_t<typename NLO::DerivativeType>;
     static_assert((traits::isSpecializationTypeAndNonTypes<Eigen::Matrix, JacobianType>::value) or
@@ -144,14 +143,13 @@ struct ArcLength
    * This method updates the prediction step for the standard arc-length method.
    *
    * \tparam NLO Type of the nonlinear operator.
-   * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
     * \param d The solution vector.
    * \param lambda The load factor.
    */
-  template <typename NLO,typename SolutionType>
-  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
+  template <typename NLO>
+  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, typename NLO::Domain& d,  double& lambda) {
     d += args.DD;
     lambda += args.Dlambda;
   }
@@ -196,14 +194,13 @@ struct LoadControlSubsidiaryFunction
    * This method initializes the prediction step for the load control method.
    *
    * \tparam NLO Type of the nonlinear operator.
-  * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
      * \param d The solution vector.
    * \param lambda The load factor.
    */
-  template <typename NLO,typename SolutionType>
-  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
+  template <typename NLO>
+  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, typename NLO::Domain& d,  double& lambda) {
     args.Dlambda                      = args.stepSize;
     lambda = args.Dlambda;
   }
@@ -214,14 +211,13 @@ struct LoadControlSubsidiaryFunction
    * This method updates the prediction step for the load control method.
    *
    * \tparam NLO Type of the nonlinear operator.
-     * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
   * \param d The solution vector.
    * \param lambda The load factor.
    */
-  template <typename NLO,typename SolutionType>
-  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
+  template <typename NLO>
+  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, typename NLO::Domain& d,  double& lambda) {
     lambda += args.Dlambda;
   }
 
@@ -272,14 +268,13 @@ struct DisplacementControl
    * This method initializes the prediction step for the displacement control method.
    *
    * \tparam NLO Type of the nonlinear operator.
-     * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
   * \param d The solution vector.
    * \param lambda The load factor.
    */
-  template <typename NLO,typename SolutionType>
-  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
+  template <typename NLO>
+  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, typename NLO::Domain& d,  double& lambda) {
     args.DD(controlledIndices).array() = args.stepSize;
     d= args.DD;
   }
@@ -290,14 +285,13 @@ struct DisplacementControl
    * This method updates the prediction step for the displacement control method.
    *
    * \tparam NLO Type of the nonlinear operator.
-     * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
   * \param d The solution vector.
    * \param lambda The load factor.
    */
-  template <typename NLO,typename SolutionType>
-  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
+  template <typename NLO>
+  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, typename NLO::Domain& d,  double& lambda) {
     d += args.DD;
   }
 

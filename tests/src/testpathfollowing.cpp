@@ -19,6 +19,8 @@
 using namespace Ikarus::Concepts;
 using Dune::TestSuite;
 
+using DummyFERequirements = Ikarus::FERequirementsFactory<Ikarus::FESolutions::displacement, Ikarus::FEParameter::loadfactor>::type;
+
 static auto residual(const Eigen::VectorXd& D, double lambda) {
   Eigen::VectorXd vec;
   vec.resize(2);
@@ -37,8 +39,9 @@ static auto stiffnessMatrix(const Eigen::VectorXd& D, [[maybe_unused]] double la
 }
 
 template <typename NonLinearOperator>
-static auto simple2DOperatorArcLengthTest(NonLinearOperator& nonLinOp, double stepSize, int loadSteps) {
-  resetNonLinearOperatorParametersToZero(nonLinOp);
+static auto simple2DOperatorArcLengthTest(NonLinearOperator& nonLinOp,typename NonLinearOperator::Domain& req, double stepSize, int loadSteps) {
+  req.globalSolution().setZero();
+  req.parameter() = 0.0;
   auto linSolver = Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT);
   auto pft       = Ikarus::ArcLength{}; // Type of path following technique
 
@@ -51,7 +54,7 @@ static auto simple2DOperatorArcLengthTest(NonLinearOperator& nonLinOp, double st
   auto pathFollowingObserver   = std::make_shared<Ikarus::ControlLogger>();
   nr->subscribeAll(nonLinearSolverObserver);
   alc.subscribeAll(pathFollowingObserver);
-  const auto controlInfo              = alc.run();
+  const auto controlInfo              = alc.run(req);
   std::vector<int> expectedIterations = {1, 3, 3, 3, 3};
   Eigen::Vector2d expectedDisplacement;
   expectedDisplacement << 0.0883524725970593, 0.3486891582376427;
@@ -67,8 +70,9 @@ static auto simple2DOperatorArcLengthTest(NonLinearOperator& nonLinOp, double st
 }
 
 template <typename NonLinearOperator>
-static auto simple2DOperatorArcLengthTestAsDefault(NonLinearOperator& nonLinOp, double stepSize, int loadSteps) {
-  resetNonLinearOperatorParametersToZero(nonLinOp);
+static auto simple2DOperatorArcLengthTestAsDefault(NonLinearOperator& nonLinOp,typename NonLinearOperator::Domain& req, double stepSize, int loadSteps) {
+  req.globalSolution().setZero();
+  req.parameter() = 0.0;
   auto linSolver  = Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT);
   auto nrSettings = Ikarus::NewtonRaphsonWithSubsidiaryFunctionConfig<decltype(linSolver)>{.linearSolver = linSolver};
   auto nr         = Ikarus::createNonlinearSolver(nrSettings, nonLinOp);
@@ -77,7 +81,7 @@ static auto simple2DOperatorArcLengthTestAsDefault(NonLinearOperator& nonLinOp, 
   auto pathFollowingObserver   = std::make_shared<Ikarus::ControlLogger>();
   nr->subscribeAll(nonLinearSolverObserver);
   alc.subscribeAll(pathFollowingObserver);
-  const auto controlInfo              = alc.run();
+  const auto controlInfo              = alc.run(req);
   std::vector<int> expectedIterations = {1, 3, 3, 3, 3};
   Eigen::Vector2d expectedDisplacement;
   expectedDisplacement << 0.0883524725970593, 0.3486891582376427;
@@ -93,8 +97,9 @@ static auto simple2DOperatorArcLengthTestAsDefault(NonLinearOperator& nonLinOp, 
 }
 
 template <typename NonLinearOperator>
-static auto simple2DOperatorLoadControlTest(NonLinearOperator& nonLinOp, double stepSize, int loadSteps) {
-  resetNonLinearOperatorParametersToZero(nonLinOp);
+static auto simple2DOperatorLoadControlTest(NonLinearOperator& nonLinOp,typename NonLinearOperator::Domain& req, double stepSize, int loadSteps) {
+  req.globalSolution().setZero();
+  req.parameter() = 0.0;
   auto linSolver = Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT);
   auto pft       = Ikarus::LoadControlSubsidiaryFunction{}; // Type of path following technique
 
@@ -105,7 +110,7 @@ static auto simple2DOperatorLoadControlTest(NonLinearOperator& nonLinOp, double 
   auto pathFollowingObserver   = std::make_shared<Ikarus::ControlLogger>();
   nr->subscribeAll(nonLinearSolverObserver);
   lc.subscribeAll(pathFollowingObserver);
-  const auto controlInfo              = lc.run();
+  const auto controlInfo              = lc.run(req);
   std::vector<int> expectedIterations = {2, 3, 3, 3, 3};
   Eigen::Vector2d expectedDisplacement;
   expectedDisplacement << 0.0908533884835060, 0.3581294588381901;
@@ -121,8 +126,9 @@ static auto simple2DOperatorLoadControlTest(NonLinearOperator& nonLinOp, double 
 }
 
 template <typename NonLinearOperator>
-static auto simple2DOperatorDisplacementControlTest(NonLinearOperator& nonLinOp, double stepSize, int loadSteps) {
-  resetNonLinearOperatorParametersToZero(nonLinOp);
+static auto simple2DOperatorDisplacementControlTest(NonLinearOperator& nonLinOp,typename NonLinearOperator::Domain& req, double stepSize, int loadSteps) {
+  req.globalSolution().setZero();
+  req.parameter() = 0.0;
   auto linSolver                     = Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT);
   std::vector<int> controlledIndices = {0};
 
@@ -135,7 +141,7 @@ static auto simple2DOperatorDisplacementControlTest(NonLinearOperator& nonLinOp,
   auto pathFollowingObserver   = std::make_shared<Ikarus::ControlLogger>();
   nr->subscribeAll(nonLinearSolverObserver);
   dc.subscribeAll(pathFollowingObserver);
-  const auto controlInfo              = dc.run();
+  const auto controlInfo              = dc.run(req);
   std::vector<int> expectedIterations = {3, 3, 3, 3, 3};
   Eigen::Vector2d expectedDisplacement;
   expectedDisplacement << 0.5, 1.4781013410920430;
@@ -161,15 +167,19 @@ int main(int argc, char** argv) {
   auto fvLambda  = [&](auto&& D_) { return residual(D_, lambda); };
   auto dfvLambda = [&](auto&& D_) { return stiffnessMatrix(D_, lambda); };
 
-  auto nonLinOp = Ikarus::NonLinearOperator(Ikarus::functions(fvLambda, dfvLambda), D);
+  auto nonLinOp = Ikarus::makeNonLinearOperator(Ikarus::functions(fvLambda, dfvLambda), D);
 
   double stepSize = 0.1;
   int loadSteps   = 5;
 
-  t.subTest(simple2DOperatorArcLengthTest(nonLinOp, stepSize, loadSteps));
-  t.subTest(simple2DOperatorArcLengthTestAsDefault(nonLinOp, stepSize, loadSteps));
-  t.subTest(simple2DOperatorLoadControlTest(nonLinOp, stepSize, loadSteps));
-  t.subTest(simple2DOperatorDisplacementControlTest(nonLinOp, stepSize, loadSteps));
+  DummyFERequirements req;
+  req.insertGlobalSolution(D);
+  req.insertParameter(lambda);
+
+  t.subTest(simple2DOperatorArcLengthTest(nonLinOp,req, stepSize, loadSteps));
+  t.subTest(simple2DOperatorArcLengthTestAsDefault(nonLinOp,req, stepSize, loadSteps));
+  t.subTest(simple2DOperatorLoadControlTest(nonLinOp,req, stepSize, loadSteps));
+  t.subTest(simple2DOperatorDisplacementControlTest(nonLinOp,req, stepSize, loadSteps));
 
   return t.exit();
 }

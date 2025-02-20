@@ -58,6 +58,8 @@ struct DerivativeTraitsFromCallables<Impl::Functions<DerivativeArgs...>, Arg>
   DerivativeTraitsFromCallables(const Impl::Functions<DerivativeArgs...>& derivativesFunctions,
                                  Arg2&& parameterI) {}
   using Ranges = std::tuple<std::invoke_result_t<DerivativeArgs, Arg>...,Dune::Functions::InvalidRange>;
+  using RawRanges = std::tuple<std::remove_cvref_t<std::invoke_result_t<DerivativeArgs, Arg>>...,Dune::Functions::InvalidRange>;
+
   using Domain = std::remove_cvref_t<Arg>;
   using Signatures = std::tuple<std::invoke_result_t<DerivativeArgs, Arg>(Arg)...,Dune::Functions::InvalidRange(Arg)>;
   using RawSignatures = std::tuple<std::remove_cvref_t<std::invoke_result_t<DerivativeArgs, Arg>>(std::remove_cvref_t<Arg>)...,Dune::Functions::InvalidRange(Arg)>;
@@ -67,6 +69,9 @@ struct DerivativeTraitsFromCallables<Impl::Functions<DerivativeArgs...>, Arg>
 
   template <int I>
   using Range = std::tuple_element_t<I, Ranges>;
+
+  template <int I>
+  using RawRange = std::tuple_element_t<I, RawRanges>;
 
   template <typename Signature>
   struct DerivativeTraits
