@@ -15,7 +15,7 @@
 #include <dune/vtk/function.hh>
 #include <dune/vtk/vtkwriter.hh>
 
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/utils/concepts.hh>
 
 namespace Ikarus {
@@ -64,7 +64,7 @@ class ResultFunction : public Dune::VTKFunction<typename AS::GridView>
 public:
   using Assembler         = AS;
   using GridView          = typename Assembler::GridView;
-  using FERequirementType = typename Assembler::FERequirement;
+  using FERequirementType = typename Assembler::FEConfiguration;
   using FEContainer       = typename Assembler::FEContainer;
   using FiniteElement     = typename std::remove_cvref_t<FEContainer>::value_type;
 

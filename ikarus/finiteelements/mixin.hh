@@ -64,70 +64,71 @@ public:
       decltype(std::tuple_cat(computeSupportedResultTypes<Skills<PreFE, typename PreFE::template FE<Skills...>>>()...));
 
   template <bool, typename = void>
-  struct RequirementType;
+  struct ConfigurationType;
 
   template <typename T>
-  struct RequirementType<false, T>
+  struct ConfigurationType<false, T>
   {
-    using type = FERequirements<FESolutions::noSolution, FEParameter::noParameter>;
+    using type = FEConfiguration<FESolutions::noSolution, FEParameter::noParameter>;
   };
 
   template <typename T>
-  struct RequirementType<true, T>
+  struct ConfigurationType<true, T>
   {
-    using type = std::common_type_t<typename Skills<PreFE, typename PreFE::template FE<Skills...>>::Requirement...>;
+    using type = std::common_type_t<typename Skills<PreFE, typename PreFE::template FE<Skills...>>::Configuration...>;
   };
 
 private:
-  static constexpr bool requirementDetected =
+  static constexpr bool ConfigurationDetected =
       Dune::Std::is_detected_v<std::common_type_t,
-                               typename Skills<PreFE, typename PreFE::template FE<Skills...>>::Requirement...>;
-  static_assert(requirementDetected or sizeof...(Skills) == 0, "The skills must have a common fe requirement type.");
+                               typename Skills<PreFE, typename PreFE::template FE<Skills...>>::Configuration...>;
+  static_assert(ConfigurationDetected or sizeof...(Skills) == 0,
+                "The skills must have a common fe Configuration type.");
 
 public:
   using Traits                  = PreFE::Traits;
-  using Requirement             = RequirementType<requirementDetected>::type;
+  using Configuration           = ConfigurationType<ConfigurationDetected>::type;
   using LocalView               = typename Traits::LocalView;
   static constexpr int worldDim = Traits::worlddim;
 
   /**
-   * @brief Create a Requirement object.
+   * @brief Create a Configuration object.
    *
-   * @return The created Requirement object.
+   * @return The created Configuration object.
    */
-  static auto createRequirement() { return Requirement(); }
+  static auto createConfiguration() { return Configuration(); }
 
   /**
-   * \brief Calculate the scalar value associated with the given Requirement.
+   * \brief Calculate the scalar value associated with the given Configuration.
    *
    * \tparam ScalarType The scalar type for the calculation.
-   * \param req The Requirement object specifying the requirements for the calculation.
+   * \param req The Configuration object specifying the Configurations for the calculation.
    * \return The calculated scalar value.
    */
-  friend auto calculateScalar(const FEMixin& self, const Requirement& req, ScalarAffordance affordance) {
+  friend auto calculateScalar(const FEMixin& self, const Configuration& req, ScalarAffordance affordance) {
     return self.template calculateScalarImpl<double>(req, affordance);
   }
 
   /**
-   * \brief Calculate the vector associated with the given Requirement.
+   * \brief Calculate the vector associated with the given Configuration.
    *
    * \tparam ScalarType The scalar type for the calculation.
-   * \param req The Requirement object specifying the requirements for the calculation.
+   * \param req The Configuration object specifying the Configurations for the calculation.
    * \param force The vector to store the calculated result.
    */
-  friend void calculateVector(const FEMixin& self, const Requirement& req, VectorAffordance affordance,
+  friend void calculateVector(const FEMixin& self, const Configuration& req, VectorAffordance affordance,
                               typename Traits::template VectorType<> force) {
     self.template calculateVectorImpl<double>(req, affordance, force);
   }
 
   /**
-   * \brief Calculate the matrix associated with the given Requirement.
+   * \brief Calculate the matrix associated with the given Configuration.
    *
    * \tparam ScalarType The scalar type for the calculation.
-   * \param req The Requirement object specifying the requirements for the calculation.
+   * \param req The Configuration object specifying the Configurations for the calculation.
    * \param K The matrix to store the calculated result.
    */
-  friend void calculateMatrix(const FEMixin& self, const Requirement& req, MatrixAffordance affordance,
+  friend void calculateMatrix(const FEMixin& self, const Configuration& req, MatrixAffordance affordance,
                               typename Traits::template MatrixType<> K) {
     self.template calculateMatrixImpl<double>(req, affordance, K);
   }
@@ -138,15 +139,15 @@ public:
    * @brief Calculate the element values at a specific location for a given ResultType.
    *
    * @tparam RT The ResultType to calculate.
-   * @param req The Requirement object specifying the requirements for the calculation.
+   * @param req The Configuration object specifying the Configurations for the calculation.
    * @param local The local coordinates where the calculation is performed.
    * @return The calculated result as specified by the ResultType.
    */
   template <template <typename, int, int> class RT>
-  requires requires(FEMixin m, const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local) {
+  requires requires(FEMixin m, const Configuration& req, const Dune::FieldVector<double, Traits::mydim>& local) {
     m.template calculateAtImpl<RT>(req, local, Dune::PriorityTag<10>());
   }
-  auto calculateAt(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local) const {
+  auto calculateAt(const Configuration& req, const Dune::FieldVector<double, Traits::mydim>& local) const {
     return this->template calculateAtImpl<RT>(req, local, Dune::PriorityTag<10>());
   }
 
@@ -158,7 +159,7 @@ private:
   }
 
   static constexpr bool implementsCalculateScalarImpl =
-      (requires(FEMixin m, const Requirement& par, ScalarAffordance affordance,
+      (requires(FEMixin m, const Configuration& par, ScalarAffordance affordance,
                 const std::optional<std::reference_wrapper<const Eigen::VectorX<double>>>& dx) {
         m.Skills<PreFE, typename PreFE::template FE<Skills...>>::calculateScalarImpl(par, affordance, dx);
       } ||
@@ -174,14 +175,14 @@ public:
    * @brief Calculate the scalar value in each skill and joins them by `+`.
    *
    * @tparam ScalarType The scalar type for the calculation.
-   * @param par The Requirement object specifying the requirements for the calculation.
+   * @param par The Configuration object specifying the Configurations for the calculation.
    * @param dx Optional vector used in the calculation.
    * @return The calculated scalar value.
    */
   template <typename ScalarType = double>
   requires implementsCalculateScalarImpl
   auto calculateScalarImpl(
-      const Requirement& par, ScalarAffordance affordance,
+      const Configuration& par, ScalarAffordance affordance,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     return (Skills<PreFE, typename PreFE::template FE<Skills...>>::template calculateScalarImpl<ScalarType>(
                 par, affordance, dx) +
@@ -190,7 +191,7 @@ public:
 
 private:
   static constexpr bool implementsCalculateVectorImpl =
-      (requires(FEMixin m, const Requirement& par, VectorAffordance affordance,
+      (requires(FEMixin m, const Configuration& par, VectorAffordance affordance,
                 typename Traits::template VectorType<double> force,
                 const std::optional<std::reference_wrapper<const Eigen::VectorX<double>>>& dx) {
         m.Skills<PreFE, typename PreFE::template FE<Skills...>>::calculateVectorImpl(par, affordance, force, dx);
@@ -202,14 +203,14 @@ public:
    * @brief Calculate the vector for each skill
    *
    * @tparam ScalarType The scalar type for the calculation.
-   * @param par The Requirement object specifying the requirements for the calculation.
+   * @param par The Configuration object specifying the Configurations for the calculation.
    * @param force The vector to store the calculated result.
    * @param dx Optional vector used in the calculation.
    */
   template <typename ScalarType>
   requires implementsCalculateVectorImpl
   void calculateVectorImpl(
-      const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
+      const Configuration& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     (Skills<PreFE, typename PreFE::template FE<Skills...>>::template calculateVectorImpl<ScalarType>(par, affordance,
                                                                                                      force, dx),
@@ -218,7 +219,7 @@ public:
 
 private:
   static constexpr bool implementsCalculateMatrixImpl =
-      (requires(FEMixin m, const Requirement& par, MatrixAffordance affordance,
+      (requires(FEMixin m, const Configuration& par, MatrixAffordance affordance,
                 typename Traits::template MatrixType<double> K,
                 const std::optional<std::reference_wrapper<const Eigen::VectorX<double>>>& dx) {
         m.Skills<PreFE, typename PreFE::template FE<Skills...>>::calculateMatrixImpl(par, affordance, K, dx);
@@ -230,14 +231,14 @@ public:
    * @brief Calculate the matrix for each skill
    *
    * @tparam ScalarType The scalar type for the calculation.
-   * @param par The Requirement object specifying the requirements for the calculation.
+   * @param par The Configuration object specifying the Configurations for the calculation.
    * @param K The matrix to store the calculated result.
    * @param dx Optional vector used in the calculation.
    */
   template <typename ScalarType>
   requires implementsCalculateMatrixImpl
   void calculateMatrixImpl(
-      const Requirement& par, MatrixAffordance affordance, typename Traits::template MatrixType<ScalarType> K,
+      const Configuration& par, MatrixAffordance affordance, typename Traits::template MatrixType<ScalarType> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     (Skills<PreFE, typename PreFE::template FE<Skills...>>::template calculateMatrixImpl<ScalarType>(par, affordance, K,
                                                                                                      dx),

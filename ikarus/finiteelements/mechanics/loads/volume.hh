@@ -6,7 +6,7 @@
 #include <dune/localfefunctions/derivativetransformators.hh>
 #include <dune/localfefunctions/meta.hh>
 
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/utils/concepts.hh>
 #include <ikarus/utils/traits.hh>
 
@@ -46,8 +46,8 @@ class VolumeLoad
 {
 public:
   using Traits = PreFE::Traits;
-  using Requirement =
-      FERequirementsFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
+  using Configuration =
+      FEConfigurationFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
   static constexpr int worldDim = Traits::worlddim;
   using Pre                     = VolumeLoadPre<worldDim>;
 
@@ -62,12 +62,12 @@ public:
 protected:
   template <template <typename, int, int> class RT>
   requires Dune::AlwaysFalse<RT<double, 1, 1>>::value
-  auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
+  auto calculateAtImpl(const Configuration& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<0>) const {}
 
   template <typename ST>
   auto calculateScalarImpl(
-      const Requirement& par, ScalarAffordance affordance,
+      const Configuration& par, ScalarAffordance affordance,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const -> ST {
     if (not volumeLoad_)
       return 0.0;
@@ -86,7 +86,7 @@ protected:
 
   template <typename ST>
   void calculateVectorImpl(
-      const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ST> force,
+      const Configuration& par, VectorAffordance affordance, typename Traits::template VectorType<ST> force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const {
     if (not volumeLoad_)
       return;
@@ -108,7 +108,7 @@ protected:
 
   template <typename ST>
   void calculateMatrixImpl(
-      const Requirement& par, MatrixAffordance, typename Traits::template MatrixType<> K,
+      const Configuration& par, MatrixAffordance, typename Traits::template MatrixType<> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const {}
 
 private:

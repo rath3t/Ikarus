@@ -19,8 +19,8 @@
   #include <dune/localfefunctions/manifolds/realTuple.hh>
 
   #include <ikarus/finiteelements/febase.hh>
+  #include <ikarus/finiteelements/feconfiguration.hh>
   #include <ikarus/finiteelements/fehelper.hh>
-  #include <ikarus/finiteelements/ferequirements.hh>
   #include <ikarus/finiteelements/mechanics/loads.hh>
   #include <ikarus/finiteelements/mechanics/materials/tags.hh>
   #include <ikarus/finiteelements/physicshelper.hh>
@@ -63,8 +63,8 @@ public:
   using Traits    = PreFE::Traits;
   using Basis     = typename Traits::Basis;
   using FlatBasis = typename Traits::FlatBasis;
-  using Requirement =
-      FERequirementsFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
+  using Configuration =
+      FEConfigurationFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
   using LocalView = typename Traits::LocalView;
   using Geometry  = typename Traits::Geometry;
   using GridView  = typename Traits::GridView;
@@ -118,7 +118,7 @@ public:
    */
   template <typename ScalarType = double>
   auto displacementFunction(
-      const Requirement& par,
+      const Configuration& par,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     const auto& d = par.globalSolution();
     auto disp     = Ikarus::FEHelper::localSolutionBlockVector<Traits>(d, underlying().localView(), dx);
@@ -136,7 +136,7 @@ public:
    */
   template <typename ScalarType = double>
   inline auto strainFunction(
-      const Requirement& par,
+      const Configuration& par,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     return Dune::greenLagrangeStrains(displacementFunction(par, dx));
   }
@@ -206,7 +206,7 @@ public:
    */
   template <template <typename, int, int> class RT>
   requires(supportsResultType<RT>())
-  auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
+  auto calculateAtImpl(const Configuration& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<1>) const {
     using namespace Dune::DerivativeDirections;
 
@@ -246,7 +246,7 @@ protected:
    */
   template <typename ScalarType>
   void calculateMatrixImpl(
-      const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
+      const Configuration& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     using namespace Dune::DerivativeDirections;
     using namespace Dune;
@@ -271,7 +271,7 @@ protected:
   }
 
   template <typename ScalarType>
-  auto calculateScalarImpl(const Requirement& par, ScalarAffordance affordance,
+  auto calculateScalarImpl(const Configuration& par, ScalarAffordance affordance,
                            const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx =
                                std::nullopt) const -> ScalarType {
     using namespace Dune::DerivativeDirections;
@@ -292,7 +292,7 @@ protected:
 
   template <typename ScalarType>
   void calculateVectorImpl(
-      const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
+      const Configuration& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     using namespace Dune::DerivativeDirections;
     using namespace Dune;

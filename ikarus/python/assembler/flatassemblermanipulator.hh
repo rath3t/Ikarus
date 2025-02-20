@@ -15,7 +15,7 @@
 #include <dune/python/pybind11/stl_bind.h>
 
 #include <ikarus/assembler/dirichletbcenforcement.hh>
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/python/assembler/flatassembler.hh>
 #include <ikarus/python/finiteelements/scalarwrapper.hh>
 #include <ikarus/utils/basis.hh>

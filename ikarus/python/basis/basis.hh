@@ -17,7 +17,7 @@
 #include <dune/python/pybind11/pybind11.h>
 #include <dune/python/pybind11/stl.h>
 
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/utils/basis.hh>
 
 namespace Ikarus::Python {

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/utils/concepts.hh>
 
 namespace Ikarus {

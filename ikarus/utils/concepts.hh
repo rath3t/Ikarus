@@ -495,9 +495,9 @@ namespace Concepts {
    * and data types for assembling sparse matrices in a flat structure.
    */
   template <typename T>
-  concept FlatAssembler = requires(T t, const typename T::FERequirement& req,
+  concept FlatAssembler = requires(T t, const typename T::FEConfiguration& req,
                                    typename T::AffordanceCollectionType affordance, DBCOption dbcOption) {
-    { t.requirement() } -> std::convertible_to<typename T::FERequirement&>;
+    { t.requirement() } -> std::convertible_to<typename T::FEConfiguration&>;
     { t.affordanceCollection() } -> std::convertible_to<typename T::AffordanceCollectionType>;
     { t.dBCOption() } -> std::convertible_to<DBCOption>;
 
@@ -527,7 +527,7 @@ namespace Concepts {
    */
   template <typename T>
   concept ScalarFlatAssembler =
-      Concepts::FlatAssembler<T> and requires(T t, const typename T::FERequirement& req,
+      Concepts::FlatAssembler<T> and requires(T t, const typename T::FEConfiguration& req,
                                               typename T::AffordanceCollectionType affordance, DBCOption dbcOption) {
         { t.scalar(req, affordance.scalarAffordance()) } -> std::convertible_to<const double&>;
         { t.scalar() } -> std::convertible_to<const double&>;
@@ -541,7 +541,7 @@ namespace Concepts {
    */
   template <typename T>
   concept VectorFlatAssembler = Concepts::ScalarFlatAssembler<T> and
-                                requires(T t, const typename T::FERequirement& req,
+                                requires(T t, const typename T::FEConfiguration& req,
                                          typename T::AffordanceCollectionType affordance, DBCOption dbcOption) {
                                   {
                                     t.vector(req, affordance.vectorAffordance(), dbcOption)
@@ -558,7 +558,7 @@ namespace Concepts {
    */
   template <typename T>
   concept MatrixFlatAssembler = Concepts::VectorFlatAssembler<T> and
-                                requires(T t, const typename T::FERequirement& req,
+                                requires(T t, const typename T::FEConfiguration& req,
                                          typename T::AffordanceCollectionType affordance, DBCOption dbcOption) {
                                   { t.matrix(req, affordance.matrixAffordance(), dbcOption) };
                                   { t.matrix(dbcOption) };

@@ -22,7 +22,7 @@ auto checkFESByAutoDiffImpl(const GridView& gridView, const BasisHandler& basis,
   auto fe       = Ikarus::makeFE(basis, std::forward<Skills>(skills));
   using FE      = decltype(fe);
 
-  auto req = typename FE::Requirement();
+  auto req = typename FE::Configuration();
   req.insertGlobalSolution(d).insertParameter(lambda);
   Dune::TestSuite t("Check calculateScalarImpl() and calculateVectorImpl() by Automatic Differentiation" +
                     messageIfFailed);

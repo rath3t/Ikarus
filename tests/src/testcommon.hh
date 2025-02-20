@@ -28,7 +28,7 @@
 #include "testhelpers.hh"
 
 #include <ikarus/finiteelements/autodifffe.hh>
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/finiteelements/feresulttypes.hh>
 #include <ikarus/io/resultevaluators.hh>
 #include <ikarus/io/resultfunction.hh>
@@ -269,7 +269,7 @@ template <typename NonLinearOperator>
 }
 
 template <template <typename, int, int> class RT, bool vectorizedResult = true>
-[[nodiscard]] auto checkCalculateAt(auto& /*nonLinearOperator*/, auto& fe, const auto& feRequirements,
+[[nodiscard]] auto checkCalculateAt(auto& /*nonLinearOperator*/, auto& fe, const auto& feConfiguration,
                                     const auto& expectedResult, const auto& evaluationPositions,
                                     const std::string& messageIfFailed = "") {
   Dune::TestSuite t("Test of the calulateAt function for " + Dune::className(fe), Dune::TestSuite::AlwaysThrow);
@@ -277,13 +277,13 @@ template <template <typename, int, int> class RT, bool vectorizedResult = true>
   using FiniteElement = std::remove_cvref_t<decltype(fe)>;
   Eigen::MatrixXd computedResults(expectedResult.rows(), expectedResult.cols());
 
-  if constexpr (requires { fe.template calculateAt<RT>(feRequirements, evaluationPositions[0]); }) {
+  if constexpr (requires { fe.template calculateAt<RT>(feConfiguration, evaluationPositions[0]); }) {
     for (int i = 0; const auto& pos : evaluationPositions) {
       if constexpr (vectorizedResult) {
-        auto result              = fe.template calculateAt<RT>(feRequirements, pos).asVec();
+        auto result              = fe.template calculateAt<RT>(feConfiguration, pos).asVec();
         computedResults.row(i++) = result.transpose();
       } else {
-        auto result              = fe.template calculateAt<RT>(feRequirements, pos).asMat();
+        auto result              = fe.template calculateAt<RT>(feConfiguration, pos).asMat();
         computedResults.row(i++) = result.reshaped().transpose();
       }
     }
@@ -301,7 +301,7 @@ template <template <typename, int, int> class RT, bool vectorizedResult = true>
 }
 
 template <template <typename, int, int> class resType, typename ResultEvaluator>
-[[nodiscard]] auto checkResultFunction(auto& /*nonLinearOperator*/, auto& fe, const auto& feRequirements,
+[[nodiscard]] auto checkResultFunction(auto& /*nonLinearOperator*/, auto& fe, const auto& feConfiguration,
                                        auto& expectedResult, const auto& evaluationPositions,
                                        ResultEvaluator&& resultEvaluator  = {},
                                        const std::string& messageIfFailed = "") {
@@ -318,7 +318,7 @@ template <template <typename, int, int> class resType, typename ResultEvaluator>
   // Make a dummy assembler that holds the elements
   Ikarus::DirichletValues dirichletValues(fe.localView().globalBasis());
   auto sparseAssembler = Ikarus::makeSparseFlatAssembler(fes, dirichletValues);
-  sparseAssembler->bind(feRequirements);
+  sparseAssembler->bind(feConfiguration);
   sparseAssembler->bind(Ikarus::DBCOption::Full);
 
   auto vtkResultFunction =

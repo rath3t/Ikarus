@@ -14,7 +14,7 @@
 #include <Eigen/Sparse>
 
 #include <ikarus/assembler/interface.hh>
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 
 namespace Ikarus {
 /**
@@ -37,13 +37,13 @@ protected:
 public:
   using typename Base::Basis;
   using typename Base::DirichletValuesType;
+  using typename Base::FEConfiguration;
   using typename Base::FEContainer;
-  using typename Base::FERequirement;
   using typename Base::GlobalIndex;
   using typename ScalarAssembler<ScalarFlatAssembler, FEC, DV, double>::ScalarType;
 
 protected:
-  ScalarType& getScalarImpl(const FERequirement& feRequirements, ScalarAffordance affordance);
+  ScalarType& getScalarImpl(const FEConfiguration& feConfiguration, ScalarAffordance affordance);
 
   ScalarType scal_{0.0};
 };
@@ -73,19 +73,20 @@ protected:
 public:
   using typename Base::Basis;
   using typename Base::DirichletValuesType;
+  using typename Base::FEConfiguration;
   using typename Base::FEContainer;
-  using typename Base::FERequirement;
   using typename Base::GlobalIndex;
 
   using typename Base::ScalarType;
   using typename VectorAssembler<VectorFlatAssembler, FEC, DV, Eigen::VectorXd>::VectorType;
 
 protected:
-  void assembleRawVectorImpl(const FERequirement& feRequirements, VectorAffordance affordance, VectorType& assemblyVec);
-  VectorType& getRawVectorImpl(const FERequirement& feRequirements, VectorAffordance affordance);
-  VectorType& getVectorImpl(const FERequirement& feRequirements, VectorAffordance affordance);
+  void assembleRawVectorImpl(const FEConfiguration& feConfiguration, VectorAffordance affordance,
+                             VectorType& assemblyVec);
+  VectorType& getRawVectorImpl(const FEConfiguration& feConfiguration, VectorAffordance affordance);
+  VectorType& getVectorImpl(const FEConfiguration& feConfiguration, VectorAffordance affordance);
 
-  VectorType& getReducedVectorImpl(const FERequirement& feRequirements, VectorAffordance affordance);
+  VectorType& getReducedVectorImpl(const FEConfiguration& feConfiguration, VectorAffordance affordance);
 
   VectorType vecRaw_{}; ///< Raw vector without changes for dirichlet degrees of freedom
   VectorType vec_{};    ///< Vector quantity.
@@ -118,20 +119,21 @@ protected:
 public:
   using typename Base::Basis;
   using typename Base::DirichletValuesType;
+  using typename Base::FEConfiguration;
   using typename Base::FEContainer;
-  using typename Base::FERequirement;
   using typename Base::GlobalIndex;
   using typename Base::ScalarType;
   using typename Base::VectorType;
   using typename MatrixAssembler<SparseFlatAssembler, FEC, DV, Eigen::SparseMatrix<double>>::MatrixType;
 
 private:
-  void assembleRawMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance, MatrixType& assemblyMat);
+  void assembleRawMatrixImpl(const FEConfiguration& feConfiguration, MatrixAffordance affordance,
+                             MatrixType& assemblyMat);
 
 protected:
-  MatrixType& getRawMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance);
-  MatrixType& getMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance);
-  MatrixType& getReducedMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance);
+  MatrixType& getRawMatrixImpl(const FEConfiguration& feConfiguration, MatrixAffordance affordance);
+  MatrixType& getMatrixImpl(const FEConfiguration& feConfiguration, MatrixAffordance affordance);
+  MatrixType& getReducedMatrixImpl(const FEConfiguration& feConfiguration, MatrixAffordance affordance);
 
 private:
   /** Calculates the non-zero entries in the full sparse matrix and passes them to the underlying Eigen sparse matrix.
@@ -198,20 +200,21 @@ protected:
 public:
   using typename Base::Basis;
   using typename Base::DirichletValuesType;
+  using typename Base::FEConfiguration;
   using typename Base::FEContainer;
-  using typename Base::FERequirement;
   using typename Base::GlobalIndex;
   using typename Base::ScalarType;
   using typename Base::VectorType;
   using typename MatrixAssembler<DenseFlatAssembler, FEC, DV, Eigen::MatrixXd>::MatrixType;
 
 private:
-  void assembleRawMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance, MatrixType& assemblyMat);
+  void assembleRawMatrixImpl(const FEConfiguration& feConfiguration, MatrixAffordance affordance,
+                             MatrixType& assemblyMat);
 
 protected:
-  MatrixType& getRawMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance);
-  MatrixType& getMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance);
-  MatrixType& getReducedMatrixImpl(const FERequirement& feRequirements, MatrixAffordance affordance);
+  MatrixType& getRawMatrixImpl(const FEConfiguration& feConfiguration, MatrixAffordance affordance);
+  MatrixType& getMatrixImpl(const FEConfiguration& feConfiguration, MatrixAffordance affordance);
+  MatrixType& getReducedMatrixImpl(const FEConfiguration& feConfiguration, MatrixAffordance affordance);
 
 private:
   MatrixType matRaw_{}; ///< Raw dense matrix for assembly.

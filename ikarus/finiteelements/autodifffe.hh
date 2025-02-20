@@ -11,7 +11,7 @@
 #include <autodiff/forward/dual/dual.hpp>
 #include <autodiff/forward/dual/eigen.hpp>
 
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/utils/traits.hh>
 
 namespace Ikarus {
@@ -27,12 +27,12 @@ template <typename FEImpl, bool forceAutoDiff = false>
 class AutoDiffFE : public FEImpl
 {
 public:
-  using RealFE       = FEImpl;                        ///< Type of the base finite element.
-  using BasisHandler = typename RealFE::BasisHandler; ///< Type of the basis handler.
-  using Traits       = typename RealFE::Traits;       ///< Type traits for local view.
-  using LocalView    = typename Traits::LocalView;    ///< Type of the local view.
-  using Element      = typename Traits::Element;      ///< Type of the element.
-  using Requirement  = typename RealFE::Requirement;  ///< Type of the Finite Element Requirements.
+  using RealFE        = FEImpl;                         ///< Type of the base finite element.
+  using BasisHandler  = typename RealFE::BasisHandler;  ///< Type of the basis handler.
+  using Traits        = typename RealFE::Traits;        ///< Type traits for local view.
+  using LocalView     = typename Traits::LocalView;     ///< Type of the local view.
+  using Element       = typename Traits::Element;       ///< Type of the element.
+  using Configuration = typename RealFE::Configuration; ///< Type of the Finite Element Requirements.
 private:
   using Mixin = FEImpl::Mixin;
 
@@ -45,7 +45,7 @@ public:
    * \param affordance The matrix affordance.
    * \param[out] h Matrix to be calculated.
    */
-  friend void calculateMatrix(const AutoDiffFE& self, const Requirement& par, const MatrixAffordance& affordance,
+  friend void calculateMatrix(const AutoDiffFE& self, const Configuration& par, const MatrixAffordance& affordance,
                               typename Traits::template MatrixType<> h) {
     self.calculateMatrix(par, affordance, h);
   }
@@ -58,7 +58,7 @@ public:
    * \param affordance The vector affordance.
    * \param[out] g Vector to be calculated.
    */
-  friend void calculateVector(const AutoDiffFE& self, const Requirement& par, VectorAffordance affordance,
+  friend void calculateVector(const AutoDiffFE& self, const Configuration& par, VectorAffordance affordance,
                               typename Traits::template VectorType<double> g) {
     self.calculateVector(par, affordance, g);
   }
@@ -73,9 +73,9 @@ public:
    * \param[out] h Matrix to be calculated.
    * \param[out] g Vector to be calculated.
    */
-  friend void calculateLocalSystem(const AutoDiffFE& self, const Requirement& par, const MatrixAffordance& affordanceM,
-                                   VectorAffordance affordanceV, typename Traits::template MatrixType<> h,
-                                   typename Traits::template VectorType<> g) {
+  friend void calculateLocalSystem(const AutoDiffFE& self, const Configuration& par,
+                                   const MatrixAffordance& affordanceM, VectorAffordance affordanceV,
+                                   typename Traits::template MatrixType<> h, typename Traits::template VectorType<> g) {
     self.calculateLocalSystem(par, affordanceM, affordanceV, h, g);
   }
 
@@ -87,7 +87,7 @@ public:
    * \param affordance The scalar affordance.
    * \return The calculated scalar value.
    */
-  friend auto calculateScalar(const AutoDiffFE& self, const Requirement& par, ScalarAffordance affordance) {
+  friend auto calculateScalar(const AutoDiffFE& self, const Configuration& par, ScalarAffordance affordance) {
     return self.calculateScalar(par, affordance);
   }
 
@@ -110,7 +110,7 @@ public:
       : RealFE{std::forward<Args>(args)...} {}
 
 private:
-  void calculateMatrix(const Requirement& req, const MatrixAffordance& affordance,
+  void calculateMatrix(const Configuration& req, const MatrixAffordance& affordance,
                        typename Traits::template MatrixType<> h) const {
     // real element implements calculateMatrix by itself, then we simply forward the call
 
@@ -158,7 +158,7 @@ private:
                     "chosen element.");
   }
 
-  void calculateVector(const Requirement& req, VectorAffordance affordance,
+  void calculateVector(const Configuration& req, VectorAffordance affordance,
                        typename Traits::template VectorType<> g) const {
     // real element implements calculateVector by itself, then we simply forward the call
     if constexpr (requires {
@@ -188,7 +188,7 @@ private:
                     "chosen element.");
   }
 
-  [[nodiscard]] double calculateScalar(const Requirement& par, ScalarAffordance affordance) const {
+  [[nodiscard]] double calculateScalar(const Configuration& par, ScalarAffordance affordance) const {
     // real element implements calculateScalar by itself, then we simply forward the call
     if constexpr (requires {
                     static_cast<const Mixin&>(std::declval<AutoDiffFE>())
@@ -203,7 +203,7 @@ private:
     }
   }
 
-  void calculateLocalSystem(const Requirement& req, const MatrixAffordance& affordanceM, VectorAffordance affordanceV,
+  void calculateLocalSystem(const Configuration& req, const MatrixAffordance& affordanceM, VectorAffordance affordanceV,
                             typename Traits::template MatrixType<> h, typename Traits::template VectorType<> g) const {
     assert(scalarAffordance(affordanceM) == scalarAffordance(affordanceV));
     Eigen::VectorXdual2nd dx(this->localView().size());

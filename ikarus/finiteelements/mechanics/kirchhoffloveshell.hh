@@ -12,8 +12,8 @@
 #include <dune/localfefunctions/cachedlocalBasis/cachedlocalBasis.hh>
 #include <dune/localfefunctions/impl/standardLocalFunction.hh>
 
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/finiteelements/fehelper.hh>
-#include <ikarus/finiteelements/ferequirements.hh>
 #include <ikarus/finiteelements/feresulttypes.hh>
 #include <ikarus/finiteelements/mechanics/loads.hh>
 #include <ikarus/finiteelements/mechanics/membranestrains.hh>
@@ -53,8 +53,8 @@ public:
   using Traits       = PreFE::Traits;
   using BasisHandler = typename Traits::BasisHandler;
   using FlatBasis    = typename Traits::FlatBasis;
-  using Requirement =
-      FERequirementsFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
+  using Configuration =
+      FEConfigurationFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
   using LocalView      = typename Traits::LocalView;
   using Geometry       = typename Traits::Geometry;
   using GridView       = typename Traits::GridView;
@@ -140,7 +140,7 @@ public:
    */
   template <typename ST = double>
   auto displacementFunction(
-      const Requirement& par,
+      const Configuration& par,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const {
     const auto& d = par.globalSolution();
     auto disp     = Ikarus::FEHelper::localSolutionBlockVector<Traits>(d, underlying().localView(), dx);
@@ -164,7 +164,7 @@ public:
    */
   template <template <typename, int, int> class RT>
   requires(supportsResultType<RT>())
-  auto calculateAtImpl([[maybe_unused]] const Requirement& req,
+  auto calculateAtImpl([[maybe_unused]] const Configuration& req,
                        [[maybe_unused]] const Dune::FieldVector<double, Traits::mydim>& local)
       -> ResultWrapper<RT<double, myDim, worldDim>, ResultShape::Vector> {
     DUNE_THROW(Dune::NotImplemented, "No results are implemented");
@@ -236,7 +236,7 @@ protected:
 
   template <typename ST>
   void calculateMatrixImpl(
-      const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<ST> K,
+      const Configuration& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<ST> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const {
     if (affordance != MatrixAffordance::stiffness)
       DUNE_THROW(Dune::NotImplemented, "MatrixAffordance not implemented: " + toString(affordance));
@@ -281,7 +281,7 @@ protected:
 
   template <typename ST>
   void calculateVectorImpl(
-      const Requirement& par, const VectorAffordance& affordance, typename Traits::template VectorType<ST> force,
+      const Configuration& par, const VectorAffordance& affordance, typename Traits::template VectorType<ST> force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const {
     if (affordance != VectorAffordance::forces)
       DUNE_THROW(Dune::NotImplemented, "VectorAffordance not implemented: " + toString(affordance));
@@ -314,7 +314,7 @@ protected:
 
   template <typename ST>
   auto calculateScalarImpl(
-      const Requirement& par, const ScalarAffordance& affordance,
+      const Configuration& par, const ScalarAffordance& affordance,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const -> ST {
     if (affordance != ScalarAffordance::mechanicalPotentialEnergy)
       DUNE_THROW(Dune::NotImplemented, "ScalarAffordance not implemented: " + toString(affordance));

@@ -7,7 +7,7 @@
 #include <dune/localfefunctions/derivativetransformators.hh>
 #include <dune/localfefunctions/meta.hh>
 
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 
 namespace Ikarus {
 
@@ -45,8 +45,8 @@ class Traction
 {
 public:
   using Traits = PreFE::Traits;
-  using Requirement =
-      FERequirementsFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
+  using Configuration =
+      FEConfigurationFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
   using LocalView               = typename Traits::LocalView;
   using GridView                = typename Traits::GridView;
   static constexpr int myDim    = Traits::mydim;
@@ -65,12 +65,12 @@ public:
 protected:
   template <template <typename, int, int> class RT>
   requires Dune::AlwaysFalse<RT<double, 1, 1>>::value
-  auto calculateAtImpl(const Requirement& req, const Dune::FieldVector<double, Traits::mydim>& local,
+  auto calculateAtImpl(const Configuration& req, const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<0>) const {}
 
   template <typename ST>
   auto calculateScalarImpl(
-      const Requirement& par, ScalarAffordance affordance,
+      const Configuration& par, ScalarAffordance affordance,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const -> ST {
     if (not neumannBoundary_ and not neumannBoundaryLoad_)
       return 0.0;
@@ -105,7 +105,7 @@ protected:
 
   template <typename ST>
   void calculateVectorImpl(
-      const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ST> force,
+      const Configuration& par, VectorAffordance affordance, typename Traits::template VectorType<ST> force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const {
     if (not neumannBoundary_ and not neumannBoundaryLoad_)
       return;
@@ -140,7 +140,7 @@ protected:
 
   template <typename ST>
   void calculateMatrixImpl(
-      const Requirement&, MatrixAffordance, typename Traits::template MatrixType<>,
+      const Configuration&, MatrixAffordance, typename Traits::template MatrixType<>,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& = std::nullopt) const {}
 
 private:

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 /**
- * \file ferequirements.hh
+ * \file feconfiguration.hh
  * \brief Definition of the LinearElastic class for finite element mechanics computations.
  * \ingroup finiteelements
  */
@@ -236,7 +236,7 @@ namespace Impl {
 } // namespace Impl
 
 /**
- * \class FERequirements
+ * \class FEConfiguration
  * \brief Class representing the requirements for finite element calculations.
  *
  * This class defines the requirements for finite element calculations, including the types of solution vectors
@@ -248,7 +248,7 @@ namespace Impl {
  *
  */
 template <FESolutions sol, FEParameter para, typename SV = Eigen::VectorXd, typename PM = double>
-class FERequirements
+class FEConfiguration
 {
 public:
   static constexpr FESolutions globalSolutionTag = sol;
@@ -268,8 +268,8 @@ public:
   using SolutionVectorType = SV;
   using ParameterType      = PM;
 
-  FERequirements() = default;
-  FERequirements(SolutionVectorInputType solVec, ParameterInputType parameter)
+  FEConfiguration() = default;
+  FEConfiguration(SolutionVectorInputType solVec, ParameterInputType parameter)
       : sol_{solVec},
         parameter_{parameter} {}
 
@@ -279,9 +279,9 @@ public:
    * This function inserts the specified parameter into the requirements.
    *
    * \param val Reference to the raw parameter value.
-   * \return Reference to the updated FERequirements instance.
+   * \return Reference to the updated FEConfiguration instance.
    */
-  FERequirements& insertParameter(ParameterInputType val) {
+  FEConfiguration& insertParameter(ParameterInputType val) {
     parameter_ = val;
     return *this;
   }
@@ -292,9 +292,9 @@ public:
    * This function inserts the specified global solution vector into the requirements.
    *
    * \param solVec Reference to the raw global solution vector.
-   * \return Reference to the updated FERequirements instance.
+   * \return Reference to the updated FEConfiguration instance.
    */
-  FERequirements& insertGlobalSolution(SolutionVectorInputType solVec) {
+  FEConfiguration& insertGlobalSolution(SolutionVectorInputType solVec) {
     sol_ = solVec;
     return *this;
   }
@@ -350,13 +350,13 @@ private:
 
 template <FESolutions sol, FEParameter para, bool wrapWithRef = false, typename SV = Eigen::VectorXd,
           typename PM = double>
-struct FERequirementsFactory
+struct FEConfigurationFactory
 {
 private:
   using typeEigen = std::conditional_t<wrapWithRef and Ikarus::Concepts::EigenMatrix<SV>, Eigen::Ref<SV>, SV>;
 
 public:
-  using type = FERequirements<sol, para, typeEigen, PM>;
+  using type = FEConfiguration<sol, para, typeEigen, PM>;
 };
 
 } // namespace Ikarus

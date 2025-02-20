@@ -85,7 +85,7 @@ auto NonLinearElasticityLoadControlNRandTR(const Material& mat) {
   d.setZero(basis.flat().size());
   double lambda = 0.0;
 
-  auto req = typename FEType::Requirement(d, lambda);
+  auto req = typename FEType::Configuration(d, lambda);
 
   sparseAssembler->bind(req, Ikarus::AffordanceCollections::elastoStatics);
   auto nonLinOp = Ikarus::NonLinearOperatorFactory::op(sparseAssembler, DBCOption::Reduced);
@@ -225,8 +225,8 @@ auto GreenLagrangeStrainTest(const Material& mat) {
   d.setZero(nDOF);
   double lambda = 0.0;
 
-  auto req   = typename decltype(fe)::Requirement(d, lambda);
-  auto reqLE = typename decltype(feLE)::Requirement(d, lambda);
+  auto req   = typename decltype(fe)::Configuration(d, lambda);
+  auto reqLE = typename decltype(feLE)::Configuration(d, lambda);
 
   Eigen::MatrixXd K, KLE;
   K.setZero(nDOF, nDOF);
@@ -272,7 +272,7 @@ auto SingleElementTest(const Material& mat) {
 
   d << 2, 4, 3.25, -1.2, 0.003, 6, 3, 2.864;
 
-  auto req = typename decltype(fe)::Requirement(d, lambda);
+  auto req = typename decltype(fe)::Configuration(d, lambda);
 
   Eigen::MatrixXd K;
   K.setZero(nDOF, nDOF);

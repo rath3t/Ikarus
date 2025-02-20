@@ -13,8 +13,8 @@
 
 #include <dune/localfefunctions/eigenDuneTransformations.hh>
 
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/finiteelements/fehelper.hh>
-#include <ikarus/finiteelements/ferequirements.hh>
 
 namespace Ikarus {
 
@@ -49,8 +49,8 @@ public:
   using Traits       = PreFE::Traits;
   using BasisHandler = typename Traits::BasisHandler;
   using FlatBasis    = typename Traits::FlatBasis;
-  using Requirement =
-      FERequirementsFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
+  using Configuration =
+      FEConfigurationFactory<FESolutions::displacement, FEParameter::loadfactor, Traits::useEigenRef>::type;
   using LocalView = typename Traits::LocalView;
   using Geometry  = typename Traits::Geometry;
   using GridView  = typename Traits::GridView;
@@ -97,7 +97,7 @@ public:
    * \return The local displacement vector of the type Dune::BlockVector<Dune::RealTuple<ST, worldDim>>
    */
   template <typename ST = double>
-  auto displacement(const Requirement& par,
+  auto displacement(const Configuration& par,
                     const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const {
     const auto& d = par.globalSolution();
     auto disp     = Ikarus::FEHelper::localSolutionBlockVector<Traits>(d, underlying().localView(), dx);
@@ -115,7 +115,7 @@ public:
    */
   template <class ST = double>
   KinematicVariables<ST> computeStrain(
-      const Requirement& par,
+      const Configuration& par,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ST>>>& dx = std::nullopt) const {
     KinematicVariables<ST> kin;
     const auto& localView    = underlying().localView();
@@ -170,7 +170,7 @@ public:
    */
   template <template <typename, int, int> class RT>
   requires(supportsResultType<RT>())
-  auto calculateAtImpl(const Requirement& req, [[maybe_unused]] const Dune::FieldVector<double, Traits::mydim>& local,
+  auto calculateAtImpl(const Configuration& req, [[maybe_unused]] const Dune::FieldVector<double, Traits::mydim>& local,
                        Dune::PriorityTag<0>) const {
     using RTWrapper                            = ResultWrapper<RT<double, myDim, myDim>, ResultShape::Vector>;
     const auto [L, l, Elin, Egl, dEdu, ddEddu] = computeStrain(req);
@@ -199,14 +199,14 @@ private:
 protected:
   template <typename ScalarType>
   void calculateMatrixImpl(
-      const Requirement& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
+      const Configuration& par, const MatrixAffordance& affordance, typename Traits::template MatrixType<> K,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     const auto [L, l, Elin, Egl, dEdu, ddEddu] = computeStrain(par, dx);
     K += E * A * L * (dEdu * dEdu.transpose() + ddEddu * Egl);
   }
 
   template <typename ScalarType>
-  auto calculateScalarImpl(const Requirement& par, ScalarAffordance affordance,
+  auto calculateScalarImpl(const Configuration& par, ScalarAffordance affordance,
                            const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx =
                                std::nullopt) const -> ScalarType {
     const auto [L, l, Elin, Egl, dEdu, ddEddu] = computeStrain(par, dx);
@@ -215,7 +215,7 @@ protected:
 
   template <typename ScalarType>
   void calculateVectorImpl(
-      const Requirement& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
+      const Configuration& par, VectorAffordance affordance, typename Traits::template VectorType<ScalarType> force,
       const std::optional<std::reference_wrapper<const Eigen::VectorX<ScalarType>>>& dx = std::nullopt) const {
     const auto [L, l, Elin, Egl, dEdu, ddEddu] = computeStrain(par, dx);
     force += E * A * Egl * L * dEdu;

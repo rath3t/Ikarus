@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/finiteelements/fetraits.hh>
 #include <ikarus/finiteelements/mixin.hh>
 
@@ -90,7 +90,7 @@ public:
   using GridView     = typename Traits::GridView;    ///< Type of the global view.
   using GlobalIndex  = typename Traits::GlobalIndex; ///< Type of the global index.
   using GridElement  = typename Traits::Element;     ///< Type of the grid element.
-  using typename Mixin::Requirement;
+  using typename Mixin::Configuration;
 
   static constexpr int myDim    = Traits::mydim;
   static constexpr int worldDim = Traits::worlddim;

@@ -70,8 +70,8 @@ public:
   using typename WrappedAssembler::AffordanceCollectionType;
   using typename WrappedAssembler::Basis;
   using typename WrappedAssembler::DirichletValuesType;
+  using typename WrappedAssembler::FEConfiguration;
   using typename WrappedAssembler::FEContainer;
-  using typename WrappedAssembler::FERequirement;
   using typename WrappedAssembler::ScalarType;
   using typename WrappedAssembler::SizeType;
 
@@ -160,8 +160,8 @@ public:
   using typename WrappedAssembler::AffordanceCollectionType;
   using typename WrappedAssembler::Basis;
   using typename WrappedAssembler::DirichletValuesType;
+  using typename WrappedAssembler::FEConfiguration;
   using typename WrappedAssembler::FEContainer;
-  using typename WrappedAssembler::FERequirement;
   using typename WrappedAssembler::ScalarType;
   using typename WrappedAssembler::SizeType;
   using typename WrappedAssembler::VectorType;
@@ -269,8 +269,8 @@ public:
   using typename WrappedAssembler::AffordanceCollectionType;
   using typename WrappedAssembler::Basis;
   using typename WrappedAssembler::DirichletValuesType;
+  using typename WrappedAssembler::FEConfiguration;
   using typename WrappedAssembler::FEContainer;
-  using typename WrappedAssembler::FERequirement;
   using typename WrappedAssembler::MatrixType;
   using typename WrappedAssembler::ScalarType;
   using typename WrappedAssembler::SizeType;

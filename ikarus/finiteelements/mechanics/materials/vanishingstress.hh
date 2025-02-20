@@ -186,8 +186,10 @@ private:
       return (moduli(fixedDiagonalVoigtIndices, fixedDiagonalVoigtIndices) / Underlying::derivativeFactor).eval();
     };
 
-    auto Er    = E(fixedDiagonalVoigtIndices, fixedDiagonalVoigtIndices).eval().template cast<ScalarType>();
-    auto nonOp = Ikarus::NonLinearOperator(functions(f, df), parameter(Er));
+    auto Er        = E(fixedDiagonalVoigtIndices, fixedDiagonalVoigtIndices).eval().template cast<ScalarType>();
+    auto dummyConf = typename FEConfigurationFactory<FESolutions::displacement, FEParameter::noParameter, false,
+                                                     decltype(Er)>::type();
+    auto nonOp     = Ikarus::NonLinearOperator(functions(f, df), parameter(dummyConf));
 
     auto linearSolver   = [](auto& r, auto& A) { return (A.inverse() * r).eval(); };
     auto updateFunction = [&](auto& /* Ex33 */, auto& ecomps) {

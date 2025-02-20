@@ -159,7 +159,7 @@ public:
     this->notify(NonLinearSolverMessages::INIT);
     Ikarus::NonLinearSolverInformation solverInformation;
     solverInformation.success = true;
-    auto& x                   = nonLinearOperator().firstParameter();
+    auto& x                   = nonLinearOperator().firstParameter().globalSolution();
     if constexpr (not std::is_same_v<SolutionType, NoPredictor>)
       updateFunction_(x, dxPredictor);
     nonLinearOperator().updateAll();

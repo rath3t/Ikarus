@@ -12,8 +12,8 @@
 #include <dune/common/referencehelper.hh>
 
 #include <ikarus/assembler/dirichletbcenforcement.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/finiteelements/fehelper.hh>
-#include <ikarus/finiteelements/ferequirements.hh>
 #include <ikarus/utils/dirichletvalues.hh>
 
 namespace Ikarus {
@@ -29,8 +29,8 @@ template <typename FEC, typename DV>
 class FlatAssemblerBase
 {
 public:
-  using FEContainerRaw = std::remove_cvref_t<FEC>; ///< Type of the raw finite element container.
-  using FERequirement  = typename FEContainerRaw::value_type::Requirement;
+  using FEContainerRaw  = std::remove_cvref_t<FEC>; ///< Type of the raw finite element container.
+  using FEConfiguration = typename FEContainerRaw::value_type::Configuration;
   ///< Type of the finite element requirement.
   using GlobalIndex = typename FEContainerRaw::value_type::GlobalIndex; ///< Type of the global index.
   using Basis       = typename DV::Basis;                               ///< Type of the basis.
@@ -132,9 +132,9 @@ public:
    * \param req Reference to the finite element requirement.
    * \param affordanceCollection The affordance collection
    */
-  void bind(const FERequirement& req, AffordanceCollectionType affordanceCollection,
+  void bind(const FEConfiguration& req, AffordanceCollectionType affordanceCollection,
             DBCOption dbcOption = DBCOption::Full) {
-    req_         = std::make_optional<FERequirement>(req);
+    req_         = std::make_optional<FEConfiguration>(req);
     affordances_ = std::make_optional<AffordanceCollectionType>(affordanceCollection);
     dBCOption_   = std::make_optional<DBCOption>(dbcOption);
   }
@@ -144,7 +144,7 @@ public:
    *
    * \param req Reference to the finite element requirement.
    */
-  void bind(const FERequirement& req) { req_ = std::make_optional<FERequirement>(req); }
+  void bind(const FEConfiguration& req) { req_ = std::make_optional<FEConfiguration>(req); }
 
   /**
    * \brief Binds the assembler to an affordance collection.
@@ -209,7 +209,7 @@ public:
    * \brief Returns the requirement.
    *
    */
-  FERequirement& requirement() {
+  FEConfiguration& requirement() {
     if (req_.has_value())
       return req_.value();
     else
@@ -241,7 +241,7 @@ public:
 private:
   FEContainer feContainer_;
   DirichletValuesType dirichletValues_;
-  std::optional<FERequirement> req_;
+  std::optional<FEConfiguration> req_;
   std::optional<AffordanceCollectionType> affordances_;
   std::vector<size_t> constraintsBelow_{};
   size_t fixedDofs_{};
@@ -271,21 +271,21 @@ public:
   using DirichletValuesType = DV;
   using FEContainer         = FEC;
   using FEContainerRaw      = std::remove_cvref_t<FEC>; ///< Type of the raw finite element container.
-  using FERequirement       = typename FEContainerRaw::value_type::Requirement;
+  using FEConfiguration     = typename FEContainerRaw::value_type::Configuration;
 
   /**
-   * \brief Calculates the scalar quantity requested by feRequirements and affordance.
+   * \brief Calculates the scalar quantity requested by feConfiguration and affordance.
    *
-   * \param feRequirements Reference to the finite element requirements.
+   * \param feConfiguration Reference to the finite element requirements.
    * \param affordance The scalar affordance
    * \return Const reference to the calculated scalar quantity.
    */
-  const ScalarType& scalar(const FERequirement& feRequirements, ScalarAffordance affordance) {
-    return underlying().getScalarImpl(feRequirements, affordance);
+  const ScalarType& scalar(const FEConfiguration& feConfiguration, ScalarAffordance affordance) {
+    return underlying().getScalarImpl(feConfiguration, affordance);
   }
 
   /**
-   * \brief Calculates the scalar quantity requested by the bound feRequirements and returns a reference.
+   * \brief Calculates the scalar quantity requested by the bound feConfiguration and returns a reference.
    *
    * \return Const reference to the calculated scalar quantity.
    */
@@ -314,8 +314,8 @@ public:
   using VectorAssemblerType = VA;
   using VectorType          = VT;
 
-  using FEContainerRaw = std::remove_cvref_t<FEC>; ///< Type of the raw finite element container.
-  using FERequirement  = typename FEContainerRaw::value_type::Requirement;
+  using FEContainerRaw  = std::remove_cvref_t<FEC>; ///< Type of the raw finite element container.
+  using FEConfiguration = typename FEContainerRaw::value_type::Configuration;
   ///< Type of the finite element requirement.
   using GlobalIndex = typename FEContainerRaw::value_type::GlobalIndex; ///< Type of the global index.
 
@@ -323,32 +323,32 @@ public:
   using FEContainer         = FEC;
 
   /**
-     * \brief Calculates the vectorial quantity requested by the  feRequirements and the affordance.
+     * \brief Calculates the vectorial quantity requested by the  feConfiguration and the affordance.
      Depending on the requested DBCOption, the raw, reduced or full vector is returned.
       Raw means the degrees of freedom associated with dirichlet boundary conditions are not changed.
       Full means that degrees of freedom associated with dirichlet boundary conditions are set to zero in the vector.
       Reduced means that degrees of freedom associated with dirichlet boundary conditions are removed and the returned
      vector has reduced size.
      *
-     * \param feRequirements Reference to the finite element requirements.
+     * \param feConfiguration Reference to the finite element requirements.
      * \param affordance The vector affordance
      * \param dbcOption The DBCOption
      * \return Const reference to the calculated vectorial quantity.
      */
-  const VectorType& vector(const FERequirement& feRequirements, VectorAffordance affordance,
+  const VectorType& vector(const FEConfiguration& feConfiguration, VectorAffordance affordance,
                            DBCOption dbcOption = DBCOption::Full) {
     if (dbcOption == DBCOption::Raw) {
-      return underlying().getRawVectorImpl(feRequirements, affordance);
+      return underlying().getRawVectorImpl(feConfiguration, affordance);
     } else if (dbcOption == DBCOption::Reduced) {
-      return underlying().getReducedVectorImpl(feRequirements, affordance);
+      return underlying().getReducedVectorImpl(feConfiguration, affordance);
     } else if (dbcOption == DBCOption::Full) {
-      return underlying().getVectorImpl(feRequirements, affordance);
+      return underlying().getVectorImpl(feConfiguration, affordance);
     }
     __builtin_unreachable();
   }
 
   /**
- * \brief Calculates the vectorial quantity requested by the bound feRequirements and the affordance.
+ * \brief Calculates the vectorial quantity requested by the bound feConfiguration and the affordance.
  Depending on the requested DBCOption, the raw, reduced or full vector is returned.
   Raw means the degrees of freedom associated with dirichlet boundary conditions are not changed.
   Full means that degrees of freedom associated with dirichlet boundary conditions are set to zero in the vector.
@@ -362,7 +362,7 @@ public:
   }
 
   /**
-* \brief Calculates the vectorial quantity requested by the bound feRequirements,  the affordance and the
+* \brief Calculates the vectorial quantity requested by the bound feConfiguration,  the affordance and the
 dBCOption. Depending on the DBCOption, the raw, reduced or full vector is returned. Raw
 means the degrees of freedom associated with dirichlet boundary conditions are not changed. Full means that degrees of
 freedom associated with dirichlet boundary conditions are set to zero in the vector. Reduced means that degrees of
@@ -391,8 +391,8 @@ public:
   using MatrixAssemblerType = MA;
   using MatrixType          = MT;
 
-  using FEContainerRaw = std::remove_cvref_t<FEC>; ///< Type of the raw finite element container.
-  using FERequirement  = typename FEContainerRaw::value_type::Requirement;
+  using FEContainerRaw  = std::remove_cvref_t<FEC>; ///< Type of the raw finite element container.
+  using FEConfiguration = typename FEContainerRaw::value_type::Configuration;
   ///< Type of the finite element requirement.
   using GlobalIndex = typename FEContainerRaw::value_type::GlobalIndex; ///< Type of the global index.
 
@@ -400,31 +400,31 @@ public:
   using FEContainer         = FEC;
 
   /**
-   * \brief Calculates the matrix quantity requested by feRequirements and the affordance.
+   * \brief Calculates the matrix quantity requested by feConfiguration and the affordance.
    * For DBCOption::Full a zero is written on fixed degrees of freedom rows and columns, and a one is written
    * on the diagonal. For DBCOption::Raw the untouched matrix is returned.
    * For DBCOption::Reduced the matrix is reduced in size by removing the fixed degrees of freedom.
 
-    \param feRequirements Reference to the finite element requirements.
+    \param feConfiguration Reference to the finite element requirements.
    * \param affordance The matrix affordance
    * \param dbcOption The DBCOption
    * \return Const reference to the modified sparse matrix quantity.
    */
-  const MatrixType& matrix(const FERequirement& feRequirements, MatrixAffordance affordance,
+  const MatrixType& matrix(const FEConfiguration& feConfiguration, MatrixAffordance affordance,
                            DBCOption dbcOption = DBCOption::Full) {
     if (dbcOption == DBCOption::Raw) {
-      return underlying().getRawMatrixImpl(feRequirements, affordance);
+      return underlying().getRawMatrixImpl(feConfiguration, affordance);
     } else if (dbcOption == DBCOption::Reduced) {
-      return underlying().getReducedMatrixImpl(feRequirements, affordance);
+      return underlying().getReducedMatrixImpl(feConfiguration, affordance);
     } else if (dbcOption == DBCOption::Full) {
-      return underlying().getMatrixImpl(feRequirements, affordance);
+      return underlying().getMatrixImpl(feConfiguration, affordance);
     }
     __builtin_unreachable();
   }
 
   /**
-   * \brief Calculates the matrix quantity requested by the bound feRequirements and the affordance.
-   * \see const Eigen::SparseMatrix<double>& matrix(const FERequirement& feRequirements,MatrixAffordance affordance,
+   * \brief Calculates the matrix quantity requested by the bound feConfiguration and the affordance.
+   * \see const Eigen::SparseMatrix<double>& matrix(const FERequirement& feConfiguration,MatrixAffordance affordance,
    DBCOption dbcOption)
 
    * \param dbcOption The DBCOption
@@ -435,9 +435,9 @@ public:
   }
 
   /**
- * \brief Calculates the matrix quantity requested by the bound feRequirements, the affordance and the
+ * \brief Calculates the matrix quantity requested by the bound feConfiguration, the affordance and the
 dBCOption.
- * \see const Eigen::SparseMatrix<double>& matrix(const FERequirement& feRequirements,MatrixAffordance affordance,
+ * \see const Eigen::SparseMatrix<double>& matrix(const FERequirement& feConfiguration,MatrixAffordance affordance,
  DBCOption dbcOption)
 
  * \return Const reference to the modified sparse matrix quantity.

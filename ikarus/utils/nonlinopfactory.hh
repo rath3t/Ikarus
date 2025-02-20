@@ -11,7 +11,7 @@
 #include <utility>
 
 #include <ikarus/assembler/dirichletbcenforcement.hh>
-#include <ikarus/finiteelements/ferequirements.hh>
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/utils/nonlinearoperator.hh>
 
 namespace Ikarus {
@@ -19,7 +19,8 @@ namespace Ikarus {
 struct NonLinearOperatorFactory
 {
   template <typename Assembler, typename... Affordances>
-  static auto op(Assembler&& as, typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FERequirement& req,
+  static auto op(Assembler&& as,
+                 typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FEConfiguration& req,
                  AffordanceCollection<Affordances...> affordances, DBCOption dbcOption) {
     auto assemblerPtr = [as]() {
       if constexpr (std::is_pointer_v<std::remove_cvref_t<Assembler>> or
@@ -29,20 +30,20 @@ struct NonLinearOperatorFactory
         return std::make_shared<std::remove_cvref_t<Assembler>>(std::forward<Assembler>(as));
     }();
 
-    using FERequirement             = typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FERequirement;
+    using FEConfiguration = typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FEConfiguration;
     [[maybe_unused]] auto KFunction = [dbcOption, assembler = assemblerPtr, affordances](
-                                          typename FERequirement::SolutionVectorType& globalSol,
-                                          typename FERequirement::ParameterType& parameter) -> auto& {
-      FERequirement req;
+                                          typename FEConfiguration::SolutionVectorType& globalSol,
+                                          typename FEConfiguration::ParameterType& parameter) -> auto& {
+      FEConfiguration req;
       req.insertGlobalSolution(globalSol).insertParameter(parameter);
 
       return assembler->matrix(req, affordances.matrixAffordance(), dbcOption);
     };
 
     [[maybe_unused]] auto residualFunction = [dbcOption, assembler = assemblerPtr, affordances](
-                                                 typename FERequirement::SolutionVectorType& globalSol,
-                                                 typename FERequirement::ParameterType& parameter) -> auto& {
-      FERequirement req;
+                                                 typename FEConfiguration::SolutionVectorType& globalSol,
+                                                 typename FEConfiguration::ParameterType& parameter) -> auto& {
+      FEConfiguration req;
       req.insertGlobalSolution(globalSol).insertParameter(parameter);
       return assembler->vector(req, affordances.vectorAffordance(), dbcOption);
     };
@@ -50,18 +51,17 @@ struct NonLinearOperatorFactory
     assert(req.populated() && " Before you calls this method you have to pass populated fe requirements");
     if constexpr (affordances.hasScalarAffordance) {
       [[maybe_unused]] auto energyFunction = [assembler = assemblerPtr, affordances](
-                                                 typename FERequirement::SolutionVectorType& globalSol,
-                                                 typename FERequirement::ParameterType& parameter) -> auto& {
-        FERequirement req;
+                                                 typename FEConfiguration::SolutionVectorType& globalSol,
+                                                 typename FEConfiguration::ParameterType& parameter) -> auto& {
+        FEConfiguration req;
         req.insertGlobalSolution(globalSol).insertParameter(parameter);
 
         return assembler->scalar(req, affordances.scalarAffordance());
       };
       return NonLinearOperator(functions(std::move(energyFunction), std::move(residualFunction), std::move(KFunction)),
-                               parameter(req.globalSolution(), req.parameter()));
+                               parameter(req));
     } else
-      return NonLinearOperator(functions(std::move(residualFunction), std::move(KFunction)),
-                               parameter(req.globalSolution(), req.parameter()));
+      return NonLinearOperator(functions(std::move(residualFunction), std::move(KFunction)), parameter(req));
   }
 
   template <typename Assembler>
@@ -130,7 +130,8 @@ struct NonLinearOperatorFactory
   }
 
   template <typename Assembler>
-  static auto op(Assembler&& as, typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FERequirement& req,
+  static auto op(Assembler&& as,
+                 typename traits::remove_pointer_t<std::remove_cvref_t<Assembler>>::FEConfiguration& req,
                  DBCOption dbcOption) {
     auto ex = []() {
       DUNE_THROW(Dune::InvalidStateException,

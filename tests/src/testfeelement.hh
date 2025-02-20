@@ -10,8 +10,8 @@
 
 #include <ikarus/assembler/simpleassemblers.hh>
 #include "ikarus/finiteelements/feresulttypes.hh"
+#include <ikarus/finiteelements/feconfiguration.hh>
 #include <ikarus/finiteelements/fefactory.hh>
-#include <ikarus/finiteelements/ferequirements.hh>
 #include <ikarus/finiteelements/mechanics/loads.hh>
 #include <ikarus/finiteelements/mixin.hh>
 #include <ikarus/utils/basis.hh>
@@ -147,8 +147,8 @@ inline auto checkJacobianFunctor = [](auto& nonLinOp, [[maybe_unused]] auto& fe,
 template <template <typename, int, int> class RT, typename ResultEvaluator = Ikarus::Impl::DefaultUserFunction>
 auto checkResultFunctionFunctorFactory(const auto& resultCollectionFunction, ResultEvaluator&& resultEvaluator = {}) {
   return [&](auto& nonLinOp, auto& fe, [[maybe_unused]] auto& req, [[maybe_unused]] auto& affordance) {
-    auto [feRequirements, expectedStress, positions] = resultCollectionFunction(nonLinOp, fe);
-    return checkResultFunction<RT, ResultEvaluator>(nonLinOp, fe, feRequirements, expectedStress, positions,
+    auto [feConfiguration, expectedStress, positions] = resultCollectionFunction(nonLinOp, fe);
+    return checkResultFunction<RT, ResultEvaluator>(nonLinOp, fe, feConfiguration, expectedStress, positions,
                                                     std::forward<ResultEvaluator>(resultEvaluator), "");
   };
 }
@@ -160,11 +160,11 @@ inline auto checkFEByAutoDiffFunctor = [](auto& nonLinOp, auto& fe, auto& req, a
 template <template <typename, int, int> class RT, bool voigt = true>
 auto checkCalculateAtFunctorFactory(const auto& resultCollectionFunction) {
   return [&](auto& nonLinOp, auto& fe, [[maybe_unused]] auto& req, [[maybe_unused]] auto& affordance) {
-    auto [feRequirements, expectedStress, positions] = resultCollectionFunction(nonLinOp, fe);
+    auto [feConfiguration, expectedStress, positions] = resultCollectionFunction(nonLinOp, fe);
     if constexpr (voigt)
-      return checkCalculateAt<RT>(nonLinOp, fe, feRequirements, expectedStress, positions);
+      return checkCalculateAt<RT>(nonLinOp, fe, feConfiguration, expectedStress, positions);
     else
-      return checkCalculateAt<RT, voigt>(nonLinOp, fe, feRequirements, stressResultsToMatrix(expectedStress),
+      return checkCalculateAt<RT, voigt>(nonLinOp, fe, feConfiguration, stressResultsToMatrix(expectedStress),
                                          positions);
   };
 }

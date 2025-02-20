@@ -4,7 +4,7 @@
 # install headers
 install(
   FILES autodifffe.hh
-        ferequirements.hh
+        feconfiguration.hh
         fetraits.hh
         fehelper.hh
         physicshelper.hh
