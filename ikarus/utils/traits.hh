@@ -16,6 +16,11 @@ template <class T>
 class shared_ptr;
 }
 
+namespace Eigen {
+
+ template<typename Derived> class SparseMatrixBase;
+}
+
 #include <dune/common/hybridutilities.hh>
 namespace Ikarus::traits {
 

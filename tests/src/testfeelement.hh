@@ -140,7 +140,7 @@ inline auto checkHessianFunctor  = [](auto& nonLinOp, [[maybe_unused]] auto& fe,
                                      [[maybe_unused]] auto& affordance) { return checkHessianOfElement(nonLinOp); };
 inline auto checkJacobianFunctor = [](auto& nonLinOp, [[maybe_unused]] auto& fe, [[maybe_unused]] auto& req,
                                       [[maybe_unused]] auto& affordance) {
-  auto subOperator = nonLinOp.template subOperator<1, 2>();
+  auto subOperator = derivative(nonLinearOperator);
   return checkJacobianOfElement(subOperator);
 };
 

@@ -19,7 +19,7 @@ struct ElementTest<FE>
 
       Dune::TestSuite t("EAS specific test");
 
-      auto subOp = nonLinOp.template subOperator<1, 2>();
+      auto subOp = derivative(nonLinearOperator);
       std::array<int, (gridDim == 2) ? 4 : 3> easParameters;
       if constexpr (gridDim == 2)
         easParameters = {0, 4, 5, 7};

@@ -92,7 +92,7 @@ auto testMaterialWithStrain(const MaterialImpl& mat, const double tol = 1e-13) {
   };
 
   auto nonLinOp    = Ikarus::NonLinearOperator(functions(f, df, ddf), parameter(ev));
-  auto subNonLinOp = nonLinOp.template subOperator<1, 2>();
+  auto subNonLinOp = derivative(nonLinearOperator);
 
   t.check(utils::checkGradient(nonLinOp, {.draw = false, .writeSlopeStatementIfFailed = true}))
       << std::string("checkGradient Failed");

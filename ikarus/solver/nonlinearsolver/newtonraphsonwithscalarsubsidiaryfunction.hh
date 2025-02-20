@@ -74,7 +74,7 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
 
   if constexpr (std::remove_cvref_t<NLO>::numberOfFunctions == 3) {
     auto solver =
-        solverFactory(nonLinearOperator.template subOperator<1, 2>(), std::forward<NRConfig>(config).linearSolver,
+        solverFactory(derivative(nonLinearOperator), std::forward<NRConfig>(config).linearSolver,
                       std::forward<NRConfig>(config).updateFunction);
     solver->setup(config.parameters);
     return solver;
