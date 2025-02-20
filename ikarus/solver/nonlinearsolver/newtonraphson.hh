@@ -112,7 +112,7 @@ public:
       Ikarus::Concepts::LinearSolverCheck<LinearSolver, JacobianType, CorrectionType>;
 
   ///< Type representing the parameter vector of the nonlinear operator.
-  using Domain = typename SignatureTraits::template Parameter<0>;
+  using Domain = typename SignatureTraits::Domain;
 
 
 
@@ -121,7 +121,7 @@ public:
 
   /**
    * \brief Constructor for NewtonRaphson.
-   * \param nonLinearOperator residual to solve.
+   * \param residual residual to solve.
    * \param linearSolver Linear solver used internally (default is SolverDefault).
    * \param updateFunction Update function (default is UpdateDefault).
    */
@@ -146,7 +146,7 @@ public:
 
   /**
    * \brief Solve the nonlinear system.
-   * \param dxPredictor Predictor for the solution increment (default is NoPredictor).
+   * \param x Where the solution should be stored.
    * \return Information about the solution process.
    */
   [[nodiscard(

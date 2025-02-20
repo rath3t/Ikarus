@@ -92,11 +92,14 @@ struct ArcLength
    *
    * \tparam NLO Type of the nonlinear operator.
    * \param nonLinearOperator The nonlinear operator.
+   * \tparam SolutionType Type of the solution.
    * \param args The subsidiary function arguments.
+   * \param d The solution vector.
+   * \param lambda The load factor.
    * \ingroup  controlroutines
    */
-  template <typename NLO>
-  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args) {
+  template <typename NLO,typename SolutionType>
+  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
     SolverTypeTag solverTag;
     using JacobianType = std::remove_cvref_t<typename NLO::DerivativeType>;
     static_assert((traits::isSpecializationTypeAndNonTypes<Eigen::Matrix, JacobianType>::value) or
@@ -108,10 +111,9 @@ struct ArcLength
     else
       solverTag = SolverTypeTag::sd_SimplicialLDLT;
 
-    nonLinearOperator.lastParameter() = 1.0; // lambda =1.0
-    nonLinearOperator.template update<0>();
-    const auto& R = nonLinearOperator.value();
-    const auto& K = nonLinearOperator.derivative();
+    lambda = 1.0; // lambda =1.0
+    decltype(auto) R = nonLinearOperator(d);
+     decltype(auto) K = derivative(nonLinearOperator)(d);
 
     static constexpr bool isLinearSolver =
         Ikarus::Concepts::LinearSolverCheck<decltype(LinearSolver(solverTag)), typename NLO::DerivativeType,
@@ -132,8 +134,8 @@ struct ArcLength
     args.DD      = args.DD * args.stepSize / s;
     args.Dlambda = args.stepSize / s;
 
-    nonLinearOperator.firstParameter() = args.DD;
-    nonLinearOperator.lastParameter()  = args.Dlambda;
+    d = args.DD;
+    lambda  = args.Dlambda;
   }
 
   /**
@@ -142,13 +144,16 @@ struct ArcLength
    * This method updates the prediction step for the standard arc-length method.
    *
    * \tparam NLO Type of the nonlinear operator.
+   * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
+    * \param d The solution vector.
+   * \param lambda The load factor.
    */
-  template <typename NLO>
-  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args) {
-    nonLinearOperator.firstParameter() += args.DD;
-    nonLinearOperator.lastParameter() += args.Dlambda;
+  template <typename NLO,typename SolutionType>
+  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
+    d += args.DD;
+    lambda += args.Dlambda;
   }
 
   /** \brief The name of the PathFollowing method. */
@@ -191,13 +196,16 @@ struct LoadControlSubsidiaryFunction
    * This method initializes the prediction step for the load control method.
    *
    * \tparam NLO Type of the nonlinear operator.
+  * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
+     * \param d The solution vector.
+   * \param lambda The load factor.
    */
-  template <typename NLO>
-  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args) {
+  template <typename NLO,typename SolutionType>
+  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
     args.Dlambda                      = args.stepSize;
-    nonLinearOperator.lastParameter() = args.Dlambda;
+    lambda = args.Dlambda;
   }
 
   /**
@@ -206,12 +214,15 @@ struct LoadControlSubsidiaryFunction
    * This method updates the prediction step for the load control method.
    *
    * \tparam NLO Type of the nonlinear operator.
+     * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
+  * \param d The solution vector.
+   * \param lambda The load factor.
    */
-  template <typename NLO>
-  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args) {
-    nonLinearOperator.lastParameter() += args.Dlambda;
+  template <typename NLO,typename SolutionType>
+  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
+    lambda += args.Dlambda;
   }
 
   /** \brief The name of the PathFollowing method. */
@@ -261,13 +272,16 @@ struct DisplacementControl
    * This method initializes the prediction step for the displacement control method.
    *
    * \tparam NLO Type of the nonlinear operator.
+     * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
+  * \param d The solution vector.
+   * \param lambda The load factor.
    */
-  template <typename NLO>
-  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args) {
+  template <typename NLO,typename SolutionType>
+  void initialPrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
     args.DD(controlledIndices).array() = args.stepSize;
-    nonLinearOperator.firstParameter() = args.DD;
+    d= args.DD;
   }
 
   /**
@@ -276,12 +290,15 @@ struct DisplacementControl
    * This method updates the prediction step for the displacement control method.
    *
    * \tparam NLO Type of the nonlinear operator.
+     * \tparam SolutionType Type of the solution.
    * \param nonLinearOperator The nonlinear operator.
    * \param args The subsidiary function arguments.
+  * \param d The solution vector.
+   * \param lambda The load factor.
    */
-  template <typename NLO>
-  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args) {
-    nonLinearOperator.firstParameter() += args.DD;
+  template <typename NLO,typename SolutionType>
+  void intermediatePrediction(NLO& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
+    d += args.DD;
   }
 
   /** \brief The name of the PathFollowing method. */

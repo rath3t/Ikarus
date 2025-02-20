@@ -31,31 +31,8 @@ namespace Impl {
   {
     std::tuple<Args...> args;
   };
-
-  /**
-   * \brief Represents a tuple of parameters.
-   *
-   * \tparam Args The argument types.
-   */
-  template <typename... Args>
-  struct Parameter
-  {
-    std::tuple<Args...> args;
-  };
-
 } // namespace Impl
 
-/**
- * \brief Creates a Parameter object.
- *
- * \tparam Args The argument types.
- * \param args The tuple of arguments.
- * \return auto The Parameter object.
- */
-template <typename... Args>
-auto parameter(Args&&... args) {
-  return Impl::Parameter<Args...>{std::forward_as_tuple(std::forward<Args>(args)...)};
-}
 
 /**
  * \brief Creates a Functions object.
@@ -75,24 +52,25 @@ class NonLinearOperator;
 
 #endif
 
-template <class Range, class Domain, template <class> class DerivativeTraits, class F>
-class NonLinearOperator<Range(Domain), DerivativeTraits, F>
-    : private Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>
+template <class Range, class D, template <class> class DerivativeTraits, class F>
+class NonLinearOperator<Range(D), DerivativeTraits, F>
+    : private Dune::Functions::DifferentiableFunctionFromCallables<Range(D), DerivativeTraits, F>
 {
 
-  using Base = Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F>;
+  using Base = Dune::Functions::DifferentiableFunctionFromCallables<Range(D), DerivativeTraits, F>;
   public:
+  using Domain = D;
     static constexpr auto nDerivatives = 0;
 
   template<class FFF, Dune::disableCopyMove<NonLinearOperator, FFF> = 0>
   NonLinearOperator(FFF&& f) :
     Base(std::forward<FFF>(f))
   {}
-  using Traits = DerivativeTraitsFromCallables<Impl::Functions<F>, Impl::Parameter<Domain>>;
+  using Traits = DerivativeTraitsFromCallables<Impl::Functions<F>, Domain>;
 
   using Derivative = NonLinearOperator<typename Traits::template Signature<1>, DerivativeTraits>;
 
-  Range operator() (const Domain& x) const
+  Range operator() (const D& x) const
   {
     return Base::operator()(x );
   }
@@ -114,24 +92,27 @@ class NonLinearOperator<Range(Domain), DerivativeTraits, F>
  * \tparam DerivativeArgs The types of derivative arguments.
  * \tparam ParameterArgs The types of parameter arguments.
  */
-template <class Range, class Domain, template <class> class DerivativeTraits, class F,class... FF>
-class NonLinearOperator<Range(Domain), DerivativeTraits, F,FF...>
-    : private Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F,FF...>
+template <class Range, class D, template <class> class DerivativeTraits, class F,class... FF>
+class NonLinearOperator<Range(D), DerivativeTraits, F,FF...>
+    : private Dune::Functions::DifferentiableFunctionFromCallables<Range(D), DerivativeTraits, F,FF...>
 {
 
-  using Base = Dune::Functions::DifferentiableFunctionFromCallables<Range(Domain), DerivativeTraits, F,FF...>;
+
+  using Base = Dune::Functions::DifferentiableFunctionFromCallables<Range(D), DerivativeTraits, F,FF...>;
   public:
+    using Domain = std::remove_cvref_t<D>;
     static constexpr auto nDerivatives = sizeof...(FF);
 
   template<class... FFF>
   NonLinearOperator(FFF&&... f) :
     Base(std::forward<FFF>(f)...)
   {}
-  using Traits = DerivativeTraitsFromCallables<Impl::Functions<F,FF...>, Impl::Parameter<Domain>>;
+  using Traits = DerivativeTraitsFromCallables<Impl::Functions<F,FF...>, D>;
+
 
   using Derivative = NonLinearOperator<typename Traits::template Signature<1>, DerivativeTraits, FF...>;
 
-  Range operator() (const Domain& x) const
+  Range operator() (const D& x) const
   {
     return Base::operator()(x );
   }
@@ -147,10 +128,10 @@ class NonLinearOperator<Range(Domain), DerivativeTraits, F,FF...>
    }
 };
 
-template <typename... DerivativeArgs, typename... ParameterArgs>
+template <typename... DerivativeArgs, typename Arg>
 auto makeNonLinearOperator(const Impl::Functions<DerivativeArgs...>& derivativesFunctions,
-                           const Impl::Parameter<ParameterArgs...>& parameters) {
-  DerivativeTraitsFromCallables t(derivativesFunctions, parameters);
+                            Arg&& parameter) {
+  DerivativeTraitsFromCallables t(derivativesFunctions, std::forward<Arg>(parameter));
   using DerivTraits = decltype(t);
   auto la           = []<typename... F>(F&&... f) {
     return Ikarus::NonLinearOperator<typename DerivTraits::template Signature<0>,

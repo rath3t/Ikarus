@@ -120,14 +120,13 @@ auto testFEElement(const PreBasis& preBasis, const std::string& elementName, con
   auto nonLinOp = Ikarus::NonLinearOperatorFactory::op(sparseAssembler);
 
   // execute all passed functions
-  nonLinOp.updateAll();
   Dune::Hybrid::forEach(Dune::Hybrid::integralRange(Dune::index_constant<sizeof...(F)>()),
                         [&](auto i) { t.subTest(std::get<i.value>(fTuple)(nonLinOp, fe, requirements, affordances)); });
 
   // check if element has a test functor, if yes we execute it
   if constexpr (requires { ElementTest<FEType>::test(); }) {
     auto testFunctor = ElementTest<FEType>::test();
-    t.subTest(testFunctor(nonLinOp, fe, requirements, affordances));
+    t.subTest(testFunctor(nonLinOp,fe, requirements, affordances));
   } else
     spdlog::info("No element test functor found for {}", Dune::className<FEType>());
 
@@ -135,13 +134,13 @@ auto testFEElement(const PreBasis& preBasis, const std::string& elementName, con
 }
 
 inline auto checkGradientFunctor = [](auto& nonLinOp, [[maybe_unused]] auto& fe, [[maybe_unused]] auto& req,
-                                      [[maybe_unused]] auto& affordance) { return checkGradientOfElement(nonLinOp); };
+                                      [[maybe_unused]] auto& affordance) { return checkGradientOfElement(nonLinOp,req); };
 inline auto checkHessianFunctor  = [](auto& nonLinOp, [[maybe_unused]] auto& fe, [[maybe_unused]] auto& req,
-                                     [[maybe_unused]] auto& affordance) { return checkHessianOfElement(nonLinOp); };
+                                     [[maybe_unused]] auto& affordance) { return checkHessianOfElement(nonLinOp,req); };
 inline auto checkJacobianFunctor = [](auto& nonLinOp, [[maybe_unused]] auto& fe, [[maybe_unused]] auto& req,
                                       [[maybe_unused]] auto& affordance) {
-  auto subOperator = derivative(nonLinearOperator);
-  return checkJacobianOfElement(subOperator);
+  auto subOperator = derivative(nonLinOp);
+  return checkJacobianOfElement(subOperator,req);
 };
 
 template <template <typename, int, int> class RT, typename ResultEvaluator = Ikarus::Impl::DefaultUserFunction>

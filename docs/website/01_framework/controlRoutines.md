@@ -88,8 +88,8 @@ with the following three member functions:
 
 ```cpp
 void evaluateSubsidiaryFunction(SubsidiaryArgs& args) const;
-void initialPrediction(NonLinearOperator& nonLinearOperator, SubsidiaryArgs& args);
-void intermediatePrediction(NonLinearOperator& nonLinearOperator, SubsidiaryArgs& args);
+void initialPrediction(NonLinearOperator& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda);
+void intermediatePrediction(NonLinearOperator& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda);
 ```
 
 For each Newton-Raphson iteration, the function `#!cpp evaluateSubsidiaryFunction(SubsidiaryArgs& args)` is used to evaluate the
@@ -135,8 +135,8 @@ struct StandardArcLength {
                    "You have to call initialPrediction first. Otherwise psi is not defined");
     }
 
-    template <typename NonLinearOperator>
-    void initialPrediction(NonLinearOperator& nonLinearOperator, SubsidiaryArgs& args) {
+     template <typename NLO,typename SolutionType>
+    void initialPrediction(NonLinearOperator& nonLinearOperator, SubsidiaryArgs& args, SolutionType& d,  double& lambda) {
       auto linearSolver
           = Ikarus::LinearSolver(Ikarus::SolverTypeTag::d_LDLT);  // for the linear predictor step
 
@@ -157,11 +157,11 @@ struct StandardArcLength {
       args.DD      = args.DD * args.stepSize / s;
       args.Dlambda = args.stepSize / s;
 
-      nonLinearOperator.firstParameter() = args.DD;
-      nonLinearOperator.lastParameter()  = args.Dlambda;
+      d = args.DD;
+      lambda  = args.Dlambda;
     }
 
-    template <typename NonLinearOperator>
+  template <typename NLO,typename SolutionType>
     void intermediatePrediction(NonLinearOperator& nonLinearOperator, SubsidiaryArgs& args) {
       nonLinearOperator.firstParameter() += args.DD;
       nonLinearOperator.lastParameter() += args.Dlambda;

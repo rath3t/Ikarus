@@ -11,7 +11,7 @@ double x               = 13;
 auto fvLambda  = [&](auto&& x) { return f(x); };
 auto dfvLambda = [&](auto&& x) { return df(x); };
 
-auto nonLinOp = Ikarus::NonLinearOperator(functions(fvLambda, dfvLambda), parameter(x));
+auto nonLinOp = Ikarus::NonLinearOperator(functions(fvLambda, dfvLambda), x);
 ```
 
 !!! note

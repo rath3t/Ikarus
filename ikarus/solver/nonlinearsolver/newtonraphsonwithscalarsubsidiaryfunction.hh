@@ -72,14 +72,14 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
                                                                                            std::forward<UF2>(uf));
   };
 
-  if constexpr (std::remove_cvref_t<NLO>::numberOfFunctions == 3) {
+  if constexpr (std::remove_cvref_t<NLO>::nDerivatives == 3) {
     auto solver =
         solverFactory(derivative(nonLinearOperator), std::forward<NRConfig>(config).linearSolver,
                       std::forward<NRConfig>(config).updateFunction);
     solver->setup(config.parameters);
     return solver;
   } else {
-    static_assert(std::remove_cvref_t<NLO>::numberOfFunctions > 1,
+    static_assert(std::remove_cvref_t<NLO>::nDerivatives > 1,
                   "The number of derivatives in the nonlinear operator have to be more than 1");
     auto solver = solverFactory(nonLinearOperator, std::forward<NRConfig>(config).linearSolver,
                                 std::forward<NRConfig>(config).updateFunction);
@@ -105,27 +105,29 @@ class NewtonRaphsonWithSubsidiaryFunction : public IObservable<NonLinearSolverMe
 {
 public:
   using Settings = NewtonRaphsonWithSubsidiaryFunctionSettings;
+   using SignatureTraits= typename NLO::Traits;
   ///< Compile-time boolean indicating if the linear solver satisfies the non-linear solver concept
   static constexpr bool isLinearSolver =
       Ikarus::Concepts::LinearSolverCheck<LS, typename NLO::DerivativeType, typename NLO::ValueType>;
 
   ///< Type representing the parameter vector of the nonlinear operator.
-  using ValueType = typename NLO::template ParameterValue<0>;
+  using Domain = typename SignatureTraits::Domain;
   ///< Type representing the update function.
   using UpdateFunctionType = UF;
   using NonLinearOperator  = NLO; ///< Type of the non-linear operator
+  using CorrectionType = typename SignatureTraits::template Range<0>;        ///< Type of the correction of x += deltaX.
+  using JacobianType = typename SignatureTraits::template Range<1>;
+  using SolutionType = std::remove_cvref_t<Domain>; ///< Type of the solution vector
 
   /**
    * \brief Constructor for NewtonRaphsonWithSubsidiaryFunction.
-   *
-   * \param nonLinearOperator Nonlinear operator to solve.
+   * \param residual residual to solve.
    * \param linearSolver Linear solver used internally (default is SolverDefault).
    * \param updateFunction Update function (default is UpdateDefault).
    */
   template <typename LS2 = LS, typename UF2 = UF>
-  explicit NewtonRaphsonWithSubsidiaryFunction(const NLO& nonLinearOperator, LS2&& linearSolver = {},
-                                               UF2&& updateFunction = {})
-      : nonLinearOperator_{nonLinearOperator},
+  explicit NewtonRaphsonWithSubsidiaryFunction(const NonLinearOperator& residual, LS2&& linearSolver = {}, UF2&& updateFunction = {})
+      : residualFunction_{residual}, jacobianFunction_{derivative(residualFunction_)},
         linearSolver_{std::forward<LS2>(linearSolver)},
         updateFunction_{std::forward<UF2>(updateFunction)} {}
 
@@ -136,39 +138,28 @@ public:
    */
   void setup(const Settings& settings) { settings_ = settings; }
 
-#ifndef DOXYGEN
-  struct NoPredictor
-  {
-  };
-#endif
-
   /**
    * \brief Solve the nonlinear system using the Newton-Raphson method with subsidiary function.
    *
-   * \tparam SolutionType Type of the solution predictor (default is NoPredictor).
    * \tparam SubsidiaryType Type of the subsidiary function.
    * \param subsidiaryFunction Subsidiary function to be solved.
+      * \param x Where the solution should be stored.
    * \param subsidiaryArgs Additional arguments for the subsidiary function.
    * \param dxPredictor Predictor for the solution increment (default is NoPredictor).
    * \return Information about the solution process.
    */
-  template <typename SolutionType = NoPredictor, typename SubsidiaryType>
-  requires std::is_same_v<SolutionType, NoPredictor> ||
-           std::is_convertible_v<SolutionType, std::remove_cvref_t<typename NLO::ValueType>>
+  template <typename SubsidiaryType>
   [[nodiscard(
       "The solve method returns information of the solution process. You should store this information and check if "
       "it was successful")]] NonLinearSolverInformation
-  solve(SubsidiaryType&& subsidiaryFunction, SubsidiaryArgs& subsidiaryArgs,
-        const SolutionType& dxPredictor = NoPredictor{}) {
+  solve(SolutionType& x,SubsidiaryType&& subsidiaryFunction, SubsidiaryArgs& subsidiaryArgs) {
     this->notify(NonLinearSolverMessages::INIT);
 
     /// Initializations
     Ikarus::NonLinearSolverInformation solverInformation;
     solverInformation.success = true;
-    auto& x                   = nonLinearOperator().firstParameter(); // x = D (Displacements)
-    if constexpr (not std::is_same_v<SolutionType, NoPredictor>)
-      updateFunction_(x, dxPredictor);
-    auto& lambda = nonLinearOperator().lastParameter();
+
+    auto& lambda = x.parameter();
 
     /// Determine Fext0
     /// It is assumed that Fext = Fext0 * lambda such that dRdlambda = Fext0
@@ -178,15 +169,13 @@ public:
     auto DDummy      = x;
     x.setZero();
     lambda = 1.0;
-    nonLinearOperator().template update<0>();
-    const auto Fext0 = (-nonLinearOperator().value()).eval(); // dRdlambda(lambda)
+    decltype(auto) rx = residualFunction_(x);
+    const auto Fext0 = (-rx).eval(); // dRdlambda(lambda)
     lambda           = lambdaDummy;
     x                = DDummy;
 
-    Eigen::MatrixX2<double> residual2d, sol2d;
-    nonLinearOperator().updateAll();
-    const auto& rx = nonLinearOperator().value();
-    const auto& Ax = nonLinearOperator().derivative();
+    rx = residualFunction_(x);
+    decltype(auto) Ax = jacobianFunction_(x);
 
     Eigen::VectorXd deltaD;
     deltaD.resizeLike(rx);
@@ -200,6 +189,8 @@ public:
     int iter{0};
     if constexpr (isLinearSolver)
       linearSolver_.analyzePattern(Ax);
+
+    Eigen::MatrixX2<double> residual2d, sol2d;
 
     /// Iterative solving scheme
     while (rNorm > settings_.tol && iter < settings_.maxIter) {
@@ -230,7 +221,8 @@ public:
       subsidiaryArgs.Dlambda += deltalambda;
 
       dNorm = sqrt(deltaD.dot(deltaD) + deltalambda * deltalambda);
-      nonLinearOperator().updateAll();
+      rx = residualFunction_(x);
+      Ax = jacobianFunction_(x);
       rNorm = sqrt(rx.dot(rx) + subsidiaryArgs.f * subsidiaryArgs.f);
 
       this->notify(NonLinearSolverMessages::SOLUTION_CHANGED, static_cast<double>(lambda));
@@ -253,13 +245,15 @@ public:
   }
 
   /**
-   * \brief Access the nonlinear operator.
-   * \return Reference to the nonlinear operator.
+   * \brief Access the residual function.
+   * \return Reference to the residual function.
    */
-  auto& nonLinearOperator() { return nonLinearOperator_; }
+  auto& residual() { return residualFunction_; }
 
 private:
-  NLO nonLinearOperator_;
+  NonLinearOperator residualFunction_;
+  typename NonLinearOperator::Derivative jacobianFunction_;
+  CorrectionType correction_;
   LS linearSolver_;
   UF updateFunction_;
   Settings settings_;

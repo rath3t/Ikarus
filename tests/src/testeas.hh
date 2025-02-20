@@ -19,7 +19,7 @@ struct ElementTest<FE>
 
       Dune::TestSuite t("EAS specific test");
 
-      auto subOp = derivative(nonLinearOperator);
+      auto subOp = derivative(nonLinOp);
       std::array<int, (gridDim == 2) ? 4 : 3> easParameters;
       if constexpr (gridDim == 2)
         easParameters = {0, 4, 5, 7};
@@ -30,18 +30,16 @@ struct ElementTest<FE>
 
       for (auto& numberOfEASParameter : easParameters) {
         fe.setEASType(numberOfEASParameter);
-        subOp.updateAll();
         auto messageIfFailed = "The numbers of EAS parameters are " + std::to_string(numberOfEASParameter) + ".";
         if (numberOfEASParameter == 0) {
-          nonLinOp.updateAll();
-          t.subTest(checkGradientOfElement(nonLinOp, messageIfFailed));
-          t.subTest(checkHessianOfElement(nonLinOp, messageIfFailed));
+          t.subTest(checkGradientOfElement(nonLinOp,req, messageIfFailed));
+          t.subTest(checkHessianOfElement(nonLinOp,req,  messageIfFailed));
         }
-        t.subTest(checkJacobianOfElement(subOp, messageIfFailed));
+        t.subTest(checkJacobianOfElement(subOp,req,  messageIfFailed));
 
         t.subTest(checkFEByAutoDiff(nonLinOp, fe, req, affordance, messageIfFailed));
 
-        auto stiffnessMatrix = subOp.derivative();
+        decltype(auto) stiffnessMatrix = derivative(subOp)(req);
 
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(stiffnessMatrix);
         newEigenValues = es.eigenvalues();

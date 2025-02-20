@@ -42,20 +42,25 @@ as shown below:
 ```cpp
 auto fvLambda  = [&](auto &&x) { return f(x); };
 auto dfvLambda = [&](auto &&x) { return df(x); };
-Ikarus::NonLinearOperator nonLinOp(Ikarus::functions(fvLambda, dfvLambda), Ikarus::parameter(x));
+Ikarus::NonLinearOperator nonLinOp(Ikarus::functions(fvLambda, dfvLambda), x);
 ```
 
 The standard implementation of the Newton-Raphson method is illustrated in this function, which also uses `nonLinOp`.
 
 ```cpp
 int iterCount = 1;
+typename Ikarus::NonLinearOperator::Domain x;
+auto f = nonLinOp(x);
+auto df = derivative(nonLinOp)(x);
 while (abs(nonLinOp.value()) > eps and iterCount <= maxIter) {
-  x -= nonLinOp.value() / nonLinOp.derivative();
-  nonLinOp.updateAll();
+
+  x -=f / df;
+  f = nonLinOp(x);
+  df = derivative(nonLinOp)(x);
   iterCount++;
 
-  std::cout << "nonlinearOperator, value(): " << nonLinOp.value() << "\n";
-  std::cout << "nonlinearOperator, x: " << nonLinOp.firstParameter() << "\n";
+  std::cout << "nonlinearOperator, value(): " << nonLinOp(x) << "\n";
+  std::cout << "nonlinearOperator, x: " << x << "\n";
 }
 ```
 

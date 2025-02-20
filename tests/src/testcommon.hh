@@ -242,28 +242,28 @@ struct ElementTest
 };
 
 template <typename NonLinearOperator>
-[[nodiscard]] auto checkGradientOfElement(NonLinearOperator& nonLinearOperator,
+[[nodiscard]] auto checkGradientOfElement(NonLinearOperator& nonLinearOperator, const typename NonLinearOperator::Domain& req,
                                           const std::string& messageIfFailed = "") {
   Dune::TestSuite t("Check gradient");
-  t.check(Ikarus::utils::checkGradient(nonLinearOperator, {.draw = false, .writeSlopeStatementIfFailed = true}))
+  t.check(Ikarus::utils::checkGradient(nonLinearOperator,req, {.draw = false, .writeSlopeStatementIfFailed = true}))
       << "calculateVector is not the gradient of calculateScalar." << messageIfFailed;
   return t;
 }
 
 template <typename NonLinearOperator>
-[[nodiscard]] auto checkHessianOfElement(NonLinearOperator& nonLinearOperator,
+[[nodiscard]] auto checkHessianOfElement(NonLinearOperator& nonLinearOperator,const typename NonLinearOperator::Domain& req,
                                          const std::string& messageIfFailed = "") {
   Dune::TestSuite t("Check Hessian");
-  t.check(Ikarus::utils::checkHessian(nonLinearOperator, {.draw = false, .writeSlopeStatementIfFailed = true}))
+  t.check(Ikarus::utils::checkHessian(nonLinearOperator,req, {.draw = false, .writeSlopeStatementIfFailed = true}))
       << "calculateMatrix is not the Hessian of calculateScalar. " << messageIfFailed;
   return t;
 }
 
 template <typename NonLinearOperator>
-[[nodiscard]] auto checkJacobianOfElement(NonLinearOperator& nonLinearOperator,
+[[nodiscard]] auto checkJacobianOfElement(NonLinearOperator& nonLinearOperator,const typename NonLinearOperator::Domain& req,
                                           const std::string& messageIfFailed = "") {
   Dune::TestSuite t("Check Jacobian");
-  t.check(Ikarus::utils::checkJacobian(nonLinearOperator, {.draw = false, .writeSlopeStatementIfFailed = true}))
+  t.check(Ikarus::utils::checkJacobian(nonLinearOperator,req, {.draw = false, .writeSlopeStatementIfFailed = true}))
       << "The Jacobian of calculateVector is not calculateMatrix." << messageIfFailed;
   return t;
 }

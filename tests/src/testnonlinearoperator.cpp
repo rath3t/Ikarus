@@ -53,7 +53,7 @@ static auto simple1DOperatorNewtonRaphsonTest() {
 
   auto fvLambda  = [&](auto&& x_) { return f(x_); };
   auto dfvLambda = [&](auto&& x_) { return df(x_); };
-  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), x);
 
   // Newton method test
   const double eps       = 1e-14;
@@ -76,7 +76,7 @@ static auto simple1DOperatorNewtonRaphsonCheckThatThePerfectPredictorWorksTest()
   const int maxIter      = 20;
   const double xExpected = std::sqrt(5.0) - 1.0;
   double x = xExpected;
-  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), x);
 
   Ikarus::NewtonRaphson nr(nonLinOp);
 
@@ -91,7 +91,7 @@ static auto simple1DOperatorNewtonRaphsonWithWrongDerivativeTest() {
 
   auto fvLambda  = [](auto&& x_) { return f(x_); };
   auto dfvLambda = [](auto&& x_) { return dfFail(x_); };
-  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), x);
 
 
   // Newton method test
@@ -124,7 +124,7 @@ static auto simple1DOperatorNewtonRaphsonTestWithParameter() {
   for (int i = 0; i < 3; ++i) {
     auto fvLambda  = [&](auto&& x_) { return fp(x_, i); };
     auto dfvLambda = [&](auto&& x_) { return dfp(x_, i); };
-    auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
+    auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), x);
 
     // Newton method test
     const double eps       = 1e-14;
@@ -148,7 +148,7 @@ static auto vectorValuedOperatorNewtonRaphsonTest() {
 
   auto fvLambda  = [&](auto&& x_) { return fv(x_, A, b); };
   auto dfvLambda = [&](auto&& x_) { return dfv(x_, A, b); };
-  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), parameter(x));
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda), x);
 
 
   // Newton method test
@@ -182,7 +182,7 @@ static auto secondOrderVectorValuedOperatorTest() {
   auto fvLambda   = [&](auto&& x_) { return f2v(x_, A, b); };
   auto dfvLambda  = [&](auto&& x_) { return df2v(x_, A, b); };
   auto ddfvLambda = [&](auto&& x_) { return ddf2v(x_, A, b); };
-  NonLinearOperator nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda,ddfvLambda), parameter(x));
+  NonLinearOperator nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda,ddfvLambda), x);
 
 
   t.check(Ikarus::utils::checkGradient(nonLinOp,x, {.draw = false, .writeSlopeStatementIfFailed = false}));
@@ -243,7 +243,7 @@ static auto secondOrderVectorValuedOperatorNonlinearAutodiff() {
     return ddf2vNL(x_, A, b);
   };
 
-  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda,ddfvLambda), parameter(x));
+  auto nonLinOp= makeNonLinearOperator(functions(fvLambda,dfvLambda,ddfvLambda), x);
 
   t.check(Ikarus::utils::checkGradient(nonLinOp,x, {.draw = false, .writeSlopeStatementIfFailed = false}));
   t.check(Ikarus::utils::checkHessian(nonLinOp,x, {.draw = false, .writeSlopeStatementIfFailed = false}));

@@ -158,10 +158,10 @@ int main(int argc, char** argv) {
   Eigen::VectorXd D;
   D.setZero(2);
 
-  auto fvLambda  = [&](auto&& D_, auto&& lambda_) { return residual(D_, lambda_); };
-  auto dfvLambda = [&](auto&& D_, auto&& lambda_) { return stiffnessMatrix(D_, lambda_); };
+  auto fvLambda  = [&](auto&& D_) { return residual(D_, lambda); };
+  auto dfvLambda = [&](auto&& D_) { return stiffnessMatrix(D_, lambda); };
 
-  auto nonLinOp = Ikarus::NonLinearOperator(Ikarus::functions(fvLambda, dfvLambda), Ikarus::parameter(D, lambda));
+  auto nonLinOp = Ikarus::NonLinearOperator(Ikarus::functions(fvLambda, dfvLambda), D);
 
   double stepSize = 0.1;
   int loadSteps   = 5;
