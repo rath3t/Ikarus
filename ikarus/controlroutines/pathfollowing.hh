@@ -103,7 +103,8 @@ public:
    *
    * \return ControlInformation structure containing information about the control results.
    */
-  ControlInformation run();
+
+  ControlInformation run(typename NLS::Domain& d);
 
   /* \brief returns the nonlinear solver */
   NLS& nonlinearSolver() { return *nonLinearSolver_; }

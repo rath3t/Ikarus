@@ -17,7 +17,7 @@ add_custom_target(
 
 add_dependencies(site doxygen_ikarus)
 
-file(GLOB_RECURSE markdownFiles CONFIGURE_DEPENDS *.md)
+file(GLOB_RECURSE markdownFiles *.md)
 
 add_custom_target(
   localSite

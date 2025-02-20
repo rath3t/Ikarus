@@ -9,8 +9,10 @@
 #pragma once
 
 #include <iosfwd>
+#include <type_traits>
 
 #include <dune/common/float_cmp.hh>
+#include <dune/functions/common/signature.hh>
 
 #include <spdlog/spdlog.h>
 
@@ -94,8 +96,8 @@ requires traits::isSpecializationNonTypeAndTypes<TrustRegionConfig, std::remove_
 auto createNonlinearSolver(TRConfig&& config, NLO&& nonLinearOperator) {
   static constexpr PreConditioner preConditioner = std::remove_cvref_t<TRConfig>::preConditionerType;
   using UF                                       = std::remove_cvref_t<TRConfig>::UpdateFunction;
-  static_assert(std::remove_cvref_t<NLO>::numberOfFunctions == 3,
-                "The number of derivatives in the nonlinear operator have to be exactly 3.");
+  // assert(std::remove_cvref_t<NLO>::nDerivatives == 3,
+  //               "The number of derivatives in the nonlinear operator have to be exactly 3.");
   auto solver = std::make_shared<TrustRegion<NLO, preConditioner, UF>>(nonLinearOperator,
                                                                        std::forward<TRConfig>(config).updateFunction);
 
@@ -169,17 +171,21 @@ class TrustRegion : public IObservable<NonLinearSolverMessages>
 {
 public:
   using Settings  = TRSettings;                               ///< Type of the settings for the TrustRegion solver
-  using ValueType = typename NLO::template ParameterValue<0>; ///< Type of the parameter vector of
+
+    using NLOTraits= typename NLO::Traits;
+
+  using Domain = typename NLOTraits::Domain; ///< Type of the parameter vector of
                                                               ///< the nonlinear operator
-  using CorrectionType = typename NLO::DerivativeType;        ///< Type of the correction of x += deltaX.
+  using CorrectionType = typename NLOTraits::template Range<1>;        ///< Type of the correction of x += deltaX.
   using UpdateFunction = UF;                                  ///< Type of the update function.
+
+
 
   using NonLinearOperator = NLO; ///< Type of the non-linear operator
 
-  using ScalarType = std::remove_cvref_t<typename NLO::template FunctionReturnType<0>>; ///< Type of the scalar
-                                                                                        ///< cost
-
-  using MatrixType = std::remove_cvref_t<typename NLO::template FunctionReturnType<2>>; ///< Type of the Hessian
+  using EnergyType = typename NLOTraits::template Range<0>;   ///< Type of the scalar cost
+  using GradientType = typename NLOTraits::template Range<1>;   ///< Type of the gradient vector
+  using HessianType = typename NLOTraits::template Range<2>;   ///< Type of the Hessian matrix
 
   /**
    * \brief Constructs a TrustRegion solver instance.
@@ -188,13 +194,8 @@ public:
    */
   template <typename UF2 = UF>
   explicit TrustRegion(const NLO& nonLinearOperator, UF2&& updateFunction = {})
-      : nonLinearOperator_{nonLinearOperator},
-        updateFunction_{std::forward<UF2>(updateFunction)},
-        xOld_{this->nonLinearOperator().firstParameter()} {
-    eta_.setZero(gradient().size());
-    Heta_.setZero(gradient().size());
-    truncatedConjugateGradient_.analyzePattern(hessian());
-  }
+      : energyFunction_{nonLinearOperator},
+        updateFunction_{std::forward<UF2>(updateFunction)} {}
 
   /**
    * \brief Sets up the TrustRegion solver with the provided settings and checks feasibility.
@@ -208,32 +209,23 @@ public:
            "options.Delta0 must be positive and smaller than Delta_bar.");
   }
 
-#ifndef DOXYGEN
-  struct NoPredictor
-  {
-  };
-#endif
   /**
    * \brief Solves the nonlinear optimization problem using the TrustRegion algorithm.
    * \tparam SolutionType Type of the solution predictor (default is NoPredictor).
-   * \param dxPredictor Solution predictor.
+   * \param x the solutin.
    * \return NonLinearSolverInformation containing information about the solver result.
    */
-  template <typename SolutionType = NoPredictor>
-  requires std::is_same_v<SolutionType, NoPredictor> || std::is_convertible_v<SolutionType, CorrectionType>
-  NonLinearSolverInformation solve(const SolutionType& dxPredictor = NoPredictor{}) {
-    this->notify(NonLinearSolverMessages::INIT);
-    stats_ = Stats{};
-    info_  = AlgoInfo{};
+  NonLinearSolverInformation solve( Domain& x) {
+    Domain xOld = x;
+    init(x);
 
     NonLinearSolverInformation solverInformation;
-    nonLinearOperator().updateAll();
+    eta_.resizeLike(gradient());
+    Heta_.resizeLike(gradient());
+        truncatedConjugateGradient_.analyzePattern(hessian());
     stats_.energy   = energy();
-    auto& x         = nonLinearOperator().firstParameter();
-    xOld_           = x;
+    xOld           = x;
     stats_.gradNorm = norm(gradient());
-    if constexpr (not std::is_same_v<SolutionType, NoPredictor>)
-      updateFunction(x, dxPredictor);
     truncatedConjugateGradient_.analyzePattern(hessian());
 
     innerInfo_.Delta = settings_.Delta0;
@@ -265,7 +257,7 @@ public:
         double tauC;
         // Check the curvature
         const Eigen::VectorXd Hg = hessian() * gradient();
-        const auto g_Hg          = (gradient().dot(Hg));
+        const auto g_Hg          = gradient().dot(Hg);
         if (g_Hg <= 0)
           tauC = 1;
         else
@@ -292,7 +284,7 @@ public:
       updateFunction_(x, eta_);
 
       // Calculate energy of our proposed update step
-      nonLinearOperator().template update<0>();
+      updateEnergy(x);
       stats_.energyProposal = energy();
 
       // Will we accept the proposal or not?
@@ -379,16 +371,16 @@ public:
 
       if (info_.acceptProposal) {
         stats_.energy = stats_.energyProposal;
-        nonLinearOperator_.updateAll();
-        xOld_ = x;
+        updateAll(x);
+        xOld = x;
         this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, stats_.etaNorm);
         this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, stats_.gradNorm);
         this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
       } else {
-        x = xOld_;
+        x = xOld;
         eta_.setZero();
       }
-      nonLinearOperator_.updateAll();
+      updateAll(x);
       stats_.gradNorm = gradient().norm();
       this->notify(NonLinearSolverMessages::ITERATION_ENDED);
     }
@@ -408,9 +400,46 @@ public:
    * \brief Access the nonlinear operator.
    * \return Reference to the nonlinear operator.
    */
-  auto& nonLinearOperator() { return nonLinearOperator_; }
+  auto& nonLinearOperator() { return energyFunction_; }
 
 private:
+
+template< class T >
+constexpr auto make_optional_reference( T& value )
+{
+  return std::make_optional<std::reference_wrapper<const T>>(std::cref(value));
+}
+
+template< class T > requires (not std::is_lvalue_reference_v<T>)
+constexpr T make_optional_reference( T&& value )
+{
+  return value;
+}
+
+
+
+
+void init(const Domain& x)
+{
+     this->notify(NonLinearSolverMessages::INIT);
+    stats_ = Stats{};
+    info_  = AlgoInfo{};
+    energy_=make_optional_reference(energyFunction_(x));
+    grad_=make_optional_reference(derivative(energyFunction_)(x));
+    hess_=make_optional_reference(derivative(derivative(energyFunction_))(x));
+}
+
+void updateAll(const Domain& x)
+{
+  energy_=make_optional_reference(energyFunction_(x));
+  grad_=make_optional_reference(derivative(energyFunction_)(x));
+  hess_=make_optional_reference(derivative(derivative(energyFunction_))(x));
+}
+void updateEnergy(const Domain& x)
+{
+  energy_=make_optional_reference(energyFunction_(x));
+}
+
   void logState() const {
     spdlog::info(
         "{:>3s} {:>3s} {:>6d} {:>9d}  {:>6.2f}  {:>9.2e}  {:>9.2e}  {:>11.2e}  {:>9.2e}  {:>9.2e}  {:>11.2e}   "
@@ -426,16 +455,12 @@ private:
                  stats_.gradNorm, " ", " ", info_.stopReasonString + info_.cauchystr + info_.randomPredictionString);
   }
 
-  inline const auto& energy() { return nonLinearOperator().value(); }
-  inline const auto& gradient() { return nonLinearOperator().derivative(); }
-  inline const auto& hessian() { return nonLinearOperator().secondDerivative(); }
-
   bool stoppingCriterion() {
     std::ostringstream stream;
     /** Gradient correction tolerance reached  */
     if (stats_.gradNorm < settings_.grad_tol && stats_.outerIter != 0) {
       logFinalState();
-      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(gradient): {:1.16e}", nonLinearOperator().value(),
+      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(gradient): {:1.16e}", energy(),
                    stats_.gradNorm);
       stream << "Gradient norm tolerance reached; options.tolerance = " << settings_.grad_tol;
 
@@ -445,7 +470,7 @@ private:
       return true;
     } else if (stats_.etaNorm < settings_.corr_tol && stats_.outerIter != 0) {
       logFinalState();
-      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(correction): {:1.16e}", nonLinearOperator().value(),
+      spdlog::info("CONVERGENCE:  Energy: {:1.16e}    norm(correction): {:1.16e}", energy(),
                    stats_.etaNorm);
       stream << "Displacement norm tolerance reached;  = " << settings_.corr_tol << "." << std::endl;
 
@@ -497,11 +522,47 @@ private:
     innerInfo_ = truncatedConjugateGradient_.getInfo();
   }
 
-  NLO nonLinearOperator_;
+
+  template<class T>
+static constexpr T& resolveOptRef(T& gf) noexcept
+{
+  return gf;
+}
+
+template<class T>
+static constexpr T& resolveOptRef(std::optional<std::reference_wrapper<T>>& gf) noexcept
+{
+  return gf.value().get();
+}
+
+template<class T>
+static constexpr T& resolveOptRef(const std::optional<std::reference_wrapper<T>>& gf) noexcept
+{
+  return gf.value().get();
+}
+
+
+   auto& energy() const noexcept { return resolveOptRef(energy_); }
+   auto& energy() noexcept { return resolveOptRef(energy_); }
+   auto& gradient() const noexcept { return resolveOptRef(grad_); }
+   auto& gradient() noexcept  { return resolveOptRef(grad_); }
+   auto& hessian() const noexcept { return resolveOptRef(hess_); }
+   auto& hessian() noexcept { return resolveOptRef(hess_); }
+
+
+
+  NLO energyFunction_;
+  // typename NLO::Derivative gradientFunction_;
+  // typename NLO::Derivative::Derivative  hessianFunction_;
+
+
+  std::conditional_t<std::is_lvalue_reference_v<EnergyType>,std::optional<std::reference_wrapper<std::add_const_t<std::remove_cvref_t<EnergyType>>>>,EnergyType> energy_;
+  std::conditional_t<std::is_lvalue_reference_v<GradientType>,std::optional<std::reference_wrapper<std::add_const_t<std::remove_cvref_t<GradientType>>>>,GradientType>   grad_;
+  std::conditional_t<std::is_lvalue_reference_v<HessianType>,std::optional<std::reference_wrapper<std::add_const_t<std::remove_cvref_t<HessianType>>>>,HessianType>  hess_;
+
   UpdateFunction updateFunction_;
-  typename NLO::template ParameterValue<0> xOld_;
-  CorrectionType eta_;
-  CorrectionType Heta_;
+  std::remove_cvref_t<CorrectionType> eta_;
+  std::remove_cvref_t<CorrectionType> Heta_;
   Settings settings_;
   AlgoInfo info_;
   double choleskyInitialShift_ = 1e-3;
@@ -516,9 +577,9 @@ private:
   using PreConditionerType =
       std::conditional_t<preConditioner == PreConditioner::IdentityPreconditioner, Eigen::IdentityPreconditioner,
                          std::conditional_t<preConditioner == PreConditioner::DiagonalPreconditioner,
-                                            typename Eigen::DiagonalPreconditioner<ScalarType>,
-                                            typename Eigen::IncompleteCholesky<ScalarType>>>;
-  Eigen::TruncatedConjugateGradient<MatrixType, Eigen::Lower | Eigen::Upper, PreConditionerType>
+                                            typename Eigen::DiagonalPreconditioner<std::decay_t<EnergyType>>,
+                                            typename Eigen::IncompleteCholesky<std::decay_t<EnergyType>>>>;
+  Eigen::TruncatedConjugateGradient<std::decay_t<HessianType>, Eigen::Lower | Eigen::Upper, PreConditionerType>
       truncatedConjugateGradient_;
 };
 

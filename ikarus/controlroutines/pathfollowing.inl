@@ -23,7 +23,9 @@ namespace Ikarus {
 
 template <typename NLS, typename PF, typename ASS>
 requires(Impl::checkPathFollowingTemplates<NLS, PF, ASS>())
-ControlInformation PathFollowing<NLS, PF, ASS>::run() {
+ControlInformation PathFollowing<NLS, PF, ASS>::run(typename NLS::Domain& req) {
+  auto& d = req.globalSolution();
+  auto& lambda = req.parameter();
   ControlInformation info;
   auto& nonOp = nonLinearSolver_->nonLinearOperator();
   this->notify(ControlMessages::CONTROL_STARTED, pathFollowingType_.name());
@@ -32,13 +34,13 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
 
   info.totalIterations    = 0;
   subsidiaryArgs.stepSize = stepSize_;
-  subsidiaryArgs.DD.resizeLike(nonOp.firstParameter());
+  subsidiaryArgs.DD.resizeLike(d);
   subsidiaryArgs.DD.setZero();
 
   /// Initializing solver
   this->notify(ControlMessages::STEP_STARTED, 0, subsidiaryArgs.stepSize);
-  pathFollowingType_.initialPrediction(nonOp, subsidiaryArgs);
-  auto solverInfo = nonLinearSolver_->solve(pathFollowingType_, subsidiaryArgs);
+  pathFollowingType_.initialPrediction(nonOp, subsidiaryArgs,d,lambda);
+  auto solverInfo = nonLinearSolver_->solve(d,pathFollowingType_, subsidiaryArgs);
   info.solverInfos.push_back(solverInfo);
   info.totalIterations += solverInfo.iterations;
   if (not solverInfo.success)
@@ -54,9 +56,9 @@ ControlInformation PathFollowing<NLS, PF, ASS>::run() {
 
     this->notify(ControlMessages::STEP_STARTED, subsidiaryArgs.currentStep, subsidiaryArgs.stepSize);
 
-    pathFollowingType_.intermediatePrediction(nonOp, subsidiaryArgs);
+    pathFollowingType_.intermediatePrediction(nonOp, subsidiaryArgs,d,lambda);
 
-    solverInfo = nonLinearSolver_->solve(pathFollowingType_, subsidiaryArgs);
+    solverInfo = nonLinearSolver_->solve(d,pathFollowingType_, subsidiaryArgs);
 
     info.solverInfos.push_back(solverInfo);
     info.totalIterations += solverInfo.iterations;

@@ -343,6 +343,16 @@ public:
    */
   bool populated() const { return sol_.has_value() and parameter_.has_value(); }
 
+
+   /**
+   * \brief Enables the usage of the class as a solution vector
+   *
+   */
+   template<typename T>
+   SolutionVectorReturnType operator+=(const T& rhs) {
+    return globalSolution() += rhs;
+   }
+
 private:
   std::optional<SolutionVectorStorageType> sol_;
   std::optional<ParameterStorageType> parameter_;

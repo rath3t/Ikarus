@@ -71,15 +71,15 @@ auto createNonlinearSolver(NRConfig&& config, NLO&& nonLinearOperator) {
         nlo2, std::forward<LS2>(ls), std::forward<UF2>(uf));
   };
 
-  if constexpr (std::remove_cvref_t<NLO>::numberOfFunctions == 3) {
+  if constexpr (std::remove_cvref_t<NLO>::nDerivatives == 2) {
     auto solver =
-        solverFactory(nonLinearOperator.template subOperator<1, 2>(), std::forward<NRConfig>(config).linearSolver,
+        solverFactory(derivative(nonLinearOperator), std::forward<NRConfig>(config).linearSolver,
                       std::forward<NRConfig>(config).updateFunction);
     solver->setup(config.parameters);
     return solver;
   } else {
-    static_assert(std::remove_cvref_t<NLO>::numberOfFunctions > 1,
-                  "The number of derivatives in the nonlinear operator have to be more than 1");
+    static_assert(std::remove_cvref_t<NLO>::nDerivatives > 0,
+                  "The number of derivatives in the nonlinear operator have to be more than 0");
     auto solver = solverFactory(nonLinearOperator, std::forward<NRConfig>(config).linearSolver,
                                 std::forward<NRConfig>(config).updateFunction);
     ;
@@ -103,30 +103,33 @@ class NewtonRaphson : public IObservable<NonLinearSolverMessages>
 {
 public:
   using Settings = NRSettings;
+      using SignatureTraits= typename NLO::Traits;
+    using DerivativeSignatureTraits = Dune::Functions::SignatureTraits<typename NLO::Derivative>;
+  using CorrectionType = typename SignatureTraits::template Range<0>;        ///< Type of the correction of x += deltaX.
+  using JacobianType = typename SignatureTraits::template Range<1>;
   ///< Compile-time boolean indicating if the linear solver satisfies the non-linear solver concept
   static constexpr bool isLinearSolver =
-      Ikarus::Concepts::LinearSolverCheck<LinearSolver, typename NLO::DerivativeType, typename NLO::ValueType>;
+      Ikarus::Concepts::LinearSolverCheck<LinearSolver, JacobianType, CorrectionType>;
 
   ///< Type representing the parameter vector of the nonlinear operator.
-  using ValueType = typename NLO::template ParameterValue<0>;
+  using Domain = typename SignatureTraits::Domain;
+
+
 
   using UpdateFunction    = UF;  ///< Type representing the update function.
   using NonLinearOperator = NLO; ///< Type of the non-linear operator
 
   /**
    * \brief Constructor for NewtonRaphson.
-   * \param nonLinearOperator Nonlinear operator to solve.
+   * \param residual residual to solve.
    * \param linearSolver Linear solver used internally (default is SolverDefault).
    * \param updateFunction Update function (default is UpdateDefault).
    */
   template <typename LS2 = LS, typename UF2 = UF>
-  explicit NewtonRaphson(const NonLinearOperator& nonLinearOperator, LS2&& linearSolver = {}, UF2&& updateFunction = {})
-      : nonLinearOperator_{nonLinearOperator},
+  explicit NewtonRaphson(const NonLinearOperator& residual, LS2&& linearSolver = {}, UF2&& updateFunction = {})
+      : residualFunction_{residual}, jacobianFunction_{derivative(residualFunction_)},
         linearSolver_{std::forward<LS2>(linearSolver)},
-        updateFunction_{std::forward<UF2>(updateFunction)} {
-    if constexpr (std::is_same_v<typename NonLinearOperator::ValueType, Eigen::VectorXd>)
-      correction_.setZero(this->nonLinearOperator().value().size());
-  }
+        updateFunction_{std::forward<UF2>(updateFunction)} {}
 
   /**
    * \brief Set up the solver with the given settings.
@@ -139,32 +142,23 @@ public:
     settings_ = settings;
   }
 
-#ifndef DOXYGEN
-  struct NoPredictor
-  {
-  };
-#endif
+  using SolutionType = std::remove_cvref_t<Domain>; ///< Type of the solution vector
+
   /**
    * \brief Solve the nonlinear system.
-   * \param dxPredictor Predictor for the solution increment (default is NoPredictor).
+   * \param x Where the solution should be stored.
    * \return Information about the solution process.
    */
-  template <typename SolutionType = NoPredictor>
-  requires std::is_same_v<SolutionType, NoPredictor> ||
-           std::is_convertible_v<SolutionType, std::remove_cvref_t<typename NonLinearOperator::ValueType>>
   [[nodiscard(
       "The solve method returns information of the solution process. You should store this information and check if "
       "it was successful")]] Ikarus::NonLinearSolverInformation
-  solve(const SolutionType& dxPredictor = NoPredictor{}) {
+  solve(SolutionType& x ) {
     this->notify(NonLinearSolverMessages::INIT);
     Ikarus::NonLinearSolverInformation solverInformation;
     solverInformation.success = true;
-    auto& x                   = nonLinearOperator().firstParameter();
-    if constexpr (not std::is_same_v<SolutionType, NoPredictor>)
-      updateFunction_(x, dxPredictor);
-    nonLinearOperator().updateAll();
-    const auto& rx = nonLinearOperator().value();
-    const auto& Ax = nonLinearOperator().derivative();
+
+    decltype(auto) rx = residualFunction_(x);
+    decltype(auto) Ax = jacobianFunction_(x);
     auto rNorm     = norm(rx);
     decltype(rNorm) dNorm;
     int iter{0};
@@ -184,7 +178,8 @@ public:
       }
       this->notify(NonLinearSolverMessages::CORRECTIONNORM_UPDATED, static_cast<double>(dNorm));
       this->notify(NonLinearSolverMessages::SOLUTION_CHANGED);
-      nonLinearOperator().updateAll();
+      rx = residualFunction_(x);
+      Ax = jacobianFunction_(x);
       rNorm = norm(rx);
       this->notify(NonLinearSolverMessages::RESIDUALNORM_UPDATED, static_cast<double>(rNorm));
       this->notify(NonLinearSolverMessages::ITERATION_ENDED);
@@ -204,11 +199,12 @@ public:
    * \brief Access the nonlinear operator.
    * \return Reference to the nonlinear operator.
    */
-  auto& nonLinearOperator() { return nonLinearOperator_; }
+  auto& nonLinearOperator() { return residualFunction_; }
 
 private:
-  NonLinearOperator nonLinearOperator_;
-  typename NonLinearOperator::ValueType correction_;
+  NonLinearOperator residualFunction_;
+  typename NonLinearOperator::Derivative jacobianFunction_;
+  CorrectionType correction_;
   LS linearSolver_;
   UpdateFunction updateFunction_;
   Settings settings_;
