@@ -48,9 +48,9 @@ struct NonLinearOperatorFactory
       };
 
       return makeNonLinearOperator(
-          functions(std::move(energyFunction), std::move(residualFunction), std::move(KFunction)), parameter(arg));
+          functions(energyFunction, residualFunction, KFunction), parameter(arg));
     } else
-      return makeNonLinearOperator(functions(std::move(residualFunction), std::move(KFunction)), parameter(arg));
+      return makeNonLinearOperator(functions(residualFunction, KFunction), parameter(arg));
   }
 
   template <typename Assembler>

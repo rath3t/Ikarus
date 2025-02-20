@@ -9,6 +9,7 @@
 #pragma once
 
 #include <iosfwd>
+#include <type_traits>
 
 #include <dune/common/float_cmp.hh>
 #include <dune/functions/common/signature.hh>
@@ -283,7 +284,7 @@ public:
       updateFunction_(x, eta_);
 
       // Calculate energy of our proposed update step
-      energy() = energyFunction_(x);
+      updateEnergy(x);
       stats_.energyProposal = energy();
 
       // Will we accept the proposal or not?
@@ -403,14 +404,14 @@ public:
 
 private:
 
-template< class T > requires std::is_lvalue_reference_v<T>
-constexpr std::optional<std::decay_t<T>> make_optional( T&& value )
+template< class T >
+constexpr auto make_optional_reference( T& value )
 {
-  return std::make_optional<std::decay_t<T>>(std::forward<T>(value));
+  return std::make_optional<std::reference_wrapper<const T>>(std::cref(value));
 }
 
-template< class T > requires not std::is_reference_v<T>
-constexpr std::decay_t<T> make_optional( T&& value )
+template< class T > requires (not std::is_lvalue_reference_v<T>)
+constexpr T make_optional_reference( T&& value )
 {
   return value;
 }
@@ -423,17 +424,22 @@ void init(const Domain& x)
      this->notify(NonLinearSolverMessages::INIT);
     stats_ = Stats{};
     info_  = AlgoInfo{};
-    energy_=make_optional(energyFunction_(x));
-    grad_=make_optional(derivative(energyFunction_)(x));
-    hess_=make_optional(derivative(derivative(energyFunction_))(x));
+    energy_=make_optional_reference(energyFunction_(x));
+    grad_=make_optional_reference(derivative(energyFunction_)(x));
+    hess_=make_optional_reference(derivative(derivative(energyFunction_))(x));
 }
 
 void updateAll(const Domain& x)
 {
-      energy()=energyFunction_(x);
-    gradient()=derivative(energyFunction_)(x);
-    hessian()=derivative(derivative(energyFunction_))(x);
+  energy_=make_optional_reference(energyFunction_(x));
+  grad_=make_optional_reference(derivative(energyFunction_)(x));
+  hess_=make_optional_reference(derivative(derivative(energyFunction_))(x));
 }
+void updateEnergy(const Domain& x)
+{
+  energy_=make_optional_reference(energyFunction_(x));
+}
+
   void logState() const {
     spdlog::info(
         "{:>3s} {:>3s} {:>6d} {:>9d}  {:>6.2f}  {:>9.2e}  {:>9.2e}  {:>11.2e}  {:>9.2e}  {:>9.2e}  {:>11.2e}   "
@@ -550,9 +556,9 @@ static constexpr T& resolveOptRef(const std::optional<std::reference_wrapper<T>>
   // typename NLO::Derivative::Derivative  hessianFunction_;
 
 
-  std::conditional_t<std::is_lvalue_reference_v<EnergyType>,std::optional<std::reference_wrapper<std::remove_cvref_t<EnergyType>>>,EnergyType> energy_;
-  std::conditional_t<std::is_lvalue_reference_v<GradientType>,std::optional<std::reference_wrapper<std::remove_cvref_t<GradientType>>>,GradientType>   grad_;
-  std::conditional_t<std::is_lvalue_reference_v<HessianType>,std::optional<std::reference_wrapper<std::remove_cvref_t<HessianType>>>,HessianType>  hess_;
+  std::conditional_t<std::is_lvalue_reference_v<EnergyType>,std::optional<std::reference_wrapper<std::add_const_t<std::remove_cvref_t<EnergyType>>>>,EnergyType> energy_;
+  std::conditional_t<std::is_lvalue_reference_v<GradientType>,std::optional<std::reference_wrapper<std::add_const_t<std::remove_cvref_t<GradientType>>>>,GradientType>   grad_;
+  std::conditional_t<std::is_lvalue_reference_v<HessianType>,std::optional<std::reference_wrapper<std::add_const_t<std::remove_cvref_t<HessianType>>>>,HessianType>  hess_;
 
   UpdateFunction updateFunction_;
   std::remove_cvref_t<CorrectionType> eta_;

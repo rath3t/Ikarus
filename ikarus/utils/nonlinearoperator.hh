@@ -9,6 +9,7 @@
 
 #pragma once
 #include <tuple>
+#include <type_traits>
 
 #include "dune/functions/common/differentiablefunctionfromcallables.hh"
 #include <dune/common/hybridutilities.hh>
@@ -53,7 +54,7 @@ namespace Impl {
  */
 template <typename... Args>
 auto parameter(Args&&... args) {
-  return Impl::Parameter<Args&&...>{std::forward_as_tuple(std::forward<Args>(args)...)};
+  return Impl::Parameter<Args...>{std::forward_as_tuple(std::forward<Args>(args)...)};
 }
 
 /**
@@ -65,7 +66,7 @@ auto parameter(Args&&... args) {
  */
 template <typename... Args>
 auto functions(Args&&... args) {
-  return Impl::Functions<Args&&...>{std::forward_as_tuple(std::forward<Args>(args)...)};
+  return Impl::Functions<std::remove_cvref_t<Args>...>{std::forward_as_tuple(std::forward<Args>(args)...)};
 }
 #ifndef DOXYGEN
 template <class Signature, template <class> class DerivativeTraits, class... F>
@@ -153,7 +154,7 @@ auto makeNonLinearOperator(const Impl::Functions<DerivativeArgs...>& derivatives
   using DerivTraits = decltype(t);
   auto la           = []<typename... F>(F&&... f) {
     return Ikarus::NonLinearOperator<typename DerivTraits::template Signature<0>,
-                                               DerivTraits::template DerivativeTraits, F...>(std::forward<F>(f)...);
+                                               DerivTraits::template DerivativeTraits, std::remove_cvref_t<F>...>(std::forward<F>(f)...);
   };
   return std::apply(la, derivativesFunctions.args);
 }
