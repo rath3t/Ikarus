@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 
 option(DUNE_ENABLE_PYTHONBINDINGS "Enable Python bindings" ON)
-option(ENABLE_WARNINGS "Enable warning" OFF)
+option(ENABLE_WARNINGS "Enable warning" ON)
 option(ENABLE_TEST_COVERAGE "Gcov-type code coverage" OFF)
 option(ENABLE_TEST_COVERAGE_SOURCEBASED "Source based code coverage" OFF)
 option(DUNE_PYTHON_ALLOW_GET_PIP "Allow dune-common to install pip into venv" ON)
